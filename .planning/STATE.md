@@ -4,14 +4,14 @@
 
 - **Milestone:** 1 (MVP)
 - **Phase:** 2 (Replanning — auth approach changed to email/password)
-- **Next action:** Plan Phase 2 with email/password auth (/gsd-plan-phase 2)
+- **Next action: Plan Phase 3 (/gsd-plan-phase 3)
 
 ## Phase Progress
 
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Foundation & App Shell | ✅ Complete |
-| 2 | Authentication (Email/Password) | 🔁 Replanning — auth approach changed to email/password |
+| 2 | Authentication (Email/Password) | ✅ Complete
 | 3 | Billing & Sale Recording | 🔲 Not started |
 | 4 | Receipt Generation & WhatsApp Share | 🔲 Not started |
 | 5 | Dashboard & Reports | 🔲 Not started |
@@ -40,4 +40,5 @@ None.
 - Primary target: Android smartphone on 4G
 - No build step — all vanilla JS ES modules loaded directly
 - Firestore offline persistence handles all offline scenarios automatically
+
 

@@ -76,9 +76,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — modules/auth.js (Email/Password sign-in, Create Account, Forgot Password, bootstrapShopConfig)
-- [ ] 02-02-PLAN.md — firestore.rules (authorized_emails Security Rules) + modules/settings.js (sign-out)
-- [ ] 02-03-PLAN.md — Human verification checkpoint
+- [x] 02-01-PLAN.md — modules/auth.js (Email/Password sign-in, Create Account, Forgot Password, bootstrapShopConfig)
+- [x] 02-02-PLAN.md — firestore.rules (authorized_emails Security Rules) + modules/settings.js (sign-out)
+- [x] 02-03-PLAN.md — Human verification checkpoint
 
 
 ---
