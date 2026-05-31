@@ -101,47 +101,45 @@ let currentUser = null;
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (!user) {
-    // Not authenticated — show login, hide app shell nav
-    showLoginScreen();
+    // Unauthenticated — render auth screen fullscreen (no app shell)
+    const root = document.getElementById('app');
+    root.innerHTML = '';
+    import('./modules/auth.js').then(m => m.render(root)).catch(console.error);
   } else {
-    // Authenticated — mount shell and route
+    // Authenticated — mount shell, then route
     mountAppShell();
-    handleRoute();
+    const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
+    if (!route || route === 'login') {
+      // Root or login page → send to dashboard (triggers hashchange → handleRoute)
+      window.location.hash = '#/dashboard';
+    } else {
+      handleRoute();
+    }
   }
 });
-
-function showLoginScreen() {
-  const root = document.getElementById('app');
-  root.innerHTML = `
-    <div id="login-screen" style="display:flex;align-items:center;justify-content:center;min-height:100dvh;background:var(--bg-primary);padding:24px;">
-      <div class="card" style="width:100%;max-width:380px;text-align:center;">
-        <h1 style="font-size:1.5rem;margin-bottom:8px;">${SHOP_NAME}</h1>
-        <p style="color:var(--text-secondary);margin-bottom:24px;">Loading authentication...</p>
-        <div class="spinner" style="margin:0 auto;"></div>
-      </div>
-    </div>
-  `;
-  // Load auth module to handle actual OTP flow (Phase 2)
-  import('./modules/auth.js').then(m => m.render(document.getElementById('login-screen'))).catch(() => {
-    // Auth module not yet built (Phase 1) — show placeholder
-    document.querySelector('#login-screen p').textContent = 'Sign-in module coming in Phase 2';
-  });
-}
 
 // ----- Route Handler -----
 const PROTECTED_ROUTES = ['dashboard', 'billing', 'inventory', 'reports', 'settings', 'receipt'];
 
 async function handleRoute() {
-  const hash = window.location.hash || '#/login';
-  const routeParts = (hash.replace('#/', '') || 'login').split('/');
-  const route      = routeParts[0];
+  const hash = window.location.hash;
+  const routeParts = (hash.replace('#/', '') || 'dashboard').split('/');
+  const route      = routeParts[0] || 'dashboard';
   const routeParam = routeParts.length > 1
     ? decodeURIComponent(routeParts.slice(1).join('/'))
     : null;
 
-  // If unauthenticated and trying to access protected route → redirect
+  // If unauthenticated and trying to access protected route → show auth fullscreen
   if (!currentUser && PROTECTED_ROUTES.includes(route)) {
-    window.location.hash = '#/login';
+    const root = document.getElementById('app');
+    root.innerHTML = '';
+    import('./modules/auth.js').then(m => m.render(root)).catch(console.error);
+    return;
+  }
+
+  // Logged-in user visiting / or login → dashboard
+  if (currentUser && (!route || route === 'login')) {
+    window.location.hash = '#/dashboard';
     return;
   }
 
@@ -178,7 +176,13 @@ async function handleRoute() {
 
 // Listen for hash changes
 window.addEventListener('hashchange', () => {
-  if (currentUser) handleRoute();
+  if (!currentUser) return;
+  const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
+  if (!route || route === 'login') {
+    window.location.hash = '#/dashboard';
+    return;
+  }
+  handleRoute();
 });
 
 // ----- Navigation Helper -----
