@@ -444,7 +444,7 @@ async function _handleSubmit(container) {
   try {
     const batch      = writeBatch(db);
     const saleRef    = doc(db, 'shops', SHOP_ID, 'sales', saleId);
-    const summaryRef = doc(db, 'shops', SHOP_ID, 'summary');
+    const summaryRef = doc(db, 'shops', SHOP_ID, 'summary', 'totals');
 
     // 1. Sale document
     batch.set(saleRef, {
