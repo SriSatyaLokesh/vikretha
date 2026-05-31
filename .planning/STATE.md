@@ -3,8 +3,10 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 3 (Billing & Sale Recording — ✅ Complete)
-- **Next action:** Plan Phase 4 (/gsd-plan-phase 4)
+- **Phase:** 4 (Receipt Generation & WhatsApp Share — 🔄 In progress)
+- **Current Plan:** 04-02 (UAT checkpoint)
+- **Next action:** Execute Phase 4 Plan 02 (human verification)
+- **Last session:** 2026-05-31 — Completed 04-01: router fix + receipt module
 
 ## Phase Progress
 
@@ -13,7 +15,7 @@
 | 1 | Foundation & App Shell | ✅ Complete |
 | 2 | Authentication (Email/Password) | ✅ Complete
 | 3 | Billing & Sale Recording | ✅ Complete |
-| 4 | Receipt Generation & WhatsApp Share | 🔲 Not started |
+| 4 | Receipt Generation & WhatsApp Share | � In progress (1/2 plans) |
 | 5 | Dashboard & Reports | 🔲 Not started |
 | 6 | Inventory Management | 🔲 Not started |
 | 7 | Data Export (Excel) | 🔲 Not started |
@@ -31,7 +33,8 @@
 | 2026-05-31 | runTransaction for Sale ID counter | Guarantees sequential YYYYMMDD-NNNN under concurrent writes |
 | 2026-05-31 | Offline fallback Sale ID | Lets batch.commit() queue to IndexedDB when no network |
 | 2026-05-31 | Lightweight unit tests | Basic tests for utility functions |
-| 2026-05-31 | Auth: Phone OTP → Email/Password | No SMS/OTP needed; simpler UX, no 10/day rate limit, no RecaptchaVerifier |
+| 2026-05-31 | Canvas 2D for receipt image | No external library needed; browser-native, no CDN dependency |
+| 2026-05-31 | AbortError caught separately in WhatsApp share | Prevents wa.me fallback when user simply dismisses native share sheet |
 
 ## Blockers
 
