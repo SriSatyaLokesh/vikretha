@@ -1,4 +1,4 @@
-﻿# Vikretha — Roadmap
+# Vikretha — Roadmap
 
 ## Milestone 1: MVP (v1.0)
 
@@ -36,9 +36,9 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Static scaffold (index.html, shop.config.js, manifest.json, styles/main.css, .nojekyll)
-- [ ] 01-02-PLAN.md — JavaScript core (firebase-init.js, app.js router + auth guard, sw.js)
-- [ ] 01-03-PLAN.md — Human verification checkpoint
+- [x] 01-01-PLAN.md — Static scaffold (index.html, shop.config.js, manifest.json, styles/main.css, .nojekyll)
+- [x] 01-02-PLAN.md — JavaScript core (firebase-init.js, app.js router + auth guard, sw.js)
+- [x] 01-03-PLAN.md — Human verification checkpoint
 
 ---
 
