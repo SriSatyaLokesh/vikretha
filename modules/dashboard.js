@@ -10,6 +10,7 @@ import {
   query, where, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
+import { attachExportMenu } from './export.js';
 
 let _unsubSummary = null;
 
@@ -339,6 +340,9 @@ export function render(container) {
         </div>
       </div>
 
+      <!-- Export -->
+      <div id="dash-export-anchor" style="padding:0 0 8px;"></div>
+
     </div>`;
 
   // New Sale card interactions
@@ -389,4 +393,7 @@ export function render(container) {
     }
     _fetchAndRenderStats(container);
   }, { includeMetadataChanges: true });
+
+  // Wire export menu (Phase 7)
+  attachExportMenu(container);
 }
