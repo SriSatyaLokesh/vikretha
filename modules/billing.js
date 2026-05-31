@@ -49,6 +49,15 @@ export function render(container) {
         <div id="product-grid" class="product-grid"></div>
       </div>
 
+      <!-- Mobile sticky cart bar (shown when cart has items) -->
+      <div id="mobile-cart-bar" class="mobile-cart-bar" style="display:none;" aria-live="polite">
+        <div class="mobile-cart-bar-inner">
+          <span id="mcb-count" class="mobile-cart-bar-count"></span>
+          <span id="mcb-total" class="mobile-cart-bar-total"></span>
+        </div>
+        <button id="mcb-toggle" class="mobile-cart-bar-btn">View Cart ↓</button>
+      </div>
+
       <!-- Cart panel -->
       <div class="billing-cart-panel">
         <div class="card">
@@ -125,7 +134,8 @@ export function render(container) {
   });
 
   // Delegated — product grid: card tap + stepper buttons
-  container.querySelector('#product-grid').addEventListener('click', e => {
+  const grid = container.querySelector('#product-grid');
+  const handleGridClick = e => {
     const stepBtn = e.target.closest('[data-step]');
     const card    = e.target.closest('.product-card');
     if (stepBtn) {
@@ -138,7 +148,7 @@ export function render(container) {
       _refresh(container);
       return;
     }
-    if (card) {
+    if (card && card.getAttribute('aria-disabled') !== 'true') {
       const id = card.dataset.id;
       if (!_cart.has(id)) {
         const inv = _inventory.find(p => p.id === id);
@@ -146,6 +156,13 @@ export function render(container) {
           price: Number(inv.price), unit: inv.unit || 'pc', qty: 1 });
       }
       _refresh(container);
+    }
+  };
+  grid.addEventListener('click', handleGridClick);
+  grid.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleGridClick(e);
     }
   });
 
@@ -165,6 +182,13 @@ export function render(container) {
 
   container.querySelector('#submit-btn')
     .addEventListener('click', () => _handleSubmit(container));
+
+  // Mobile cart bar — "View Cart" scrolls to cart panel
+  container.querySelector('#mcb-toggle')
+    ?.addEventListener('click', () => {
+      document.querySelector('.billing-cart-panel')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 
   _loadInventory(container);
 }
@@ -215,28 +239,30 @@ function _renderGrid(query = '') {
       : lowStock
         ? `<span class="badge badge-orange">${stock} left</span>`
         : '';
-
+    // NOTE: use <div role="button"> not <button> — nested buttons are invalid HTML
+    //       and browsers eject inner buttons outside the parent card.
     return `
-      <button class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' out-of-stock' : ''}"
+      <div class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' disabled' : ''}"
         data-id="${escapeHtml(item.id)}"
+        role="button" tabindex="${noStock ? '-1' : '0'}"
         aria-label="${escapeHtml(item.name)}, ${CURRENCY}${Number(item.price)}"
-        ${noStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
+        aria-disabled="${noStock}">
         <div class="product-card-name">${escapeHtml(item.name)}</div>
         ${stockBadge}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div class="product-card-footer">
           <div>
             <span class="product-card-price">${CURRENCY}${Number(item.price)}</span>
             <span class="product-card-stock">/${escapeHtml(item.unit || 'pc')}</span>
           </div>
           ${inCart ? `
-            <div class="cart-qty-control" onclick="event.stopPropagation()">
-              <button class="cart-qty-btn" data-step="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
-              <span style="min-width:22px;text-align:center;font-size:0.875rem;font-weight:600;">${qty}</span>
-              <button class="cart-qty-btn" data-step="inc" data-id="${escapeHtml(item.id)}" aria-label="Increase">+</button>
+            <div class="card-qty-ctrl" role="group" aria-label="Quantity">
+              <button class="card-qty-btn" data-step="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
+              <span class="card-qty-num">${qty}</span>
+              <button class="card-qty-btn" data-step="inc" data-id="${escapeHtml(item.id)}" aria-label="Increase">+</button>
             </div>` : `
-            <span class="badge badge-orange">+ Add</span>`}
+            <span class="product-card-add">+ Add</span>`}
         </div>
-      </button>`;
+      </div>`;
   }).join('');
 }
 
@@ -249,6 +275,7 @@ function _renderCartRows() {
   if (_cart.size === 0) {
     rows.innerHTML = '';
     if (emptyEl) emptyEl.style.display = '';
+    _updateMobileCartBar(0, 0);
     _updateTotals();
     return;
   }
@@ -268,7 +295,21 @@ function _renderCartRows() {
       </button>
     </div>`).join('');
 
+  const subtotal = [..._cart.values()].reduce((s, i) => s + i.price * i.qty, 0);
+  _updateMobileCartBar(_cart.size, subtotal);
   _updateTotals();
+}
+
+// ── Mobile cart bar ───────────────────────────────────────────
+function _updateMobileCartBar(count, subtotal) {
+  const bar     = document.getElementById('mobile-cart-bar');
+  const countEl = document.getElementById('mcb-count');
+  const totalEl = document.getElementById('mcb-total');
+  if (!bar) return;
+  if (count === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  if (countEl) countEl.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+  if (totalEl) totalEl.textContent = `${CURRENCY}${subtotal.toLocaleString(LOCALE, { minimumFractionDigits: 2 })}`;
 }
 
 // ── Update order totals + submit button ───────────────────────
