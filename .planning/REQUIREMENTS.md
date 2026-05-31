@@ -4,7 +4,7 @@
 
 ### Functional Requirements
 
-#### FR-01: Authentication (Phone OTP)
+#### FR-01: Authentication (Email/Password)
 
 | ID | Requirement | Priority | Source |
 |----|-------------|----------|--------|
@@ -111,10 +111,10 @@
 
 | ID | Requirement | Source |
 |----|-------------|--------|
-| SEC-01 | Firebase Auth Phone OTP — only verified phones access data | PRD SEC-001 |
+| SEC-01 | Firebase Auth Email/Password — only authorized emails access data | PRD SEC-001 |
 | SEC-02 | Per-shop Firestore Security Rules isolation | PRD SEC-002 |
-| SEC-03 | `authorized_phones` array controls access; owner manages | PRD SEC-003 |
-| SEC-04 | Minimal PII (optional customer phone, authorized phones) | PRD SEC-004 |
+| SEC-03 | `authorized_emails` array controls access; owner manages | PRD SEC-003 |
+| SEC-04 | Minimal PII (optional customer phone, authorized emails) | PRD SEC-004 |
 | SEC-05 | HTTPS enforced (GitHub Pages + Firebase SDK) | PRD SEC-005 |
 | SEC-06 | Firebase config safe to commit (not secret) | PRD SEC-006 |
 | SEC-07 | CSP meta tag restricts script sources | PRD SEC-007 |

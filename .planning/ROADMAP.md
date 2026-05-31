@@ -42,39 +42,41 @@ Plans:
 
 ---
 
-### Phase 2 — Authentication (Phone OTP)
+### Phase 2 — Authentication (Email/Password)
 
-**Goal:** Complete Firebase Phone OTP flow — sign in, session persistence, sign out, auth guard enforcement.
+**Goal:** Firebase Email/Password authentication — register, sign in, session persistence, sign out, auth guard enforcement, password reset.
 
-**Delivers:** Working login screen. Only authorized phone numbers can access the app.
+**Delivers:** Working login screen. Only authorized email addresses can access the app.
 
-**Requirements covered:** FR-01.1–FR-01.8, SEC-01, SEC-02
+**Requirements covered:** FR-01.1–FR-01.10, SEC-01, SEC-02
 
 **Depends on:** Phase 1
 
 **Key tasks:**
-- Create `modules/auth.js` (Phone OTP flow with RecaptchaVerifier)
-- Build sign-in screen UI (phone input + OTP input)
+- Create `modules/auth.js` (Email/Password sign-in + Create Account flow)
+- Build sign-in UI (email input + password input + "Create Account" toggle)
+- Firebase Email/Password auth: `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`
 - Implement `onAuthStateChanged` observer for session restoration
 - Implement sign-out functionality
-- Create Firestore Security Rules file (`firestore.rules`)
-- Create initial shop config document structure in Firestore
-- Error handling: wrong OTP, expired OTP, rate limit
+- Password reset via `sendPasswordResetEmail`
+- Create Firestore Security Rules file (`firestore.rules`) — `authorized_emails` based
+- Bootstrap shop config on first sign-up (`authorized_emails: [user.email]`)
+- Error handling: wrong password, email not found, email already in use
+- Error handling: wrong password, email not found, email already in use
 
 **UAT:**
 - [ ] Unauthenticated → full-screen sign-in, no data visible
-- [ ] Phone number → OTP sent → correct OTP → dashboard
-- [ ] Wrong OTP → inline error, no navigation
+- [ ] Correct email + password → navigates to dashboard
+- [ ] Wrong password → inline error, no navigation
 - [ ] Revisit (session persisted) → auto-navigates to dashboard
 - [ ] Sign out → returns to sign-in screen
-- [ ] Unauthorized phone number → rejected by Security Rules
+- [ ] "Create Account" creates Firebase account + bootstraps shop config
+- [ ] "Forgot password" sends reset email
+- [ ] Unauthorized email rejected by Firestore Security Rules
 
-**Plans:** 3 plans
+**Plans:** TBD — run `/gsd-plan-phase 2` to generate
 
-Plans:
-- [ ] 02-01-PLAN.md — modules/auth.js (Phone OTP flow, RecaptchaVerifier, bootstrapShopConfig)
-- [ ] 02-02-PLAN.md — firestore.rules (Security Rules) + modules/settings.js (sign-out)
-- [ ] 02-03-PLAN.md — Human verification checkpoint
+Plans: (to be planned)
 
 ---
 
@@ -238,7 +240,7 @@ Plans:
 
 ### Phase 8 — Staff Management & Settings
 
-**Goal:** Shop owner can manage authorized staff phone numbers and app settings.
+**Goal:** Shop owner can manage authorized staff email addresses and app settings.
 
 **Delivers:** Settings screen with staff management (add/remove phones) and sign-out.
 
@@ -248,12 +250,12 @@ Plans:
 
 **Key tasks:**
 - Create `modules/settings.js`
-- Settings screen with staff phone number list
-- Add staff phone number (validates format)
-- Remove staff phone number (with confirmation)
-- Update `authorized_phones` array in shop config document
+- Settings screen with staff email list
+- Add staff email address (validates email format)
+- Remove staff email address (with confirmation)
+- Update `authorized_emails` array in shop config document
 - Sign out button
-- Display current user phone number
+- Display current user email address
 
 **UAT:**
 - [ ] Settings accessible from navigation
