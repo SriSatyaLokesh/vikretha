@@ -344,6 +344,45 @@ Plans:
 
 ---
 
+### Phase 10 — Modern Responsive Redesign (2026)
+
+**Goal:** Full visual overhaul — modern 2026 design system with a dark sidebar on desktop, responsive bottom nav on mobile, Inter typography, and orange-on-slate color palette. The app currently renders mobile-only; this phase makes it fully responsive from 375px phone to 1440px desktop.
+
+**Delivers:** New main.css design system, updated app shell, and redesigned UI for all 6 modules.
+
+**Requirements covered:** NFR-05, NFR-09, NFR-11, NFR-12
+
+**Depends on:** Phase 9
+
+**Key tasks:**
+- Replace CSS custom properties with modern token system (slate palette + orange primary)
+- Add Inter font via Google Fonts (preloaded)
+- Responsive layout: dark fixed sidebar (≥1024px) + bottom nav (<1024px)
+- Redesign all module HTML templates: auth, dashboard, billing, inventory, receipt, settings
+- Desktop-optimized layouts: split panels for billing, data tables for inventory, sidebar-within-settings
+- 7-day bar chart improvements (grid lines, value labels)
+
+**Status:** ✅ Complete (2026-06-01)
+
+**UAT:**
+- [x] App renders correctly at 375px, 768px, 1024px, 1440px
+- [x] Sidebar visible and functional on desktop; hidden on mobile
+- [x] Bottom nav visible on mobile; hidden on desktop
+- [x] All interactive elements meet 44px touch target
+- [x] Inter font loads and renders
+- [x] Receipt redesigned — retro thermal monospace style (Courier New, torn edges, paper texture)
+- [x] Billing fixed — nested button bug resolved, mobile cart bar added
+
+**Plans:** 4 plans
+
+Plans:
+- [x] 10-01-PLAN.md — CSS design system + index.html + app.js shell (design tokens, Inter font, responsive layout)
+- [x] 10-02-PLAN.md — Auth + Dashboard + Billing + Inventory + Receipt module redesigns
+- [x] 10-03-PLAN.md — Retro thermal receipt canvas (torn edges, Courier New, paper texture)
+- [x] 10-04-PLAN.md — Billing nested-button fix + mobile cart bar
+
+---
+
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |
