@@ -255,3 +255,101 @@ img {
     padding: 24px 24px calc(var(--nav-height) + 24px);
   }
 }
+
+/* ---- 11. Product Card (Billing) ---- */
+.product-card {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 14px 12px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  position: relative;
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 2px solid transparent;
+  text-align: left;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.product-card:active {
+  transform: scale(0.96);
+}
+.product-card.in-cart {
+  border-color: var(--theme-color);
+  background: #f0f7ff;
+}
+
+/* ---- 12. Qty Stepper ---- */
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--theme-color);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+.qty-stepper button {
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--theme-color);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.qty-stepper button:active {
+  background: rgba(37, 99, 235, 0.1);
+}
+.qty-stepper span {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ---- 13. Segmented Toggle ---- */
+.seg-toggle {
+  display: inline-flex;
+  border: 1.5px solid var(--border);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+.seg-toggle button {
+  padding: 5px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 34px;
+}
+.seg-toggle button.active {
+  background: var(--theme-color);
+  color: #fff;
+}
+
+/* ---- 14. Confirmation checkmark animation ---- */
+@keyframes scaleIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes scaleIn { from { opacity: 0; } to { opacity: 1; } }
+}
