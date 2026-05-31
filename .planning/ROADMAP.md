@@ -62,7 +62,6 @@ Plans:
 - Create Firestore Security Rules file (`firestore.rules`) — `authorized_emails` based
 - Bootstrap shop config on first sign-up (`authorized_emails: [user.email]`)
 - Error handling: wrong password, email not found, email already in use
-- Error handling: wrong password, email not found, email already in use
 
 **UAT:**
 - [ ] Unauthenticated → full-screen sign-in, no data visible
@@ -74,9 +73,13 @@ Plans:
 - [ ] "Forgot password" sends reset email
 - [ ] Unauthorized email rejected by Firestore Security Rules
 
-**Plans:** TBD — run `/gsd-plan-phase 2` to generate
+**Plans:** 3 plans
 
-Plans: (to be planned)
+Plans:
+- [ ] 02-01-PLAN.md — modules/auth.js (Email/Password sign-in, Create Account, Forgot Password, bootstrapShopConfig)
+- [ ] 02-02-PLAN.md — firestore.rules (authorized_emails Security Rules) + modules/settings.js (sign-out)
+- [ ] 02-03-PLAN.md — Human verification checkpoint
+
 
 ---
 
