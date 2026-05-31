@@ -31,50 +31,47 @@ export function render(container) {
   _search   = '';
 
   container.innerHTML = `
-    <div id="inv-screen" style="padding-bottom:96px;">
+    <div id="inv-screen">
 
-      <!-- Sticky search + sort bar -->
-      <div style="position:sticky;top:0;background:var(--bg-primary);
-                  z-index:20;padding:8px 0 12px;">
-        <div style="position:relative;margin-bottom:10px;">
-          <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);
-                      pointer-events:none;" width="18" height="18"
-               viewBox="0 0 24 24" fill="none" stroke="#9ca3af"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
+      <!-- Search + sort toolbar -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="billing-search-wrap" style="flex:1;min-width:200px;margin-bottom:0;">
+          <span class="billing-search-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </span>
           <input id="inv-search" type="search" autocomplete="off"
-            aria-label="Search inventory items"
-            placeholder="Search items…"
-            style="width:100%;height:44px;padding:0 14px 0 40px;
-                   border:1.5px solid var(--border);border-radius:9999px;
-                   font:inherit;font-size:0.95rem;background:var(--bg-surface);
-                   color:var(--text-primary);outline:none;transition:border-color 0.15s;
-                   box-sizing:border-box;"
-            onfocus="this.style.borderColor='var(--theme-color)'"
-            onblur="this.style.borderColor='var(--border)'">
+            class="billing-search-input" placeholder="Search items…"
+            aria-label="Search inventory items">
         </div>
-        <div class="seg-toggle" style="width:100%;display:flex;">
-          <button id="sort-name" class="active" style="flex:1;">Name</button>
-          <button id="sort-low" style="flex:1;">Low Stock</button>
+        <div class="seg-toggle">
+          <button id="sort-name" class="active">Name</button>
+          <button id="sort-low">Low Stock</button>
         </div>
+        <button id="inv-add-fab" class="btn btn-primary btn-sm">+ Add Item</button>
       </div>
 
-      <!-- Item list -->
-      <div id="inv-list"></div>
+      <!-- Desktop table (hidden on mobile) -->
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Stock</th>
+              <th>Price</th>
+              <th>Unit</th>
+              <th class="cell-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="inv-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards (hidden on desktop) -->
+      <div id="inv-mobile-list" class="inv-mobile-list"></div>
 
     </div>
-
-    <!-- FAB: Add Item -->
-    <button id="inv-add-fab"
-      style="position:fixed;bottom:80px;right:16px;
-             background:var(--theme-color);color:#fff;
-             border:none;border-radius:9999px;padding:12px 20px;
-             font-weight:600;font-size:0.95rem;font-family:inherit;
-             box-shadow:0 4px 12px rgba(0,0,0,0.15);
-             z-index:30;cursor:pointer;">
-      + Add Item
-    </button>
   `;
 
   // ── Event Listeners ─────────────────────────────────────────
@@ -103,13 +100,19 @@ export function render(container) {
   });
 
   fab.addEventListener('click', () => _showAddModal(container));
-  // Persistent delegated click for item rows — attached once, survives innerHTML updates
-  container.querySelector('#inv-list').addEventListener('click', e => {
-    const card = e.target.closest('[data-item-id]');
-    if (!card) return;
-    const item = _items.find(it => it.id === card.dataset.itemId);
-    if (item) _showEditModal(container, item);
-  });
+  // Delegated click on both views
+  const attachClick = id => {
+    const el = container.querySelector(id);
+    if (!el) return;
+    el.addEventListener('click', e => {
+      const row = e.target.closest('[data-item-id]');
+      if (!row) return;
+      const item = _items.find(it => it.id === row.dataset.itemId);
+      if (item) _showEditModal(container, item);
+    });
+  };
+  attachClick('#inv-table-body');
+  attachClick('#inv-mobile-list');
 
   // ── Firestore listener ──────────────────────────────────────
   _unsub = onSnapshot(
@@ -123,8 +126,9 @@ export function render(container) {
 
 // ── List Renderer ─────────────────────────────────────────────
 function _renderList(container) {
-  const listEl = container.querySelector('#inv-list');
-  if (!listEl) return;
+  const tableBody  = container.querySelector('#inv-table-body');
+  const mobileList = container.querySelector('#inv-mobile-list');
+  if (!tableBody || !mobileList) return;
 
   // Filter
   const q = _search.toLowerCase();
@@ -134,7 +138,6 @@ function _renderList(container) {
   if (_sortMode === 'name') {
     list.sort((a, b) => a.name.localeCompare(b.name));
   } else {
-    // low-stock first, then by name
     const isLow = it => it.stock < (it.threshold ?? 5);
     list.sort((a, b) => {
       const aLow = isLow(a) ? 0 : 1;
@@ -145,54 +148,54 @@ function _renderList(container) {
   }
 
   // Empty state
+  const emptyHtml = `<div class="empty-state" style="padding:48px 24px;">
+    <div class="empty-state-icon">📦</div>
+    <h3>No inventory items yet</h3>
+    <p>Tap <strong>+ Add Item</strong> to get started.</p>
+  </div>`;
+  const noMatchHtml = `<div class="empty-state" style="padding:32px 24px;">
+    <p>No items match "<strong>${escapeHtml(_search)}</strong>".</p>
+  </div>`;
+
   if (_items.length === 0) {
-    listEl.innerHTML = `
-      <div style="text-align:center;padding:48px 24px;color:var(--text-muted);">
-        <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
-        <p style="font-size:0.95rem;">No inventory items yet.<br>Tap <strong>+ Add Item</strong> to get started.</p>
-      </div>`;
+    tableBody.innerHTML = `<tr><td colspan="5">${emptyHtml}</td></tr>`;
+    mobileList.innerHTML = emptyHtml;
     return;
   }
-
   if (list.length === 0) {
-    listEl.innerHTML = `
-      <div style="text-align:center;padding:32px 24px;color:var(--text-muted);">
-        <p style="font-size:0.95rem;">No items match "<strong>${escapeHtml(_search)}</strong>".</p>
-      </div>`;
+    tableBody.innerHTML = `<tr><td colspan="5">${noMatchHtml}</td></tr>`;
+    mobileList.innerHTML = noMatchHtml;
     return;
   }
 
-  listEl.innerHTML = list.map(item => {
-    const low       = item.stock < (item.threshold ?? 5);
-    const lowBadge  = low
-      ? `<span style="background:#fef2f2;color:var(--danger);
-                      border:1px solid #fecaca;border-radius:9999px;
-                      font-size:0.7rem;padding:1px 8px;margin-left:6px;">Low</span>`
-      : '';
-    const price     = parseFloat(item.price ?? 0).toFixed(2);
-    const stockText = `${escapeHtml(String(item.stock))} ${escapeHtml(item.unit ?? '')}`;
+  const fmtPrice = p => `${CURRENCY}${parseFloat(p ?? 0).toFixed(2)}`;
 
-    return `
-      <div class="card" data-item-id="${escapeHtml(item.id)}"
-           style="margin-bottom:10px;padding:12px 16px;cursor:pointer;
-                  display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-weight:600;color:var(--text-primary);">
-            ${escapeHtml(item.name)}
-          </div>
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
-            ${escapeHtml(item.unit ?? '')}
-          </div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:0.9rem;color:var(--text-primary);font-variant-numeric:tabular-nums;">
-            ${stockText}${lowBadge}
-          </div>
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
-            ${escapeHtml(CURRENCY)}${price}/${escapeHtml(item.unit ?? '')}
-          </div>
-        </div>
-      </div>`;
+  // Desktop table rows
+  tableBody.innerHTML = list.map(item => {
+    const low = item.stock < (item.threshold ?? 5);
+    const lowBadge = low ? '<span class="badge badge-red" style="margin-left:6px;">Low</span>' : '';
+    return `<tr data-item-id="${escapeHtml(item.id)}" style="cursor:pointer;">
+      <td class="cell-name">${escapeHtml(item.name)}${lowBadge}</td>
+      <td style="font-variant-numeric:tabular-nums;">${escapeHtml(String(item.stock))}</td>
+      <td style="font-variant-numeric:tabular-nums;">${fmtPrice(item.price)}</td>
+      <td>${escapeHtml(item.unit ?? '')}</td>
+      <td class="cell-actions"><button class="btn btn-ghost btn-sm">Edit</button></td>
+    </tr>`;
+  }).join('');
+
+  // Mobile cards
+  mobileList.innerHTML = list.map(item => {
+    const low = item.stock < (item.threshold ?? 5);
+    return `<div class="inv-card" data-item-id="${escapeHtml(item.id)}">
+      <div>
+        <div class="inv-card-name">${escapeHtml(item.name)}</div>
+        <div class="inv-card-meta">${fmtPrice(item.price)} / ${escapeHtml(item.unit ?? 'pc')}</div>
+      </div>
+      <div class="inv-card-right">
+        <div class="inv-card-stock">${escapeHtml(String(item.stock))} ${escapeHtml(item.unit ?? '')}</div>
+        ${low ? '<div style="margin-top:3px;"><span class="badge badge-red">Low</span></div>' : ''}
+      </div>
+    </div>`;
   }).join('');
 }
 

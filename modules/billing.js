@@ -32,124 +32,73 @@ export function render(container) {
   _discMode = 'pct';
 
   container.innerHTML = `
-    <div id="billing-screen" style="padding-bottom:96px;">
+    <div id="billing-screen" class="billing-screen">
 
-      <!-- ① Sticky pill search bar -->
-      <div style="position:sticky;top:0;background:var(--bg-primary);
-                  z-index:20;padding:8px 0 12px;">
-        <div style="position:relative;">
-          <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);
-                      pointer-events:none;" width="18" height="18"
-               viewBox="0 0 24 24" fill="none" stroke="#9ca3af"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
+      <!-- Products panel -->
+      <div class="billing-products-panel">
+        <div class="billing-search-wrap">
+          <span class="billing-search-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </span>
           <input id="product-search" type="search" autocomplete="off"
-            placeholder="Search products..."
-            style="width:100%;height:44px;padding:0 14px 0 40px;
-                   border:1.5px solid var(--border);border-radius:9999px;
-                   font:inherit;font-size:0.95rem;background:var(--bg-surface);
-                   color:var(--text-primary);outline:none;transition:border-color 0.15s;"
-            onfocus="this.style.borderColor='var(--theme-color)'"
-            onblur="this.style.borderColor='var(--border)'">
+            class="billing-search-input" placeholder="Search products..."
+            aria-label="Search products">
         </div>
+        <div id="product-grid" class="product-grid"></div>
       </div>
 
-      <!-- ② Product grid (2-col) — populated by _renderGrid() -->
-      <div id="product-grid"
-           style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+      <!-- Cart panel -->
+      <div class="billing-cart-panel">
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px;">
+            <span class="section-title">Cart</span>
+          </div>
 
-      <!-- ③ Cart panel — hidden until first item added -->
-      <div id="cart-panel" style="display:none;margin-top:20px;">
+          <div id="cart-rows"></div>
+          <div id="cart-empty" class="cart-empty">No items yet. Tap a product to add.</div>
 
-        <h3 style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);
-                   text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">
-          Cart
-        </h3>
-
-        <!-- Cart item rows -->
-        <div id="cart-rows" class="card" style="padding:0 12px;"></div>
-
-        <!-- Discount -->
-        <div class="card" style="margin-top:10px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;
-                      margin-bottom:10px;">
-            <label style="font-size:0.875rem;font-weight:500;
-                          color:var(--text-secondary);">Discount</label>
-            <div class="seg-toggle">
-              <button id="disc-pct" class="active">%</button>
-              <button id="disc-inr">₹</button>
+          <!-- Discount -->
+          <div style="margin-top:14px;">
+            <div class="discount-row">
+              <label style="font-size:0.875rem;font-weight:500;color:var(--text-secondary);flex:1;">Discount</label>
+              <div class="seg-toggle">
+                <button id="disc-pct" class="active">%</button>
+                <button id="disc-inr">₹</button>
+              </div>
             </div>
+            <input id="discount-val" type="number" min="0" step="0.01" value="0"
+              placeholder="0" class="form-input" style="margin-top:8px;">
           </div>
-          <input id="discount-val" type="number" min="0" step="0.01" value="0"
-            placeholder="0"
-            style="width:100%;height:44px;padding:0 12px;
-                   border:1.5px solid var(--border);border-radius:8px;
-                   font:inherit;font-size:0.95rem;font-variant-numeric:tabular-nums;
-                   background:var(--bg-surface);color:var(--text-primary);outline:none;
-                   transition:border-color 0.15s;"
-            onfocus="this.style.borderColor='var(--theme-color)'"
-            onblur="this.style.borderColor='var(--border)'">
-        </div>
 
-        <!-- Customer phone (optional) -->
-        <div style="margin-top:10px;">
-          <label style="display:block;font-size:0.8rem;font-weight:500;
-                        color:var(--text-secondary);margin-bottom:6px;">
-            Customer Phone
-            <span style="color:var(--text-muted);font-weight:400;">(optional)</span>
-          </label>
-          <input id="customer-phone" type="tel" autocomplete="tel"
-            placeholder="+91 98765 43210"
-            style="width:100%;height:44px;padding:0 12px;
-                   border:1.5px solid var(--border);border-radius:8px;
-                   font:inherit;font-size:0.95rem;background:var(--bg-surface);
-                   color:var(--text-primary);outline:none;transition:border-color 0.15s;"
-            onfocus="this.style.borderColor='var(--theme-color)'"
-            onblur="this.style.borderColor='var(--border)'">
-        </div>
+          <!-- Customer phone -->
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-label">
+              Customer Phone <span style="color:var(--text-muted);font-weight:400;">(optional)</span>
+            </label>
+            <input id="customer-phone" type="tel" autocomplete="tel"
+              placeholder="+91 98765 43210" class="form-input">
+          </div>
 
-        <!-- Totals summary -->
-        <div class="card" style="margin-top:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;
-                      margin-bottom:7px;">
+          <!-- Totals -->
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:0.875rem;color:var(--text-secondary);">Subtotal</span>
-            <span id="subtotal-val"
-                  style="font-size:0.875rem;font-variant-numeric:tabular-nums;">
-              ${CURRENCY}0
-            </span>
+            <span id="subtotal-val" style="font-size:0.875rem;font-variant-numeric:tabular-nums;">${CURRENCY}0</span>
           </div>
-          <div id="disc-line"
-               style="display:none;justify-content:space-between;align-items:center;
-                      margin-bottom:7px;">
+          <div id="disc-line" style="display:none;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:0.875rem;color:var(--text-secondary);">Discount</span>
-            <span id="disc-val"
-                  style="font-size:0.875rem;color:var(--success);
-                         font-variant-numeric:tabular-nums;">
-              −${CURRENCY}0
-            </span>
+            <span id="disc-val" style="font-size:0.875rem;color:var(--success);font-variant-numeric:tabular-nums;">−${CURRENCY}0</span>
           </div>
-          <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
-          <div style="display:flex;justify-content:space-between;align-items:center;
-                      margin-bottom:16px;">
-            <span style="font-size:1.05rem;font-weight:700;">Total</span>
-            <span id="total-val"
-                  style="font-size:1.15rem;font-weight:700;color:var(--theme-color);
-                         font-variant-numeric:tabular-nums;">
-              ${CURRENCY}0
-            </span>
+          <div class="cart-total-row">
+            <span class="cart-total-label">Total</span>
+            <span id="total-val" class="cart-total-value">${CURRENCY}0</span>
           </div>
-          <div id="submit-err"
-               style="display:none;color:var(--danger);font-size:0.8rem;
-                      margin-bottom:10px;padding:9px 12px;background:#fef2f2;
-                      border-radius:8px;"></div>
-          <button id="submit-btn" class="btn btn-primary btn-full"
-            style="height:56px;font-size:1rem;font-weight:700;border-radius:12px;
-                   box-shadow:0 4px 14px rgba(37,99,235,0.3);">
-            Submit Sale —
-            <span id="btn-total" style="font-variant-numeric:tabular-nums;">
-              ${CURRENCY}0
-            </span>
+
+          <div id="submit-err" class="alert alert-error" style="display:none;margin-bottom:10px;"></div>
+          <button id="submit-btn" class="btn btn-primary btn-full" style="height:52px;font-size:1rem;">
+            Submit Sale — <span id="btn-total" style="font-variant-numeric:tabular-nums;">${CURRENCY}0</span>
           </button>
         </div>
       </div>
@@ -261,56 +210,31 @@ function _renderGrid(query = '') {
     const stock    = Number(item.stock ?? 0);
     const lowStock = stock > 0 && stock <= 5;
     const noStock  = stock === 0;
-    const chipBg   = noStock ? '#fef2f2' : lowStock ? '#fffbeb' : '#f0fdf4';
-    const chipClr  = noStock ? 'var(--danger)' : lowStock ? '#92400e' : '#166534';
-    const chipTxt  = noStock ? 'Out of stock' : `${stock} left`;
+    const stockBadge = noStock
+      ? '<span class="badge badge-red">Out of stock</span>'
+      : lowStock
+        ? `<span class="badge badge-orange">${stock} left</span>`
+        : '';
 
     return `
-      <button class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' disabled' : ''}"
+      <button class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' out-of-stock' : ''}"
         data-id="${escapeHtml(item.id)}"
         aria-label="${escapeHtml(item.name)}, ${CURRENCY}${Number(item.price)}"
         ${noStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
-
-        <!-- Name + stock chip -->
-        <div style="display:flex;justify-content:space-between;
-                    align-items:flex-start;gap:6px;">
-          <span style="font-size:0.875rem;font-weight:600;color:var(--text-primary);
-                       line-height:1.35;overflow:hidden;display:-webkit-box;
-                       -webkit-line-clamp:2;-webkit-box-orient:vertical;">
-            ${escapeHtml(item.name)}
-          </span>
-          <span style="flex-shrink:0;font-size:0.65rem;padding:2px 7px;
-                       border-radius:9999px;font-weight:500;white-space:nowrap;
-                       background:${chipBg};color:${chipClr};">
-            ${chipTxt}
-          </span>
-        </div>
-
-        <!-- Price + unit + action -->
-        <div style="display:flex;justify-content:space-between;
-                    align-items:center;margin-top:8px;">
+        <div class="product-card-name">${escapeHtml(item.name)}</div>
+        ${stockBadge}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
           <div>
-            <span style="font-size:1.05rem;font-weight:700;color:var(--theme-color);
-                         font-variant-numeric:tabular-nums;">
-              ${CURRENCY}${Number(item.price)}
-            </span>
-            <span style="font-size:0.7rem;color:var(--text-muted);margin-left:3px;">
-              /${escapeHtml(item.unit || 'pc')}
-            </span>
+            <span class="product-card-price">${CURRENCY}${Number(item.price)}</span>
+            <span class="product-card-stock">/${escapeHtml(item.unit || 'pc')}</span>
           </div>
           ${inCart ? `
-            <div class="qty-stepper" onclick="event.stopPropagation()">
-              <button data-step="dec" data-id="${escapeHtml(item.id)}"
-                      aria-label="Decrease ${escapeHtml(item.name)}">−</button>
-              <span>${qty}</span>
-              <button data-step="inc" data-id="${escapeHtml(item.id)}"
-                      aria-label="Increase ${escapeHtml(item.name)}">+</button>
+            <div class="cart-qty-control" onclick="event.stopPropagation()">
+              <button class="cart-qty-btn" data-step="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
+              <span style="min-width:22px;text-align:center;font-size:0.875rem;font-weight:600;">${qty}</span>
+              <button class="cart-qty-btn" data-step="inc" data-id="${escapeHtml(item.id)}" aria-label="Increase">+</button>
             </div>` : `
-            <span style="font-size:0.75rem;font-weight:600;color:var(--theme-color);
-                         background:rgba(37,99,235,0.1);padding:4px 10px;
-                         border-radius:9999px;">
-              + Add
-            </span>`}
+            <span class="badge badge-orange">+ Add</span>`}
         </div>
       </button>`;
   }).join('');
@@ -318,41 +242,29 @@ function _renderGrid(query = '') {
 
 // ── Render cart item rows ─────────────────────────────────────
 function _renderCartRows() {
-  const panel = document.getElementById('cart-panel');
-  const rows  = document.getElementById('cart-rows');
-  if (!panel || !rows) return;
-  if (_cart.size === 0) { panel.style.display = 'none'; _updateTotals(); return; }
-  panel.style.display = 'block';
+  const rows     = document.getElementById('cart-rows');
+  const emptyEl  = document.getElementById('cart-empty');
+  if (!rows) return;
+
+  if (_cart.size === 0) {
+    rows.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = '';
+    _updateTotals();
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
 
   rows.innerHTML = [..._cart.values()].map(item => `
-    <div style="display:flex;align-items:center;gap:10px;padding:12px 0;
-                border-bottom:1px solid var(--border);">
-      <div style="flex:1;min-width:0;">
-        <p style="font-size:0.875rem;font-weight:600;overflow:hidden;
-                  white-space:nowrap;text-overflow:ellipsis;">
-          ${escapeHtml(item.name)}
-        </p>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;
-                  font-variant-numeric:tabular-nums;">
-          ${CURRENCY}${item.price} &times; ${item.qty}
-          &nbsp;=&nbsp;
-          <strong>${CURRENCY}${(item.price * item.qty).toFixed(2)}</strong>
-        </p>
+    <div class="cart-item">
+      <div class="cart-item-name">${escapeHtml(item.name)}</div>
+      <div class="cart-qty-control">
+        <button class="cart-qty-btn" data-cart="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
+        <span style="min-width:28px;text-align:center;font-size:0.875rem;font-weight:600;font-variant-numeric:tabular-nums;">${item.qty}</span>
+        <button class="cart-qty-btn" data-cart="inc" data-id="${escapeHtml(item.id)}" aria-label="Increase">+</button>
       </div>
-      <div class="qty-stepper">
-        <button data-cart="dec" data-id="${escapeHtml(item.id)}"
-                aria-label="Decrease">−</button>
-        <span>${item.qty}</span>
-        <button data-cart="inc" data-id="${escapeHtml(item.id)}"
-                aria-label="Increase">+</button>
-      </div>
-      <button data-cart="remove" data-id="${escapeHtml(item.id)}"
-        aria-label="Remove ${escapeHtml(item.name)}"
-        style="width:34px;height:34px;flex-shrink:0;border-radius:50%;border:none;
-               cursor:pointer;background:#fef2f2;color:var(--danger);
-               font-size:1rem;font-weight:700;display:flex;align-items:center;
-               justify-content:center;">
-        &times;
+      <span style="font-size:0.875rem;font-weight:600;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap;">${CURRENCY}${(item.price * item.qty).toFixed(2)}</span>
+      <button class="cart-remove-btn" data-cart="remove" data-id="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>`).join('');
 

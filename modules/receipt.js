@@ -234,18 +234,12 @@ export async function render(container, saleId) {
   container.innerHTML = `
     <div class="receipt-page">
       <div class="receipt-preview">
-        <img id="receipt-img" alt="Receipt" />
+        <img id="receipt-img" alt="Receipt" style="width:100%;display:block;" />
       </div>
       <div class="receipt-actions">
-        <button id="btn-download" class="btn btn-primary btn-full">
-          ↓ Download Receipt
-        </button>
-        <button id="btn-whatsapp" class="btn btn-full"
-          style="background:#25D366;color:#fff;border:none;">
-          Share via WhatsApp
-        </button>
-        <a href="#/dashboard"
-           style="display:block;text-align:center;margin-top:4px;color:var(--text-secondary);font-size:0.875rem;">
+        <button id="btn-download" class="btn btn-primary btn-full">↓ Download Receipt</button>
+        <button id="btn-whatsapp" class="btn btn-whatsapp btn-full">Share via WhatsApp</button>
+        <a href="#/dashboard" style="display:block;text-align:center;margin-top:8px;color:var(--text-secondary);font-size:0.875rem;">
           ← Back to Dashboard
         </a>
       </div>

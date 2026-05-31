@@ -14,6 +14,8 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_NAME, SHOP_ID, WHATSAPP_NUMBER } from '../shop.config.js';
 
+const SHOP_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+
 // ----- Entry Point -----
 export function render(container) {
   showSignInStep(container);
@@ -22,46 +24,46 @@ export function render(container) {
 // ----- Step 1: Sign In -----
 function showSignInStep(container, prefillEmail = '') {
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100dvh;
-                background:var(--bg-primary);padding:24px;">
-      <div class="card" style="width:100%;max-width:380px;">
-        <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:4px;">${SHOP_NAME}</h1>
-        <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:24px;">
-          Sign in to your shop
-        </p>
-
-        <div class="form-group">
-          <label class="form-label" for="email-input">Email</label>
-          <input id="email-input" type="email" class="form-input"
-            placeholder="you@example.com" autocomplete="email"
-            value="${escapeHtml(prefillEmail)}">
+    <div class="auth-screen">
+      <div class="auth-brand-panel">
+        <div class="auth-brand-tagline">Run your shop<br><span>for free.</span></div>
+        <p class="auth-brand-desc">Everything your shop needs — billing, inventory, receipts, and reports — in one simple app.</p>
+        <div class="auth-brand-features">
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Instant billing &amp; WhatsApp receipts</div>
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Inventory with low-stock alerts</div>
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Daily &amp; monthly sales reports</div>
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Multi-staff access management</div>
         </div>
+      </div>
+      <div class="auth-form-panel">
+        <div class="auth-card">
+          <div class="auth-logo">${SHOP_ICON_SVG}</div>
+          <h1 class="auth-title">Welcome back</h1>
+          <p class="auth-subtitle">Sign in to ${SHOP_NAME}</p>
 
-        <div class="form-group">
-          <label class="form-label" for="password-input">Password</label>
-          <input id="password-input" type="password" class="form-input"
-            placeholder="••••••••" autocomplete="current-password">
+          <div class="form-group">
+            <label class="form-label" for="email-input">Email</label>
+            <input id="email-input" type="email" class="form-input"
+              placeholder="you@example.com" autocomplete="email"
+              value="${escapeHtml(prefillEmail)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password-input">Password</label>
+            <input id="password-input" type="password" class="form-input"
+              placeholder="••••••••" autocomplete="current-password">
+          </div>
+
+          <div id="auth-error" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+
+          <button id="sign-in-btn" class="btn btn-primary btn-full">Sign In</button>
+
+          <button id="forgot-btn" class="auth-forgot-btn">Forgot password?</button>
+
+          <p class="auth-link-row">
+            New here?
+            <button id="create-account-btn" class="auth-link">Create an account</button>
+          </p>
         </div>
-
-        <div id="auth-error" style="display:none;color:var(--danger);font-size:0.8rem;
-             margin-bottom:12px;padding:8px;background:#fef2f2;border-radius:6px;"></div>
-
-        <button id="sign-in-btn" class="btn btn-primary btn-full">Sign In</button>
-
-        <button id="forgot-btn" style="margin-top:12px;width:100%;color:var(--text-secondary);
-                font-size:0.8rem;padding:8px;background:none;border:none;cursor:pointer;">
-          Forgot password?
-        </button>
-
-        <hr style="margin:16px 0;border:none;border-top:1px solid var(--border);">
-
-        <p style="text-align:center;font-size:0.875rem;color:var(--text-secondary);">
-          New here?
-          <button id="create-account-btn" style="color:var(--theme-color);background:none;
-                  border:none;cursor:pointer;font-size:0.875rem;font-weight:500;">
-            Create an account
-          </button>
-        </p>
       </div>
     </div>
   `;
@@ -109,42 +111,47 @@ async function handleSignIn(container) {
 // ----- Step 2: Create Account -----
 function showCreateAccountStep(container) {
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100dvh;
-                background:var(--bg-primary);padding:24px;">
-      <div class="card" style="width:100%;max-width:380px;">
-        <button id="back-btn" style="display:flex;align-items:center;gap:6px;
-                color:var(--text-secondary);font-size:0.875rem;margin-bottom:16px;
-                padding:0;background:none;border:none;cursor:pointer;">
-          ← Back to Sign In
-        </button>
-
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:4px;">Create Account</h2>
-        <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:24px;">
-          Set up your shop access
-        </p>
-
-        <div class="form-group">
-          <label class="form-label" for="new-email-input">Email</label>
-          <input id="new-email-input" type="email" class="form-input"
-            placeholder="you@example.com" autocomplete="email">
+    <div class="auth-screen">
+      <div class="auth-brand-panel">
+        <div class="auth-brand-tagline">Run your shop<br><span>for free.</span></div>
+        <p class="auth-brand-desc">Create your account and get started in less than a minute.</p>
+        <div class="auth-brand-features">
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Free forever — no credit card needed</div>
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>All data stored securely in the cloud</div>
+          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Works offline on any device</div>
         </div>
+      </div>
+      <div class="auth-form-panel">
+        <div class="auth-card">
+          <div class="auth-logo">${SHOP_ICON_SVG}</div>
+          <h1 class="auth-title">Create account</h1>
+          <p class="auth-subtitle">Set up your shop access</p>
 
-        <div class="form-group">
-          <label class="form-label" for="new-password-input">Password</label>
-          <input id="new-password-input" type="password" class="form-input"
-            placeholder="At least 6 characters" autocomplete="new-password">
+          <div class="form-group">
+            <label class="form-label" for="new-email-input">Email</label>
+            <input id="new-email-input" type="email" class="form-input"
+              placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-password-input">Password</label>
+            <input id="new-password-input" type="password" class="form-input"
+              placeholder="At least 6 characters" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirm-password-input">Confirm Password</label>
+            <input id="confirm-password-input" type="password" class="form-input"
+              placeholder="Repeat password" autocomplete="new-password">
+          </div>
+
+          <div id="create-error" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+
+          <button id="create-btn" class="btn btn-primary btn-full">Create Account</button>
+
+          <p class="auth-link-row">
+            Already have an account?
+            <button id="back-btn" class="auth-link">Sign in</button>
+          </p>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="confirm-password-input">Confirm Password</label>
-          <input id="confirm-password-input" type="password" class="form-input"
-            placeholder="Repeat password" autocomplete="new-password">
-        </div>
-
-        <div id="create-error" style="display:none;color:var(--danger);font-size:0.8rem;
-             margin-bottom:12px;padding:8px;background:#fef2f2;border-radius:6px;"></div>
-
-        <button id="create-btn" class="btn btn-primary btn-full">Create Account</button>
       </div>
     </div>
   `;
@@ -194,31 +201,32 @@ async function handleCreateAccount(container) {
 // ----- Step 3: Forgot Password -----
 function showForgotPasswordStep(container, prefillEmail = '') {
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100dvh;
-                background:var(--bg-primary);padding:24px;">
-      <div class="card" style="width:100%;max-width:380px;">
-        <button id="back-btn" style="display:flex;align-items:center;gap:6px;
-                color:var(--text-secondary);font-size:0.875rem;margin-bottom:16px;
-                padding:0;background:none;border:none;cursor:pointer;">
-          ← Back to Sign In
-        </button>
+    <div class="auth-screen">
+      <div class="auth-brand-panel">
+        <div class="auth-brand-tagline">Run your shop<br><span>for free.</span></div>
+        <p class="auth-brand-desc">Don't worry — password reset is just one email away.</p>
+      </div>
+      <div class="auth-form-panel">
+        <div class="auth-card">
+          <div class="auth-logo">${SHOP_ICON_SVG}</div>
+          <h1 class="auth-title">Reset password</h1>
+          <p class="auth-subtitle">We'll send a reset link to your email</p>
 
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:4px;">Reset Password</h2>
-        <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:24px;">
-          Enter your email — we'll send a reset link
-        </p>
+          <div class="form-group">
+            <label class="form-label" for="reset-email-input">Email</label>
+            <input id="reset-email-input" type="email" class="form-input"
+              placeholder="you@example.com" autocomplete="email"
+              value="${escapeHtml(prefillEmail)}">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label" for="reset-email-input">Email</label>
-          <input id="reset-email-input" type="email" class="form-input"
-            placeholder="you@example.com" autocomplete="email"
-            value="${escapeHtml(prefillEmail)}">
+          <div id="reset-message" style="display:none;margin-bottom:12px;"></div>
+
+          <button id="reset-btn" class="btn btn-primary btn-full">Send Reset Email</button>
+
+          <p class="auth-link-row">
+            <button id="back-btn" class="auth-link">← Back to Sign In</button>
+          </p>
         </div>
-
-        <div id="reset-message" style="display:none;font-size:0.8rem;margin-bottom:12px;
-             padding:8px;border-radius:6px;"></div>
-
-        <button id="reset-btn" class="btn btn-primary btn-full">Send Reset Email</button>
       </div>
     </div>
   `;

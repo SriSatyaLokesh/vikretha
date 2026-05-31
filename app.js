@@ -4,58 +4,95 @@
  */
 import { auth } from './lib/firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { SHOP_NAME, THEME_COLOR } from './shop.config.js';
+import { SHOP_NAME } from './shop.config.js';
 
 // ----- App Shell -----
+// ── SVG icons for nav ───────────────────────────────────────────────────────
+const NAV_ICONS = {
+  dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+    <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
+  billing: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>`,
+  inventory: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>`,
+  reports: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+};
+
+const NAV_ITEMS = [
+  { route: 'dashboard', label: 'Dashboard' },
+  { route: 'billing',   label: 'Sale' },
+  { route: 'inventory', label: 'Inventory' },
+  { route: 'reports',   label: 'Reports' },
+  { route: 'settings',  label: 'Settings' },
+];
+
+const SHOP_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+
+function buildNavItem(r, forSidebar) {
+  const icon = NAV_ICONS[r.route] || '';
+  if (forSidebar) {
+    return `<a href="#/${r.route}" data-route="${r.route}" class="sidebar-nav-item" aria-label="${r.label}">${icon}${r.label}</a>`;
+  }
+  return `<a href="#/${r.route}" data-route="${r.route}" aria-label="${r.label}">${icon}${r.label}</a>`;
+}
+
 function mountAppShell() {
   const root = document.getElementById('app');
   if (root.querySelector('.app-shell')) return; // already mounted
+
   root.innerHTML = `
     <div class="app-shell">
-      <header class="app-header" style="background: ${THEME_COLOR}">
-        <h1 id="page-title">${SHOP_NAME}</h1>
-        <div id="header-actions"></div>
-      </header>
-      <main class="app-content" id="app-content"></main>
+
+      <!-- Desktop sidebar -->
+      <aside class="app-sidebar" id="app-sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-icon">${SHOP_ICON_SVG}</div>
+          <span class="sidebar-brand-name">${SHOP_NAME}</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebar-nav-list">
+          ${NAV_ITEMS.map(r => buildNavItem(r, true)).join('')}
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-user">
+            <div class="sidebar-user-avatar" id="sidebar-avatar">?</div>
+            <span class="sidebar-user-email" id="sidebar-email"></span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="app-main">
+        <header class="app-header">
+          <h1 class="page-title" id="page-title">${SHOP_NAME}</h1>
+          <div id="header-actions"></div>
+        </header>
+        <main class="app-content" id="app-content"></main>
+      </div>
+
+      <!-- Mobile bottom nav -->
       <nav class="app-nav" id="app-nav">
-        <a href="#/dashboard" data-route="dashboard" aria-label="Dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-          </svg>
-          Dashboard
-        </a>
-        <a href="#/billing" data-route="billing" aria-label="New Sale">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
-          Sale
-        </a>
-        <a href="#/inventory" data-route="inventory" aria-label="Inventory">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-          </svg>
-          Stock
-        </a>
-        <a href="#/reports" data-route="reports" aria-label="Reports">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-          Reports
-        </a>
-        <a href="#/settings" data-route="settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          Settings
-        </a>
+        ${NAV_ITEMS.map(r => buildNavItem(r, false)).join('')}
       </nav>
+
     </div>
   `;
+
+  // Show current user email in sidebar
+  import('./lib/firebase-init.js').then(({ auth }) => {
+    const user = auth.currentUser;
+    if (user?.email) {
+      const emailEl = document.getElementById('sidebar-email');
+      const avatarEl = document.getElementById('sidebar-avatar');
+      if (emailEl) emailEl.textContent = user.email;
+      if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
+    }
+  }).catch(() => {});
 }
 
 // ----- Auth Guard + Router -----
@@ -108,8 +145,8 @@ async function handleRoute() {
     return;
   }
 
-  // Update active nav link
-  document.querySelectorAll('.app-nav a[data-route]').forEach(link => {
+  // Update active nav links (both bottom nav and sidebar)
+  document.querySelectorAll('[data-route]').forEach(link => {
     link.classList.toggle('active', link.dataset.route === route);
   });
 
