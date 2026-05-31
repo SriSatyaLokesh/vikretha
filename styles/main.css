@@ -353,3 +353,30 @@ img {
 @media (prefers-reduced-motion: reduce) {
   @keyframes scaleIn { from { opacity: 0; } to { opacity: 1; } }
 }
+
+/* ── Section 15: Receipt Page ─────────────────── */
+.receipt-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 440px;
+  margin: 0 auto;
+}
+.receipt-preview {
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+.receipt-preview img {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+}
+.receipt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
