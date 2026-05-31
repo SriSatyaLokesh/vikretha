@@ -1,0 +1,28 @@
+{
+  "project": "vikretha",
+  "version": "1.0.0",
+  "created": "2026-05-31",
+  "workflow": {
+    "style": "full-orchestration",
+    "commit_strategy": "atomic-per-task",
+    "testing": "lightweight-unit-tests",
+    "research": false,
+    "code_review": true,
+    "security_audit": true,
+    "verification": true
+  },
+  "agents": {
+    "executor": true,
+    "code_reviewer": true,
+    "security_reviewer": true,
+    "verifier": true
+  },
+  "conventions": {
+    "language": "javascript",
+    "module_system": "es-modules",
+    "no_build_step": true,
+    "no_framework": true,
+    "mobile_first": true,
+    "offline_first": true
+  }
+}
