@@ -380,3 +380,174 @@ img {
   flex-direction: column;
   gap: 10px;
 }
+
+
+/* ── Section 16: Dashboard Bar Chart ───────────── */
+.bar-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  padding: 0 2px;
+}
+
+.bar-chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.bar-chart-bar {
+  width: 100%;
+  background: var(--theme-color);
+  opacity: 0.55;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.35s ease, opacity 0.2s;
+}
+
+.bar-chart-bar--today {
+  opacity: 1;
+}
+
+.bar-chart-bar:hover {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.bar-chart-label {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.bar-chart-label--today {
+  color: var(--theme-color);
+  font-weight: 700;
+}
+
+/* ── Section 16b: Sync Badge ─────────────────── */
+.sync-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.3s, color 0.3s;
+}
+
+.sync-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sync-badge--synced {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* ── Section 17: Monthly Report ───────────────── */
+.monthly-report {
+  padding: 16px;
+}
+
+.monthly-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 8px;
+}
+
+.monthly-report-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.month-picker-select {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  max-width: 160px;
+}
+
+.month-picker-select:focus {
+  outline: 2px solid var(--theme-color);
+  outline-offset: 1px;
+}
+
+.monthly-stat-box {
+  flex: 1;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.monthly-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.monthly-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.monthly-report-subtitle {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.top-products-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.top-products-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.top-products-name {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.top-products-rev {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
