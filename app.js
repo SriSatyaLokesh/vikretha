@@ -92,11 +92,15 @@ function showLoginScreen() {
 }
 
 // ----- Route Handler -----
-const PROTECTED_ROUTES = ['dashboard', 'billing', 'inventory', 'reports', 'settings'];
+const PROTECTED_ROUTES = ['dashboard', 'billing', 'inventory', 'reports', 'settings', 'receipt'];
 
 async function handleRoute() {
   const hash = window.location.hash || '#/login';
-  const route = hash.replace('#/', '') || 'login';
+  const routeParts = (hash.replace('#/', '') || 'login').split('/');
+  const route      = routeParts[0];
+  const routeParam = routeParts.length > 1
+    ? decodeURIComponent(routeParts.slice(1).join('/'))
+    : null;
 
   // If unauthenticated and trying to access protected route → redirect
   if (!currentUser && PROTECTED_ROUTES.includes(route)) {
@@ -112,7 +116,7 @@ async function handleRoute() {
   // Update page title
   const titleEl = document.getElementById('page-title');
   if (titleEl) {
-    const titles = { dashboard: SHOP_NAME, billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings' };
+    const titles = { dashboard: SHOP_NAME, billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt' };
     titleEl.textContent = titles[route] || SHOP_NAME;
   }
 
@@ -123,7 +127,7 @@ async function handleRoute() {
 
   try {
     const module = await import(`./modules/${route}.js`);
-    module.render(content);
+    module.render(content, routeParam);
   } catch (_) {
     content.innerHTML = `
       <div class="empty-state">
