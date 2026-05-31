@@ -228,6 +228,12 @@ Plans:
 - [ ] Stock decrements correctly after billing
 - [ ] Works fully offline (reads from cache, writes queued)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — modules/inventory.js (list, onSnapshot, low-stock badges, sort/filter, add/edit/delete modals)
+- [ ] 06-02-PLAN.md — Human verification checkpoint
+
 ---
 
 ### Phase 7 — Data Export (Excel)
