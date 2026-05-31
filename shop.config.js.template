@@ -1,0 +1,45 @@
+// ================================================================
+// VIKRETHA — SHOP CONFIGURATION TEMPLATE
+// Copy this file to shop.config.js and fill in your values.
+// See README.md for detailed setup instructions.
+// NEVER commit shop.config.js with real Firebase credentials to a
+// public repository — treat apiKey as a secret.
+// ================================================================
+
+/**
+ * Firebase Configuration
+ * Get these values from: Firebase Console → Project Settings → Your apps → Config
+ */
+export const FIREBASE_CONFIG = {
+  apiKey: "AIzaSy-YOUR-API-KEY-HERE",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.firebasestorage.app",
+  messagingSenderId: "YOUR-MESSAGING-SENDER-ID",
+  appId: "1:YOUR-SENDER-ID:web:YOUR-APP-ID"
+};
+
+/**
+ * Shop Identity
+ */
+export const SHOP_NAME = "My Kirana Store";  // Displayed in header and receipts
+export const SHOP_ID = "my_kirana_store";    // Unique ID for Firestore path: /shops/{SHOP_ID}/
+                                              // Use a URL-safe string (no spaces, use underscores)
+
+/**
+ * Localization
+ */
+export const CURRENCY = "₹";               // Currency symbol shown on receipts and reports
+export const LOCALE = "en-IN";             // Locale for date/number formatting (e.g., "en-IN", "en-US")
+
+/**
+ * WhatsApp
+ */
+export const WHATSAPP_NUMBER = "";         // Your shop's WhatsApp number with country code
+                                            // e.g., "+919876543210" — used for receipt sharing
+
+/**
+ * Branding
+ */
+export const THEME_COLOR = "#2563eb";       // Primary color (hex) — used for header, buttons, charts
+export const LOGO_URL = "";                 // URL to shop logo image — shown on receipts (leave empty to hide)

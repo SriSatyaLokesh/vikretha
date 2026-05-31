@@ -860,3 +860,36 @@ img {
   color: var(--text-primary, #1e293b);
   cursor: pointer;
 }
+
+
+/* === Section 20: Accessibility ============================================ */
+
+/* Minimum touch targets per WCAG 2.1 AA (44x44px) */
+button,
+a,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"],
+select {
+  min-height: 44px;
+}
+
+/* Exception: inline text links don't need 44px height */
+p a, li a, td a {
+  min-height: unset;
+}
+
+/* Ensure icon-only buttons are at least 44x44 */
+.btn-icon {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Visible focus ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}

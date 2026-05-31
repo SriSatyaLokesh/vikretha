@@ -45,8 +45,9 @@ export function render(container) {
         </div>
         <form id="add-email-form" class="settings-add-form" novalidate>
           <input id="add-email-input" type="email" class="settings-add-input"
+                 aria-label="Staff email address"
                  placeholder="staff@example.com" autocomplete="off" />
-          <select id="add-role-select" class="settings-role-select">
+          <select id="add-role-select" class="settings-role-select" aria-label="Staff role">
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>

@@ -44,6 +44,7 @@ export function render(container) {
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
           </svg>
           <input id="inv-search" type="search" autocomplete="off"
+            aria-label="Search inventory items"
             placeholder="Search items…"
             style="width:100%;height:44px;padding:0 14px 0 40px;
                    border:1.5px solid var(--border);border-radius:9999px;
@@ -227,6 +228,7 @@ function _showModal(container, titleText, fields, onSave, onDelete) {
   title.textContent = titleText;   // textContent — no XSS risk
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', 'Close');
   closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
   header.appendChild(title);
   header.appendChild(closeBtn);
