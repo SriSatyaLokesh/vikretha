@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 8 (Staff Management & Settings — ✅ Complete)
-- **Next action:** Plan Phase 9 (/gsd-plan-phase 9)
-- **Last session:** 2026-05-31 — Completed Phase 8: staff management & settings (roles admin/member, arrayUnion/arrayRemove, CSS Section 19, Firestore config path fix)
+- **Phase:** 9 (Documentation & Polish — ✅ Complete)
+- **Next action:** Milestone 1 complete — tag v1.0 release
+- **Last session:** 2026-05-31 — Completed Phase 9: README, shop.config.js.template, seed-demo.js, a11y fixes (aria-labels, touch targets, focus-visible), bundle audit (112 KB unminified)
 
 ## Phase Progress
 
@@ -19,7 +19,7 @@
 | 6 | Inventory Management | ✅ Complete |
 | 7 | Data Export (Excel) | ✅ Complete |
 | 8 | Staff Management & Settings | ✅ Complete |
-| 9 | Documentation & Polish | 🔲 Not started |
+| 9 | Documentation & Polish | ✅ Complete |
 
 ## Decisions Log
 
