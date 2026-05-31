@@ -5,7 +5,7 @@
 import { auth, db } from '../lib/firebase-init.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
-  doc, getDoc, updateDoc, arrayUnion, arrayRemove
+  doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID } from '../shop.config.js';
 
@@ -65,7 +65,7 @@ export function render(container) {
     const staffList = container.querySelector('#staff-list');
     staffList.innerHTML = '<p class="settings-loading">Loading…</p>';
     try {
-      const configRef = doc(db, 'shops', SHOP_ID, 'config');
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
       const snap = await getDoc(configRef);
       const emails = snap.exists() ? (snap.data().authorized_emails || []) : [];
 
@@ -103,7 +103,7 @@ export function render(container) {
     btn.disabled = true;
     btn.textContent = '...';
     try {
-      await updateDoc(doc(db, 'shops', SHOP_ID, 'config'), {
+      await updateDoc(doc(db, 'shops', SHOP_ID, 'config', 'main'), {
         authorized_emails: arrayRemove(emailToRemove)
       });
       await _loadStaff();
@@ -134,9 +134,7 @@ export function render(container) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Adding...';
     try {
-      await updateDoc(doc(db, 'shops', SHOP_ID, 'config'), {
-        authorized_emails: arrayUnion(email)
-      });
+      await setDoc(doc(db, 'shops', SHOP_ID, 'config', 'main'), { authorized_emails: arrayUnion(email) }, { merge: true });
       input.value = '';
       await _loadStaff();
     } catch (err) {

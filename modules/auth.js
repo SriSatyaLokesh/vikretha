@@ -265,7 +265,7 @@ async function handleForgotPassword() {
 // ----- Bootstrap shop config on first sign-up -----
 async function bootstrapShopConfig(user) {
   try {
-    const configRef = doc(db, 'shops', SHOP_ID, 'config');
+    const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
     const configSnap = await getDoc(configRef);
     if (!configSnap.exists()) {
       await setDoc(configRef, {

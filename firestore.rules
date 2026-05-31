@@ -9,12 +9,12 @@ rules_version = '2';
 //
 // HOW IT WORKS:
 //   - All data is denied by default (deny-all base rule)
-//   - Only email addresses listed in /shops/{shopId}/config.authorized_emails
+//   - Only email addresses listed in /shops/{shopId}/config/main.authorized_emails
 //     can read or write any document under /shops/{shopId}/
 //   - The first "Create Account" bootstraps this config doc with the owner's email
 //
 // ADDING STAFF:
-//   In Firebase Console → Firestore → shops/{your_shop_id}/config
+//   In Firebase Console -> Firestore -> shops/{your_shop_id}/config/main
 //   Add the staff email to the authorized_emails array and save.
 //   Then have them create a Firebase Auth account via the app's "Create Account" form.
 // =============================================================================
@@ -30,7 +30,7 @@ service cloud.firestore {
     // Helper function: check if the authenticated user's email
     // is in this shop's authorized_emails list
     function isAuthorized(shopId) {
-      let config = get(/databases/$(database)/documents/shops/$(shopId)/config);
+      let config = get(/databases/$(database)/documents/shops/$(shopId)/config/main);
       return request.auth != null
         && request.auth.token.email != null
         && request.auth.token.email in config.data.authorized_emails;
@@ -45,7 +45,7 @@ service cloud.firestore {
     // Bootstrap: allow authenticated user to CREATE config doc if it doesn't exist.
     // Covers the very first "Create Account" before authorized_emails is populated.
     // Security: user can only bootstrap with their OWN email in authorized_emails.
-    match /shops/{shopId}/config {
+    match /shops/{shopId}/config/main {
       allow create: if request.auth != null
         && request.auth.token.email != null
         && request.auth.token.email in request.resource.data.authorized_emails;
