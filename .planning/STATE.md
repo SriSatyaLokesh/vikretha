@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 4 (Receipt Generation & WhatsApp Share — ✅ Complete)
-- **Next action:** Plan Phase 5 (/gsd-plan-phase 5)
-- **Last session:** 2026-05-31 — Completed Phase 4: receipt module, UAT passed
+- **Phase:** 5 (Dashboard & Reports — ✅ Complete)
+- **Next action:** Plan Phase 6 (/gsd-plan-phase 6)
+- **Last session:** 2026-05-31 — Completed Phase 5: live dashboard, bar chart, monthly report, UAT passed
 
 ## Phase Progress
 
@@ -15,7 +15,7 @@
 | 2 | Authentication (Email/Password) | ✅ Complete
 | 3 | Billing & Sale Recording | ✅ Complete |
 | 4 | Receipt Generation & WhatsApp Share | ✅ Complete |
-| 5 | Dashboard & Reports | 🔲 Not started |
+| 5 | Dashboard & Reports | ✅ Complete |
 | 6 | Inventory Management | 🔲 Not started |
 | 7 | Data Export (Excel) | 🔲 Not started |
 | 8 | Staff Management & Settings | 🔲 Not started |

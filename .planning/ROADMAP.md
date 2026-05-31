@@ -194,9 +194,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Live summary cards + 7-day CSS bar chart + last synced (modules/dashboard.js rewrite)
-- [ ] 05-02-PLAN.md — Monthly report + top 5 products (month picker + Firestore range query)
-- [ ] 05-03-PLAN.md — Human verification checkpoint
+- [x] 05-01-PLAN.md — Live summary cards + 7-day CSS bar chart + last synced (modules/dashboard.js rewrite)
+- [x] 05-02-PLAN.md — Monthly report + top 5 products (month picker + Firestore range query)
+- [x] 05-03-PLAN.md — Human verification checkpoint
 
 ---
 
