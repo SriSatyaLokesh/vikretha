@@ -158,7 +158,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — app.js sub-route fix + modules/receipt.js (Canvas 2D receipt, download, WhatsApp share) + receipt styles
-- [ ] 04-02-PLAN.md — Human verification checkpoint
+- [x] 04-02-PLAN.md — Human verification checkpoint
 
 ---
 
