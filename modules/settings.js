@@ -178,7 +178,8 @@ export function render(container) {
     btn.textContent = 'Signing out...';
     try {
       await signOut(auth);
-      // onAuthStateChanged in app.js fires with null -> showLoginScreen()
+      // onAuthStateChanged fires → clears DOM + renders auth screen
+      window.location.hash = '';
     } catch (err) {
       console.error('[Vikretha] Sign out failed:', err);
       btn.disabled = false;
