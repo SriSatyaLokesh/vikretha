@@ -302,8 +302,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — modules/settings.js (staff email list, add/remove with arrayUnion/arrayRemove) + CSS Section 19
-- [ ] 08-02-PLAN.md — Human verification checkpoint
+- [x] 08-01-PLAN.md — modules/settings.js (staff email list, add/remove with arrayUnion/arrayRemove) + CSS Section 19
+- [x] 08-02-PLAN.md — Human verification checkpoint
 
 ---
 

@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 7 (Data Export — ✅ Complete)
-- **Next action:** Plan Phase 8 (/gsd-plan-phase 8)
-- **Last session:** 2026-05-31 — Completed Phase 7: data export (SheetJS lazy-load, sales/inventory .xlsx, progress overlay)
+- **Phase:** 8 (Staff Management & Settings — ✅ Complete)
+- **Next action:** Plan Phase 9 (/gsd-plan-phase 9)
+- **Last session:** 2026-05-31 — Completed Phase 8: staff management & settings (roles admin/member, arrayUnion/arrayRemove, CSS Section 19, Firestore config path fix)
 
 ## Phase Progress
 
@@ -18,7 +18,7 @@
 | 5 | Dashboard & Reports | ✅ Complete |
 | 6 | Inventory Management | ✅ Complete |
 | 7 | Data Export (Excel) | ✅ Complete |
-| 8 | Staff Management & Settings | 🔲 Not started |
+| 8 | Staff Management & Settings | ✅ Complete |
 | 9 | Documentation & Polish | 🔲 Not started |
 
 ## Decisions Log
