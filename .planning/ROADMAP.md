@@ -120,8 +120,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — modules/billing.js (product search, cart, discount, Sale ID transaction, atomic batch write, ⏳ sync indicator)
-- [ ] 03-02-PLAN.md — modules/dashboard.js (New Sale CTA + summary placeholder cards)
+- [x] 03-01-PLAN.md — modules/billing.js (product search, cart, discount, Sale ID transaction, atomic batch write, ⏳ sync indicator)
+- [x] 03-02-PLAN.md — modules/dashboard.js (New Sale CTA + summary placeholder cards)
 - [ ] 03-03-PLAN.md — Human verification checkpoint
 
 ---

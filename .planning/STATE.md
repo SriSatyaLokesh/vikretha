@@ -3,8 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 2 (Replanning — auth approach changed to email/password)
-- **Next action: Plan Phase 3 (/gsd-plan-phase 3)
+- **Phase:** 3 (Billing & Sale Recording — Wave 1 complete, awaiting human verification)
+- **Current Plan:** 03-03 (human-verify checkpoint)
+- **Next action:** Human verification of billing flow
 
 ## Phase Progress
 
@@ -12,7 +13,7 @@
 |-------|------|--------|
 | 1 | Foundation & App Shell | ✅ Complete |
 | 2 | Authentication (Email/Password) | ✅ Complete
-| 3 | Billing & Sale Recording | 🔲 Not started |
+| 3 | Billing & Sale Recording | � In Progress (awaiting verification) |
 | 4 | Receipt Generation & WhatsApp Share | 🔲 Not started |
 | 5 | Dashboard & Reports | 🔲 Not started |
 | 6 | Inventory Management | 🔲 Not started |
@@ -27,6 +28,9 @@
 | 2026-05-31 | Skip research phase | PRD/TRD are comprehensive enough |
 | 2026-05-31 | Full orchestration workflow | Multi-agent with code review + security audit |
 | 2026-05-31 | Atomic per-task commits | Granular, easy to revert |
+| 2026-05-31 | Delegated click handlers on billing grid | Avoids rebinding on every re-render |
+| 2026-05-31 | runTransaction for Sale ID counter | Guarantees sequential YYYYMMDD-NNNN under concurrent writes |
+| 2026-05-31 | Offline fallback Sale ID | Lets batch.commit() queue to IndexedDB when no network |
 | 2026-05-31 | Lightweight unit tests | Basic tests for utility functions |
 | 2026-05-31 | Auth: Phone OTP → Email/Password | No SMS/OTP needed; simpler UX, no 10/day rate limit, no RecaptchaVerifier |
 
