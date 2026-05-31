@@ -193,7 +193,7 @@ function _renderList(container) {
         </div>
       </div>`;
   }).join('');
-
+}
 
 // ── Generic Bottom-Sheet Modal ────────────────────────────────
 function _showModal(container, titleText, fields, onSave, onDelete) {
