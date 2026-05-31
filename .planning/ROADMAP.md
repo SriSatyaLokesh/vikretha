@@ -265,6 +265,12 @@ Plans:
 - [ ] Progress indicator shown for large exports
 - [ ] Export works offline
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — modules/export.js (SheetJS lazy-load, sales month/all/inventory exports, progress overlay) + CSS Section 18
+- [ ] 07-02-PLAN.md — Wire Export menu into dashboard.js + human verification checkpoint
+
 ---
 
 ### Phase 8 — Staff Management & Settings
