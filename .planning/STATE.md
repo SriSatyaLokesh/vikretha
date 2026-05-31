@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 5 (Dashboard & Reports — ✅ Complete)
-- **Next action:** Plan Phase 6 (/gsd-plan-phase 6)
-- **Last session:** 2026-05-31 — Completed Phase 5: live dashboard, bar chart, monthly report, UAT passed
+- **Phase:** 6 (Inventory Management — ✅ Complete)
+- **Next action:** Plan Phase 7 (/gsd-plan-phase 7)
+- **Last session:** 2026-05-31 — Completed Phase 6: inventory management (full CRUD, low-stock badges, sort/filter, offline-capable)
 
 ## Phase Progress
 
@@ -16,7 +16,7 @@
 | 3 | Billing & Sale Recording | ✅ Complete |
 | 4 | Receipt Generation & WhatsApp Share | ✅ Complete |
 | 5 | Dashboard & Reports | ✅ Complete |
-| 6 | Inventory Management | 🔲 Not started |
+| 6 | Inventory Management | ✅ Complete |
 | 7 | Data Export (Excel) | 🔲 Not started |
 | 8 | Staff Management & Settings | 🔲 Not started |
 | 9 | Documentation & Polish | 🔲 Not started |

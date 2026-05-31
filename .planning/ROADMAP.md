@@ -221,18 +221,18 @@ Plans:
 - Sort/filter inventory (by name, by stock status)
 
 **UAT:**
-- [ ] Inventory loads instantly from Firestore cache
-- [ ] Low-stock items visually flagged
-- [ ] Add new item → appears in list
-- [ ] Edit item → changes reflected
-- [ ] Stock decrements correctly after billing
-- [ ] Works fully offline (reads from cache, writes queued)
+- [x] Inventory loads instantly from Firestore cache
+- [x] Low-stock items visually flagged
+- [x] Add new item → appears in list
+- [x] Edit item → changes reflected
+- [x] Stock decrements correctly after billing
+- [x] Works fully offline (reads from cache, writes queued)
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — modules/inventory.js (list, onSnapshot, low-stock badges, sort/filter, add/edit/delete modals)
-- [ ] 06-02-PLAN.md — Human verification checkpoint
+- [x] 06-01-PLAN.md — modules/inventory.js (list, onSnapshot, low-stock badges, sort/filter, add/edit/delete modals)
+- [x] 06-02-PLAN.md — Human verification checkpoint
 
 ---
 
