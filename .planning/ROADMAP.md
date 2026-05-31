@@ -69,6 +69,13 @@ Plans:
 - [ ] Sign out → returns to sign-in screen
 - [ ] Unauthorized phone number → rejected by Security Rules
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — modules/auth.js (Phone OTP flow, RecaptchaVerifier, bootstrapShopConfig)
+- [ ] 02-02-PLAN.md — firestore.rules (Security Rules) + modules/settings.js (sign-out)
+- [ ] 02-03-PLAN.md — Human verification checkpoint
+
 ---
 
 ### Phase 3 — Billing & Sale Recording
@@ -300,3 +307,4 @@ Plans:
 | 999.6 | Sales analytics (trends, growth %) | Derived from existing data |
 | 999.7 | Multi-language (Hindi, Telugu, Tamil, Kannada) | i18n module |
 | 999.8 | Custom domain setup guide | GitHub Pages CNAME |
+
