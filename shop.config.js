@@ -9,12 +9,12 @@
  * Get these values from: Firebase Console → Project Settings → Your apps → Config
  */
 export const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",                          // From Firebase Console
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",  // Replace YOUR_PROJECT_ID
-  projectId: "YOUR_PROJECT_ID",                   // Your Firestore project ID
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCoCUb_y1EOaZ87rS6idIsCCwsFUdXIVAY",
+  authDomain: "vikretha-8978b.firebaseapp.com",
+  projectId: "vikretha-8978b",
+  storageBucket: "vikretha-8978b.firebasestorage.app",
+  messagingSenderId: "210720989974",
+  appId: "1:210720989974:web:fd3869cde378f5c6936637"
 };
 
 /**
