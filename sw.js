@@ -4,7 +4,7 @@
  * Bump CACHE_VERSION to force cache refresh after deployments.
  */
 
-const CACHE_VERSION = 'vikretha-v1';
+const CACHE_VERSION = 'vikretha-v2';
 
 const APP_SHELL = [
   './',
