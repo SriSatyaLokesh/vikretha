@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 6 (Inventory Management — ✅ Complete)
-- **Next action:** Plan Phase 7 (/gsd-plan-phase 7)
-- **Last session:** 2026-05-31 — Completed Phase 6: inventory management (full CRUD, low-stock badges, sort/filter, offline-capable)
+- **Phase:** 7 (Data Export — ✅ Complete)
+- **Next action:** Plan Phase 8 (/gsd-plan-phase 8)
+- **Last session:** 2026-05-31 — Completed Phase 7: data export (SheetJS lazy-load, sales/inventory .xlsx, progress overlay)
 
 ## Phase Progress
 
@@ -17,7 +17,7 @@
 | 4 | Receipt Generation & WhatsApp Share | ✅ Complete |
 | 5 | Dashboard & Reports | ✅ Complete |
 | 6 | Inventory Management | ✅ Complete |
-| 7 | Data Export (Excel) | 🔲 Not started |
+| 7 | Data Export (Excel) | ✅ Complete |
 | 8 | Staff Management & Settings | 🔲 Not started |
 | 9 | Documentation & Polish | 🔲 Not started |
 
