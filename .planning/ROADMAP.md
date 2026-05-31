@@ -268,8 +268,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — modules/export.js (SheetJS lazy-load, sales month/all/inventory exports, progress overlay) + CSS Section 18
-- [ ] 07-02-PLAN.md — Wire Export menu into dashboard.js + human verification checkpoint
+- [x] 07-01-PLAN.md — modules/export.js (SheetJS lazy-load, sales month/all/inventory exports, progress overlay) + CSS Section 18
+- [x] 07-02-PLAN.md — Wire Export menu into dashboard.js + human verification checkpoint
 
 ---
 
@@ -298,6 +298,12 @@ Plans:
 - [ ] Add phone → staff can now log in
 - [ ] Remove phone → staff loses access
 - [ ] Sign out clears session completely
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — modules/settings.js (staff email list, add/remove with arrayUnion/arrayRemove) + CSS Section 19
+- [ ] 08-02-PLAN.md — Human verification checkpoint
 
 ---
 
