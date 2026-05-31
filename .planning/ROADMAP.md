@@ -335,6 +335,12 @@ Plans:
 - [ ] App JS < 30 KB (excluding Firebase SDK)
 - [ ] Lighthouse PWA score > 90
 - [ ] Works on Chrome Android + Desktop + Safari iOS
+**Plans:** 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — README.md + shop.config.js.template (setup guide + credentials-safe config template)
+- [ ] 09-02-PLAN.md — scripts/seed-demo.js (demo data) + accessibility fixes (aria-labels, touch targets)
+- [ ] 09-03-PLAN.md — Bundle size audit + human verification checkpoint (Lighthouse, cross-browser)
 
 ---
 
