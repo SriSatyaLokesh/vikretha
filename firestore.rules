@@ -86,9 +86,12 @@ service cloud.firestore {
       // Owners/admins can delete inventory items
       allow delete: if isOwnerOrAdmin(shopId);
 
-      // Stock-only update for cashiers — used during billing batch (increment)
+      // Stock-only update for cashiers (billing batch uses increment on stock).
+      // Uses field-equality guards instead of diff() to avoid FieldTransform edge cases.
       allow update: if isAuthorized(shopId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock'])
+        && request.resource.data.name  == resource.data.name
+        && request.resource.data.unit  == resource.data.unit
+        && request.resource.data.price == resource.data.price
         && request.resource.data.stock is number;
     }
 
