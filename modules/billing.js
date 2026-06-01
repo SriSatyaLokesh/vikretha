@@ -486,6 +486,13 @@ async function _handleSubmit(container) {
         phone,
         lastSaleAt: serverTimestamp()
       }, { merge: true }).catch(e => console.warn('[Billing] customer upsert failed', e));
+      // Add to in-memory list immediately so datalist updates in this session
+      if (!_customers.find(c => c.phone === phone)) {
+        _customers.push({ name: customerName || '', phone });
+      } else {
+        const existing = _customers.find(c => c.phone === phone);
+        if (existing && customerName) existing.name = customerName;
+      }
     }
 
     _showConfirmation(container, { saleId, total, cartArr });
