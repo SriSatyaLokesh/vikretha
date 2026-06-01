@@ -127,6 +127,13 @@ service cloud.firestore {
       allow read, write: if isAuthorized(shopId);
     }
 
+    // ── customers (contact book: name + phone, keyed by normalized phone) ────────
+
+    match /shops/{shopId}/customers/{customerId} {
+      // All authorized staff can read (for autocomplete) and write (cashier upserts on sale)
+      allow read, write: if isAuthorized(shopId);
+    }
+
     // ── summary (legacy — kept for backward compat during migration) ──────────
 
     match /shops/{shopId}/summary/{docId} {

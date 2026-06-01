@@ -8,7 +8,7 @@ import { db } from '../lib/firebase-init.js';
 import { auth } from '../lib/firebase-init.js';
 import {
   collection, doc, runTransaction, writeBatch,
-  onSnapshot, increment, serverTimestamp
+  onSnapshot, increment, serverTimestamp, getDocs, setDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
 
@@ -17,6 +17,7 @@ let _inventory = [];        // [{ id, name, price, unit, stock }]
 let _cart      = new Map(); // item_id → { id, name, price, unit, qty }
 let _discMode  = 'pct';     // 'pct' | 'inr'
 let _unsubInv  = null;      // inventory onSnapshot unsubscribe
+let _customers = [];        // [{ name, phone }] — loaded once per billing session
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -25,11 +26,22 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ── Customer Contact Book ─────────────────────────────────────
+async function _loadCustomers() {
+  try {
+    const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'customers'));
+    _customers = snap.docs.map(d => d.data());
+  } catch (e) {
+    console.warn('[Billing] Could not load customers', e);
+  }
+}
+
 // ── Entry Point ───────────────────────────────────────────────
 export function render(container) {
   _unsubInv?.();           // clean up previous listener
-  _cart     = new Map();
-  _discMode = 'pct';
+  _cart      = new Map();
+  _discMode  = 'pct';
+  _customers = [];
 
   container.innerHTML = `
     <div id="billing-screen" class="billing-screen">
@@ -81,13 +93,21 @@ export function render(container) {
               placeholder="0" class="form-input" style="margin-top:8px;">
           </div>
 
-          <!-- Customer phone -->
+          <!-- Customer phone + name -->
           <div class="form-group" style="margin-top:12px;">
             <label class="form-label">
               Customer Phone <span style="color:var(--text-muted);font-weight:400;">(optional)</span>
             </label>
             <input id="customer-phone" type="tel" autocomplete="tel"
-              placeholder="+91 98765 43210" class="form-input">
+              list="phone-suggestions" placeholder="+91 98765 43210" class="form-input">
+            <datalist id="phone-suggestions"></datalist>
+          </div>
+          <div class="form-group" style="margin-top:8px;">
+            <label class="form-label">
+              Customer Name <span style="color:var(--text-muted);font-weight:400;">(optional)</span>
+            </label>
+            <input id="customer-name" type="text" autocomplete="name"
+              placeholder="Auto-fills from phone" class="form-input">
           </div>
 
           <!-- Totals -->
@@ -191,6 +211,26 @@ export function render(container) {
     });
 
   _loadInventory(container);
+
+  // Load customers for phone autocomplete
+  _loadCustomers().then(() => {
+    const dl = document.getElementById('phone-suggestions');
+    if (dl) {
+      dl.innerHTML = _customers
+        .map(c => `<option value="${escapeHtml(c.phone)}">${escapeHtml(c.name)}</option>`)
+        .join('');
+    }
+  });
+
+  // Phone input: auto-fill name when exact match found
+  container.querySelector('#customer-phone').addEventListener('input', e => {
+    const phone = e.target.value.trim();
+    const match = _customers.find(c => c.phone === phone);
+    if (match) {
+      const nameEl = document.getElementById('customer-name');
+      if (nameEl && !nameEl.value) nameEl.value = match.name;
+    }
+  });
 }
 
 // ── Refresh grid + cart together ─────────────────────────────
@@ -392,7 +432,8 @@ async function _handleSubmit(container) {
     ? subtotal * Math.min(discRaw, 100) / 100
     : Math.min(discRaw, subtotal)).toFixed(2);
   const total      = +(subtotal - discAmount).toFixed(2);
-  const phone      = document.getElementById('customer-phone')?.value.trim() || null;
+  const phone        = document.getElementById('customer-phone')?.value.trim() || null;
+  const customerName = document.getElementById('customer-name')?.value.trim() || null;
 
   try {
     const batch      = writeBatch(db);
@@ -401,6 +442,7 @@ async function _handleSubmit(container) {
     batch.set(saleRef, {
       saleId, timestamp: serverTimestamp(),
       items: cartArr, subtotal, discount: discAmount, total,
+      customer_name: customerName,
       customer_phone: phone,
       created_by: auth.currentUser?.email ?? null
     });
@@ -434,6 +476,18 @@ async function _handleSubmit(container) {
     }, { merge: true });
 
     await batch.commit(); // returns immediately from IndexedDB when offline
+
+    // Upsert customer contact (fire-and-forget, offline-safe)
+    if (phone) {
+      const phoneKey = phone.replace(/\s+/g, '');
+      const custRef  = doc(db, 'shops', SHOP_ID, 'customers', phoneKey);
+      setDoc(custRef, {
+        name: customerName || '',
+        phone,
+        lastSaleAt: serverTimestamp()
+      }, { merge: true }).catch(e => console.warn('[Billing] customer upsert failed', e));
+    }
+
     _showConfirmation(container, { saleId, total, cartArr });
 
   } catch (err) {
