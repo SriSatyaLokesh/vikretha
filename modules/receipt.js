@@ -23,7 +23,6 @@ async function _drawReceipt(sale) {
   const FAINT    = '#CDC5B8';   // very light for deco
   const SAVE     = '#B83A2A';   // discount red
   const SEP_CLR  = '#C4BDB0';   // separator lines
-  const BG       = '#DDD8D0';   // outer shadow background
 
   // ── Column grid (all right-aligned except item name) ─────────────────────
   const C_AMT   = WIDTH - PADX;        // line total right edge
@@ -33,7 +32,7 @@ async function _drawReceipt(sale) {
 
   const LH      = 20;   // line height
   const SEP_H   = 14;   // separator height
-  const EDGE_H  = 18;   // torn edge height
+  const EDGE_H  = 0;    // no edge decoration
 
   const items    = sale.items || [];
   const hasDisc  = (sale.discount ?? 0) > 0;
@@ -106,35 +105,9 @@ async function _drawReceipt(sale) {
   const ctx     = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
 
-  // ── Outer background ──────────────────────────────────────────────────────
-  ctx.fillStyle = BG;
+  // ── Paper — plain white rectangle ────────────────────────────────────────
+  ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, WIDTH, CANVAS_H);
-
-  // ── Paper with scalloped perforations (classic thermal receipt) ──────────
-  const SC_COUNT = Math.round(WIDTH / 16);   // ~24 scallops across 380px
-  const SC_W     = WIDTH / SC_COUNT;          // width per scallop
-  const SC_R     = SC_W / 2;                  // radius = half-width
-  ctx.beginPath();
-  ctx.moveTo(0, EDGE_H);
-  // Top: semicircles bulge upward — each one is a concave cut into the paper
-  for (let i = 0; i < SC_COUNT; i++) {
-    ctx.arc(i * SC_W + SC_R, EDGE_H, SC_R, Math.PI, 0, true);
-  }
-  ctx.lineTo(WIDTH, CANVAS_H - EDGE_H);
-  // Bottom: semicircles bulge downward — mirror of top
-  for (let i = SC_COUNT - 1; i >= 0; i--) {
-    ctx.arc(i * SC_W + SC_R, CANVAS_H - EDGE_H, SC_R, 0, Math.PI, false);
-  }
-  ctx.closePath();
-  ctx.shadowColor   = 'rgba(0,0,0,0.22)';
-  ctx.shadowBlur    = 18;
-  ctx.shadowOffsetY = 6;
-  ctx.fillStyle     = PAPER;
-  ctx.fill();
-  ctx.shadowColor   = 'transparent';
-  ctx.shadowBlur    = 0;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
 
   // ── Thermal paper grain ───────────────────────────────────────────────────
   for (let gy = EDGE_H; gy < CANVAS_H - EDGE_H; gy += 3) {
