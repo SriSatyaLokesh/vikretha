@@ -14,6 +14,8 @@ import { SHOP_ID, SHOP_NAME, LOCALE } from '../shop.config.js';
 let _XLSX = null;
 // Cached outside-click handler (removed on re-attach)
 let _outsideClickHandler = null;
+// Tracks dropdown currently portaled to <body> (cleaned up on re-render)
+let _portaledDropdown = null;
 
 // ── SheetJS Lazy Loader ──────────────────────────────────────────────────────
 
@@ -226,11 +228,17 @@ async function _exportInventory(container) {
   }
 }
 
-// ── Entry Point ───────────────────────────────────────────────────────────────
+// ── Entry Point ────────────────────────────────────────────────────────────
 
 export function attachExportMenu(container) {
   const anchor = container.querySelector('#dash-export-anchor');
   if (!anchor) return;
+
+  // Clean up stale portaled dropdown from previous render
+  if (_portaledDropdown && _portaledDropdown.parentNode) {
+    _portaledDropdown.parentNode.removeChild(_portaledDropdown);
+    _portaledDropdown = null;
+  }
 
   // Remove stale outside-click handler from a previous render
   if (_outsideClickHandler) {
@@ -258,32 +266,63 @@ export function attachExportMenu(container) {
       '</div>' +
     '</div>';
 
+  const menuWrap = anchor.querySelector('.export-menu-wrap');
   const btn      = anchor.querySelector('#export-btn');
   const dropdown = anchor.querySelector('#export-dropdown');
+
+  // ── Portal helpers ─────────────────────────────────────────────────────
+  // .app-content has overflow-y:auto which clips position:absolute children.
+  // Fix: move dropdown to <body> using position:fixed coords from getBoundingClientRect.
+
+  function _openMenu() {
+    const rect = btn.getBoundingClientRect();
+    // Ensure dropdown doesn't overflow viewport on the left
+    const dropW = 200; // min-width from CSS
+    const rightEdge = window.innerWidth - rect.right;
+    const leftPos = rect.right - dropW;
+    dropdown.style.cssText =
+      'position:fixed;' +
+      `top:${Math.round(rect.bottom + 6)}px;` +
+      (leftPos >= 0
+        ? `right:${Math.round(rightEdge)}px;left:auto;`
+        : `left:${Math.max(8, Math.round(leftPos))}px;right:auto;`);
+    document.body.appendChild(dropdown);
+    _portaledDropdown = dropdown;
+    dropdown.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  function _closeMenu() {
+    dropdown.hidden = true;
+    dropdown.style.cssText = '';
+    if (dropdown.parentNode !== menuWrap) menuWrap.appendChild(dropdown);
+    _portaledDropdown = null;
+    btn.setAttribute('aria-expanded', 'false');
+  }
 
   // Toggle dropdown
   btn.addEventListener('click', e => {
     e.stopPropagation();
-    const isOpen = !dropdown.hidden;
-    dropdown.hidden = isOpen;
-    btn.setAttribute('aria-expanded', String(!isOpen));
+    dropdown.hidden ? _openMenu() : _closeMenu();
   });
 
-  // Outside-click to close
+  // Outside-click to close (check both anchor and portaled dropdown)
   _outsideClickHandler = e => {
-    if (!anchor.contains(e.target)) {
-      dropdown.hidden = true;
-      btn.setAttribute('aria-expanded', 'false');
+    if (!anchor.contains(e.target) && !dropdown.contains(e.target)) {
+      _closeMenu();
     }
   };
   document.addEventListener('click', _outsideClickHandler);
+
+  // Close on scroll (dropdown would be misaligned after scroll)
+  const _onScroll = () => { if (!dropdown.hidden) _closeMenu(); };
+  window.addEventListener('scroll', _onScroll, { passive: true, capture: true });
 
   // Dropdown item delegation
   dropdown.addEventListener('click', e => {
     const item = e.target.closest('.export-dropdown-item');
     if (!item) return;
-    dropdown.hidden = true;
-    btn.setAttribute('aria-expanded', 'false');
+    _closeMenu();
 
     const type = item.dataset.export;
     if (type === 'sales-month') {

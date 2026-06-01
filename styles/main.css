@@ -1,4 +1,4 @@
-/* ================================================================
+﻿/* ================================================================
    VIKRETHA — Design System v2 (2026)
    Modern responsive: dark sidebar (>=1024px) + bottom nav (<1024px)
    Typography: Inter | Palette: Orange + Slate | No build step
@@ -589,7 +589,7 @@ select.form-input { cursor: pointer; }
 .export-dropdown {
   position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg-surface);
   border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
-  min-width: 200px; z-index: 200; overflow: hidden; padding: 4px;
+  min-width: 200px; z-index: 1000; overflow: hidden; padding: 4px;
 }
 .export-dropdown-item {
   display: flex; align-items: center; width: 100%; padding: 10px 14px; text-align: left;
