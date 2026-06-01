@@ -1,4 +1,4 @@
-# Vikretha — विक्रेता
+# Vikretha - విక్రేత 
 
 **Zero-cost shop management PWA for small retailers. Fork → configure → deploy. No subscriptions, no servers.**
 
