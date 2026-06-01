@@ -110,21 +110,20 @@ async function _drawReceipt(sale) {
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, WIDTH, CANVAS_H);
 
-  // ── Paper with torn edges ─────────────────────────────────────────────────
-  const TEETH = Math.ceil(WIDTH / 10);
-  const TW    = WIDTH / TEETH;
+  // ── Paper with scalloped perforations (classic thermal receipt) ──────────
+  const SC_COUNT = Math.round(WIDTH / 16);   // ~24 scallops across 380px
+  const SC_W     = WIDTH / SC_COUNT;          // width per scallop
+  const SC_R     = SC_W / 2;                  // radius = half-width
   ctx.beginPath();
   ctx.moveTo(0, EDGE_H);
-  for (let i = 0; i < TEETH; i++) {
-    const x = i * TW;
-    ctx.lineTo(x + TW * 0.5, 4);
-    ctx.lineTo(x + TW, EDGE_H);
+  // Top: semicircles bulge upward — each one is a concave cut into the paper
+  for (let i = 0; i < SC_COUNT; i++) {
+    ctx.arc(i * SC_W + SC_R, EDGE_H, SC_R, Math.PI, 0, true);
   }
   ctx.lineTo(WIDTH, CANVAS_H - EDGE_H);
-  for (let i = TEETH; i > 0; i--) {
-    const x = i * TW;
-    ctx.lineTo(x - TW * 0.5, CANVAS_H - 4);
-    ctx.lineTo(x - TW, CANVAS_H - EDGE_H);
+  // Bottom: semicircles bulge downward — mirror of top
+  for (let i = SC_COUNT - 1; i >= 0; i--) {
+    ctx.arc(i * SC_W + SC_R, CANVAS_H - EDGE_H, SC_R, 0, Math.PI, false);
   }
   ctx.closePath();
   ctx.shadowColor   = 'rgba(0,0,0,0.22)';
