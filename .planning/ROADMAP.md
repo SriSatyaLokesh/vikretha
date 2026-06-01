@@ -483,7 +483,12 @@ Plans:
 - [ ] Receipt shows size label next to each line item that has one
 - [ ] Low-stock flag appears on item if any one size variant is below threshold
 
-**Plans:** To be planned
+**Plans:** 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — modules/inventory.js: unit type toggle (Pieces/Other) + size variants CRUD + isLow update
+- [ ] 13-02-PLAN.md — modules/billing.js size picker + composite cart + per-size batch decrement; receipt.js size label canvas
+- [ ] 13-03-PLAN.md — Human verification checkpoint
 
 ---
 ## Backlog (Post-MVP)
