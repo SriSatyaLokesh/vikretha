@@ -7,7 +7,7 @@
 import { db } from '../lib/firebase-init.js';
 import { auth } from '../lib/firebase-init.js';
 import {
-  collection, doc, runTransaction, writeBatch,
+  collection, doc, addDoc, runTransaction, writeBatch,
   onSnapshot, increment, serverTimestamp, getDocs, setDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
@@ -59,6 +59,16 @@ export function render(container) {
             aria-label="Search products">
         </div>
         <div id="product-grid" class="product-grid"></div>
+        <div style="padding:8px 4px 4px;">
+          <button id="adhoc-item-btn"
+            style="width:100%;padding:11px 16px;border-radius:10px;cursor:pointer;
+                   background:transparent;border:1.5px dashed var(--border);
+                   color:var(--text-secondary);font:inherit;font-size:0.85rem;
+                   display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Other item
+          </button>
+        </div>
       </div>
 
       <!-- Mobile sticky cart bar (shown when cart has items) -->
@@ -215,6 +225,9 @@ export function render(container) {
       document.querySelector('.billing-cart-panel')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+  container.querySelector('#adhoc-item-btn')
+    .addEventListener('click', () => _showAdhocItemForm(container));
 
   _loadInventory(container);
 
@@ -466,6 +479,201 @@ function _showSizePicker(container, inv) {
 }
 
 
+// ── Ad-hoc item entry bottom-sheet ───────────────────────────
+function _showAdhocItemForm(container) {
+  document.body.style.overflow = 'hidden';
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;box-sizing:border-box;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;';
+  const title = document.createElement('h2');
+  title.style.cssText = 'font-size:1.05rem;font-weight:700;color:var(--text-primary);margin:0;';
+  title.textContent = 'Add Other Item';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const nameLabel = document.createElement('label');
+  nameLabel.style.cssText = 'display:block;font-size:0.85rem;font-weight:500;color:var(--text-secondary);margin-bottom:5px;';
+  nameLabel.textContent = 'Item Name';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.placeholder = 'e.g. Labour charge';
+  nameInput.autocomplete = 'off';
+  nameInput.className = 'form-input';
+  nameInput.style.marginBottom = '14px';
+
+  const priceLabel = document.createElement('label');
+  priceLabel.style.cssText = 'display:block;font-size:0.85rem;font-weight:500;color:var(--text-secondary);margin-bottom:5px;';
+  priceLabel.textContent = 'Price';
+  const priceInput = document.createElement('input');
+  priceInput.type = 'number';
+  priceInput.min = '0.01';
+  priceInput.step = '0.01';
+  priceInput.placeholder = '0.00';
+  priceInput.className = 'form-input';
+  priceInput.style.marginBottom = '6px';
+
+  const errEl = document.createElement('p');
+  errEl.style.cssText = 'font-size:0.8rem;color:var(--danger,#ef4444);margin:4px 0 12px;display:none;';
+  errEl.textContent = 'Enter a name and a price greater than 0.';
+
+  const addBtn = document.createElement('button');
+  addBtn.textContent = 'Add to Cart';
+  addBtn.className = 'btn btn-primary btn-full';
+  addBtn.style.marginTop = '8px';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-secondary btn-full';
+  cancelBtn.style.marginTop = '8px';
+
+  function _close() {
+    document.body.style.overflow = '';
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
+  addBtn.addEventListener('click', () => {
+    const name  = nameInput.value.trim();
+    const price = parseFloat(priceInput.value);
+    if (!name || !(price > 0)) {
+      errEl.style.display = '';
+      return;
+    }
+    const cartKey = 'adhoc::' + Date.now().toString(36);
+    _cart.set(cartKey, {
+      id: null, cartKey, name, price, unit: 'pc', qty: 1,
+      adhoc: true, sizeKey: null, sizeLabel: null
+    });
+    _close();
+    _refresh(container);
+  });
+  cancelBtn.addEventListener('click', _close);
+  closeBtn.addEventListener('click', _close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
+
+  sheet.appendChild(header);
+  sheet.appendChild(nameLabel);
+  sheet.appendChild(nameInput);
+  sheet.appendChild(priceLabel);
+  sheet.appendChild(priceInput);
+  sheet.appendChild(errEl);
+  sheet.appendChild(addBtn);
+  sheet.appendChild(cancelBtn);
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+// ── Save ad-hoc items to inventory prompt ────────────────────
+function _promptSaveAdhocItems(container, items, onDone) {
+  if (!items || items.length === 0) { onDone(); return; }
+
+  function _next(idx) {
+    if (idx >= items.length) { onDone(); return; }
+    const item = items[idx];
+
+    document.body.style.overflow = 'hidden';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:60;display:flex;align-items:flex-end;';
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;box-sizing:border-box;';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;';
+    const titleEl = document.createElement('h2');
+    titleEl.style.cssText = 'font-size:1rem;font-weight:700;color:var(--text-primary);margin:0;';
+    titleEl.textContent = 'Save to Inventory?';
+    const skipXBtn = document.createElement('button');
+    skipXBtn.textContent = '×';
+    skipXBtn.setAttribute('aria-label', 'Skip');
+    skipXBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
+    header.appendChild(titleEl);
+    header.appendChild(skipXBtn);
+
+    const subtitle = document.createElement('p');
+    subtitle.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin:0 0 20px;';
+    subtitle.textContent = `Add "${item.name}" to inventory for future use?`;
+
+    const priceRow = document.createElement('div');
+    priceRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-surface);border-radius:10px;margin-bottom:14px;border:1px solid var(--border);';
+    const priceRowLabel = document.createElement('span');
+    priceRowLabel.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);';
+    priceRowLabel.textContent = 'Price per unit';
+    const priceRowVal = document.createElement('span');
+    priceRowVal.style.cssText = 'font-weight:700;color:var(--text-primary);';
+    priceRowVal.textContent = `${CURRENCY}${item.price.toFixed(2)}`;
+    priceRow.appendChild(priceRowLabel);
+    priceRow.appendChild(priceRowVal);
+
+    const stockLabel = document.createElement('label');
+    stockLabel.style.cssText = 'display:block;font-size:0.85rem;font-weight:500;color:var(--text-secondary);margin-bottom:5px;';
+    stockLabel.textContent = 'Starting stock (optional)';
+    const stockInput = document.createElement('input');
+    stockInput.type = 'number';
+    stockInput.min = '0';
+    stockInput.step = '1';
+    stockInput.placeholder = '0';
+    stockInput.className = 'form-input';
+    stockInput.style.marginBottom = '16px';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Yes, Add to Inventory';
+    saveBtn.className = 'btn btn-primary btn-full';
+    const skipBtn = document.createElement('button');
+    skipBtn.textContent = 'Skip';
+    skipBtn.className = 'btn btn-secondary btn-full';
+    skipBtn.style.marginTop = '8px';
+
+    function _close() {
+      document.body.style.overflow = '';
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      const stock = parseInt(stockInput.value, 10) || 0;
+      try {
+        await addDoc(collection(db, 'shops', SHOP_ID, 'inventory'), {
+          name:      item.name,
+          price:     item.price,
+          unit:      'pc',
+          stock,
+          threshold: 5,
+          unitType:  'other',
+          hasSizes:  false
+        });
+      } catch (e) {
+        console.warn('[Billing] save adhoc to inventory failed', e);
+      }
+      _close();
+      _next(idx + 1);
+    });
+
+    skipXBtn.addEventListener('click', () => { _close(); _next(idx + 1); });
+    skipBtn.addEventListener('click',  () => { _close(); _next(idx + 1); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) { _close(); _next(idx + 1); } });
+
+    sheet.appendChild(header);
+    sheet.appendChild(subtitle);
+    sheet.appendChild(priceRow);
+    sheet.appendChild(stockLabel);
+    sheet.appendChild(stockInput);
+    sheet.appendChild(saveBtn);
+    sheet.appendChild(skipBtn);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+  }
+
+  _next(0);
+}
+
 // ── Subscribe to inventory collection ────────────────────────
 function _loadInventory(container) {
   const ref = collection(db, 'shops', SHOP_ID, 'inventory');
@@ -523,7 +731,8 @@ async function _handleSubmit(container) {
     qty:        i.qty,
     line_total: +(i.price * i.qty).toFixed(2),
     size_key:   i.sizeKey   || null,
-    size_label: i.sizeLabel || null
+    size_label: i.sizeLabel || null,
+    adhoc:      i.adhoc     || false
   }));
   const subtotal   = +cartArr.reduce((s, i) => s + i.line_total, 0).toFixed(2);
   const discRaw    = parseFloat(document.getElementById('discount-val')?.value) || 0;
@@ -548,6 +757,7 @@ async function _handleSubmit(container) {
 
     // 2. Inventory stock decrement (per-size or total)
     for (const item of cartArr) {
+      if (!item.item_id) continue;   // skip ad-hoc items (no inventory doc)
       const invRef = doc(db, 'shops', SHOP_ID, 'inventory', item.item_id);
       if (item.size_key) {
         batch.update(invRef, { [`sizes.${item.size_key}.stock`]: increment(-item.qty) });
@@ -596,7 +806,18 @@ async function _handleSubmit(container) {
       }
     }
 
-    _showConfirmation(container, { saleId, total, cartArr });
+    // Collect unique ad-hoc items by name (deduplicate repeated ad-hoc entries)
+    const adhocMap = new Map();
+    for (const item of cartArr) {
+      if (item.adhoc && !adhocMap.has(item.name)) {
+        adhocMap.set(item.name, { name: item.name, price: item.price });
+      }
+    }
+    const adhocItems = [...adhocMap.values()];
+
+    _promptSaveAdhocItems(container, adhocItems, () => {
+      _showConfirmation(container, { saleId, total, cartArr });
+    });
 
   } catch (err) {
     console.error('[Billing] submit error', err);
