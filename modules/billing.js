@@ -397,8 +397,6 @@ async function _handleSubmit(container) {
   try {
     const batch      = writeBatch(db);
     const saleRef    = doc(db, 'shops', SHOP_ID, 'sales', saleId);
-    const summaryRef = doc(db, 'shops', SHOP_ID, 'summary', 'totals');
-
     // 1. Sale document
     batch.set(saleRef, {
       saleId, timestamp: serverTimestamp(),
@@ -414,14 +412,6 @@ async function _handleSubmit(container) {
         { stock: increment(-item.qty) }
       );
     }
-
-    // 3. Summary counters — set+merge handles first-sale doc creation
-    batch.set(summaryRef, {
-      today_count:  increment(1),   today_revenue:  increment(total),
-      week_count:   increment(1),   week_revenue:   increment(total),
-      month_count:  increment(1),   month_revenue:  increment(total),
-      last_updated: serverTimestamp()
-    }, { merge: true });
 
     // 4. Daily summary — date-keyed, no stale counter problem
     const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"

@@ -6,7 +6,7 @@
 
 import { db } from '../lib/firebase-init.js';
 import {
-  collection, doc, onSnapshot, getDocs,
+  collection, doc, onSnapshot, getDocs, getDoc,
   query, where, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
@@ -55,44 +55,54 @@ function _renderBarChart(container, dayMap) {
 
 async function _fetchAndRenderStats(container) {
   const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
-  const q7 = query(
-    collection(db, 'shops', SHOP_ID, 'sales'),
-    where('timestamp', '>=', Timestamp.fromDate(sevenDaysAgo))
-  );
-  const snap7 = await getDocs(q7);
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-  let todayRev = 0, todayCt = 0, weekRev = 0, weekCt = 0;
+  const fmt = v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 });
+
+  // -- Read 7 daily_summary docs (7 reads instead of scanning all sales) --
   const dayMap = {};
+  let todayRev = 0, todayCt = 0, weekRev = 0, weekCt = 0;
+  const todayKey = now.toISOString().slice(0, 10);
+
+  const dayPromises = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
     dayMap[key] = { revenue: 0, count: 0 };
+    dayPromises.push(
+      getDoc(doc(db, 'shops', SHOP_ID, 'daily_summary', key))
+        .then(snap => {
+          if (snap.exists()) {
+            const data = snap.data();
+            dayMap[key].revenue = data.revenue || 0;
+            dayMap[key].count   = data.count || 0;
+          }
+        })
+    );
   }
-  snap7.forEach(docSnap => {
-    const d = docSnap.data();
-    if (!d.timestamp) return;
-    const ts = d.timestamp.toDate();
-    const key = ts.toISOString().slice(0, 10);
-    const total = d.total || 0;
-    if (dayMap[key]) { dayMap[key].revenue += total; dayMap[key].count += 1; }
-    weekRev += total; weekCt += 1;
-    if (ts >= todayStart) { todayRev += total; todayCt += 1; }
-  });
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  const qM = query(
-    collection(db, 'shops', SHOP_ID, 'sales'),
-    where('timestamp', '>=', Timestamp.fromDate(monthStart)),
-    where('timestamp', '<=', Timestamp.fromDate(monthEnd))
-  );
-  const snapM = await getDocs(qM);
+  await Promise.all(dayPromises);
+
+  // Compute today + week totals from the daily docs
+  for (const [key, val] of Object.entries(dayMap)) {
+    weekRev += val.revenue;
+    weekCt  += val.count;
+    if (key === todayKey) {
+      todayRev = val.revenue;
+      todayCt  = val.count;
+    }
+  }
+
+  // -- Read 1 monthly_summary doc --
+  const monthKey = todayKey.slice(0, 7);
   let monthRev = 0, monthCt = 0;
-  snapM.forEach(d => { monthRev += d.data().total || 0; monthCt += 1; });
-  const fmt = v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 });
+  try {
+    const monthSnap = await getDoc(doc(db, 'shops', SHOP_ID, 'monthly_summary', monthKey));
+    if (monthSnap.exists()) {
+      monthRev = monthSnap.data().revenue || 0;
+      monthCt  = monthSnap.data().count || 0;
+    }
+  } catch (e) { console.warn('[Dashboard] monthly_summary read failed', e); }
+
+  // -- Render --
   _setSlot(container, 'dash-today-rev',  fmt(todayRev));
   _setSlot(container, 'dash-today-ct',   todayCt + ' sale' + (todayCt !== 1 ? 's' : ''));
   _setSlot(container, 'dash-week-rev',   fmt(weekRev));
@@ -101,7 +111,6 @@ async function _fetchAndRenderStats(container) {
   _setSlot(container, 'dash-month-ct',   monthCt + ' sale' + (monthCt !== 1 ? 's' : ''));
   _renderBarChart(container, dayMap);
 }
-
 function _buildMonthOptions(select) {
   if (!select) return;
   const now = new Date();
@@ -276,19 +285,20 @@ export function render(container) {
       _showMonthlyReport(container, y, m);
     });
 
-  // Firestore onSnapshot - refresh stats on every summary doc change
-  const summaryRef = doc(db, 'shops', SHOP_ID, 'summary', 'totals');
-  _unsubSummary = onSnapshot(summaryRef, snap => {
+  // Firestore onSnapshot -- refresh stats when today's daily_summary doc changes
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const dailyRef = doc(db, 'shops', SHOP_ID, 'daily_summary', todayKey);
+  _unsubSummary = onSnapshot(dailyRef, snap => {
     const syncBadge = container.querySelector('#dash-sync-badge');
     if (syncBadge) {
       const fromCache = snap.metadata.fromCache;
       const ts = snap.data()?.last_updated;
-      if (ts) {
+      if (ts && ts.toDate) {
         const d = ts.toDate();
-        syncBadge.textContent = (fromCache ? '⏳ ' : '✓ ') +
+        syncBadge.textContent = (fromCache ? 'loading ' : 'synced ') +
           d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
       } else {
-        syncBadge.textContent = fromCache ? '⏳ offline' : '✓ synced';
+        syncBadge.textContent = fromCache ? 'loading...' : 'synced';
       }
       syncBadge.className = 'sync-badge ' + (fromCache ? 'sync-badge--pending' : 'sync-badge--synced');
     }
