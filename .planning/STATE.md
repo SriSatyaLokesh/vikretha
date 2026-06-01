@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 12 (Customer Contact & Autofill — 🔨 In Progress)
-- **Next action:** Execute Phase 12 (/gsd-execute-phase 12)
-- **Last session:** 2026-06-01 — Phase 11 approved. Phase 12 planned: customer autofill + receipt name
+- **Phase:** 12 (Customer Contact & Autofill — ✅ Complete)
+- **Next action:** Plan next phase or review backlog
+- **Last session:** 2026-06-01 — Phase 12 complete: customer contact book, phone autofill, name+phone on receipt
 
 ## Phase Progress
 
@@ -22,7 +22,7 @@
 | 9 | Documentation & Polish | ✅ Complete |
 | 10 | Modern Responsive Redesign | ✅ Complete |
 | 11 | Firestore Architecture Hardening | ✅ Complete |
-| 12 | Customer Contact & Autofill | 🔨 In Progress |
+| 12 | Customer Contact & Autofill | ✅ Complete |
 
 ## Decisions Log
 
@@ -48,5 +48,6 @@ None.
 - Primary target: Android smartphone on 4G
 - No build step — all vanilla JS ES modules loaded directly
 - Firestore offline persistence handles all offline scenarios automatically
+
 
 

@@ -447,8 +447,8 @@ ame, phone, lastSaleAt)
 **Plans:** 2 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — customers Firestore collection + billing.js phone autocomplete + name autofill + upsert on submit
-- [ ] 12-02-PLAN.md — receipt.js canvas update to show customer name + human verification checkpoint
+- [x] 12-01-PLAN.md — customers Firestore collection + billing.js phone autocomplete + name autofill + upsert on submit
+- [x] 12-02-PLAN.md — receipt.js canvas update to show customer name + human verification checkpoint
 ---
 
 ## Backlog (Post-MVP)
@@ -463,4 +463,5 @@ Plans:
 | 999.6 | Sales analytics (trends, growth %) | Derived from existing data |
 | 999.7 | Multi-language (Hindi, Telugu, Tamil, Kannada) | i18n module |
 | 999.8 | Custom domain setup guide | GitHub Pages CNAME |
+
 
