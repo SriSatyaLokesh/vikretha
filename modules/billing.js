@@ -423,6 +423,26 @@ async function _handleSubmit(container) {
       last_updated: serverTimestamp()
     }, { merge: true });
 
+    // 4. Daily summary — date-keyed, no stale counter problem
+    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const dailyRef = doc(db, 'shops', SHOP_ID, 'daily_summary', today);
+    batch.set(dailyRef, {
+      date: today,
+      count: increment(1),
+      revenue: increment(total),
+      last_updated: serverTimestamp()
+    }, { merge: true });
+
+    // 5. Monthly summary — month-keyed
+    const month = today.slice(0, 7); // "YYYY-MM"
+    const monthlyRef = doc(db, 'shops', SHOP_ID, 'monthly_summary', month);
+    batch.set(monthlyRef, {
+      month,
+      count: increment(1),
+      revenue: increment(total),
+      last_updated: serverTimestamp()
+    }, { merge: true });
+
     await batch.commit(); // returns immediately from IndexedDB when offline
     _showConfirmation(container, { saleId, total, cartArr });
 

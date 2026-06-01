@@ -1,6 +1,6 @@
 rules_version = '2';
 // =============================================================================
-// Vikretha — Firestore Security Rules
+// Vikretha — Firestore Security Rules v2
 // =============================================================================
 // SETUP INSTRUCTIONS:
 //   1. Open Firebase Console → Firestore Database → Rules tab
@@ -9,13 +9,13 @@ rules_version = '2';
 //
 // HOW IT WORKS:
 //   - All data is denied by default (deny-all base rule)
-//   - Only email addresses listed in /shops/{shopId}/config/main.authorized_emails
-//     can read or write any document under /shops/{shopId}/
-//   - The first "Create Account" bootstraps this config doc with the owner's email
+//   - authorized_emails → any listed email can read/write shop data
+//   - staff_roles map → fine-grained role: 'owner' / 'admin' / 'cashier'
+//   - First "Create Account" bootstraps config doc with owner role
 //
 // ADDING STAFF:
 //   In Firebase Console -> Firestore -> shops/{your_shop_id}/config/main
-//   Add the staff email to the authorized_emails array and save.
+//   Add the staff email to authorized_emails AND set staff_roles.{email} = 'cashier' or 'admin'.
 //   Then have them create a Firebase Auth account via the app's "Create Account" form.
 // =============================================================================
 
@@ -27,28 +27,108 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Helper function: check if the authenticated user's email
-    // is in this shop's authorized_emails list
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function getConfig(shopId) {
+      return get(/databases/$(database)/documents/shops/$(shopId)/config/main).data;
+    }
+
     function isAuthorized(shopId) {
-      let config = get(/databases/$(database)/documents/shops/$(shopId)/config/main);
-      return request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email in config.data.authorized_emails;
+      return isAuthenticated()
+        && request.auth.token.email in getConfig(shopId).authorized_emails;
     }
 
-    // Shop data: all subcollections accessible to authorized emails only
-    match /shops/{shopId}/{document=**} {
-      allow read: if isAuthorized(shopId);
-      allow write: if isAuthorized(shopId);
+    // Returns the role string for the current user, or 'cashier' as default
+    // (handles legacy configs that predate the staff_roles map).
+    function getRole(shopId) {
+      let cfg = getConfig(shopId);
+      return cfg.keys().hasAll(['staff_roles'])
+        ? cfg.staff_roles[request.auth.token.email]
+        : 'cashier';
     }
 
-    // Bootstrap: allow authenticated user to CREATE config doc if it doesn't exist.
-    // Covers the very first "Create Account" before authorized_emails is populated.
-    // Security: user can only bootstrap with their OWN email in authorized_emails.
+    function isOwnerOrAdmin(shopId) {
+      return isAuthorized(shopId) && getRole(shopId) in ['owner', 'admin'];
+    }
+
+    // ── config/main ───────────────────────────────────────────────────────────
+
     match /shops/{shopId}/config/main {
-      allow create: if request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email in request.resource.data.authorized_emails;
+      // Bootstrap: first sign-up creates the config doc with own email + owner role.
+      // Security: user can only bootstrap with their OWN email in authorized_emails
+      // and MUST include staff_roles.{email} = 'owner'.
+      allow create: if isAuthenticated()
+        && request.auth.token.email in request.resource.data.authorized_emails
+        && request.resource.data.staff_roles[request.auth.token.email] == 'owner';
+
+      // Any authorized email can read config (needed for role lookups)
+      allow read: if isAuthorized(shopId);
+
+      // Only owners can modify or delete config
+      allow update, delete: if isAuthorized(shopId) && getRole(shopId) == 'owner';
     }
+
+    // ── inventory ─────────────────────────────────────────────────────────────
+
+    match /shops/{shopId}/inventory/{itemId} {
+      allow read: if isAuthorized(shopId);
+
+      // Full create/update for owners and admins (requires all fields + validation)
+      allow create, update: if isOwnerOrAdmin(shopId)
+        && request.resource.data.keys().hasAll(['name', 'unit', 'price', 'stock'])
+        && request.resource.data.price > 0
+        && request.resource.data.stock >= 0;
+
+      // Owners/admins can delete inventory items
+      allow delete: if isOwnerOrAdmin(shopId);
+
+      // Stock-only update for cashiers — used during billing batch (increment)
+      allow update: if isAuthorized(shopId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock'])
+        && request.resource.data.stock is number;
+    }
+
+    // ── sales ─────────────────────────────────────────────────────────────────
+
+    match /shops/{shopId}/sales/{saleId} {
+      allow read: if isAuthorized(shopId);
+
+      // Create only — sales are immutable once submitted (audit trail)
+      allow create: if isAuthorized(shopId)
+        && request.resource.data.keys().hasAll(['saleId', 'timestamp', 'items', 'total'])
+        && request.resource.data.total >= 0;
+
+      // No updates or deletes — immutable
+      allow update, delete: if false;
+    }
+
+    // ── counters (sale ID sequence) ───────────────────────────────────────────
+
+    match /shops/{shopId}/counters/{counterId} {
+      allow read, write: if isAuthorized(shopId);
+    }
+
+    // ── daily_summary (date-sharded aggregates: YYYY-MM-DD) ───────────────────
+
+    match /shops/{shopId}/daily_summary/{dateId} {
+      allow read, write: if isAuthorized(shopId);
+    }
+
+    // ── monthly_summary (month-sharded aggregates: YYYY-MM) ───────────────────
+
+    match /shops/{shopId}/monthly_summary/{monthId} {
+      allow read, write: if isAuthorized(shopId);
+    }
+
+    // ── summary (legacy — kept for backward compat during migration) ──────────
+
+    match /shops/{shopId}/summary/{docId} {
+      allow read, write: if isAuthorized(shopId);
+    }
+
   }
 }

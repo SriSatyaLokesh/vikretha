@@ -280,6 +280,7 @@ async function bootstrapShopConfig(user) {
         shop_name: SHOP_NAME,
         authorized_emails: [user.email],
         whatsapp_number: WHATSAPP_NUMBER || '',
+        staff_roles: { [user.email]: 'owner' },
         created_at: serverTimestamp()
       });
     }
