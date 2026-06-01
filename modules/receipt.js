@@ -33,7 +33,7 @@ async function _drawReceipt(sale) {
   const items    = sale.items || [];
   const hasDisc  = (sale.discount ?? 0) > 0;
   const hasLogo  = !!(LOGO_URL?.trim());
-  const hasPhone = !!sale.customer_phone;
+  const hasCustomer = !!(sale.customer_name || sale.customer_phone);
 
   // ── Height calculation ───────────────────────────────────────────────────
   const EDGE_H  = 14;  // torn-edge height top + bottom
@@ -59,7 +59,7 @@ async function _drawReceipt(sale) {
   bodyH += SEP_H;                     // sep
   bodyH += LH;                        // thank you
   bodyH += LH;                        // shop name repeat
-  if (hasPhone) bodyH += LH;          // customer
+  if (hasCustomer) bodyH += LH;       // customer
   bodyH += LH;                        // star line
   bodyH += 14;                        // bottom inner padding
 
@@ -268,10 +268,11 @@ async function _drawReceipt(sale) {
   ctx.fillText(SHOP_NAME.toUpperCase(), WIDTH / 2, y);
   y += LH;
 
-  if (hasPhone) {
+  if (hasCustomer) {
+    const customerLabel = sale.customer_name || sale.customer_phone;
     ctx.font      = `11px ${FONT}`;
     ctx.fillStyle = MUTED;
-    ctx.fillText(`CUSTOMER : ${sale.customer_phone}`, WIDTH / 2, y);
+    ctx.fillText(`CUSTOMER : ${customerLabel.toUpperCase()}`, WIDTH / 2, y);
     y += LH;
   }
 
