@@ -11,156 +11,170 @@ import {
 // ── Canvas receipt drawing ────────────────────────────────────────────────────
 
 async function _drawReceipt(sale) {
-  const DPR    = 2;         // retina-quality output
-  const WIDTH  = 400;       // logical px (thermal roll width)
-  const PADX   = 24;
+  const DPR    = 2;
+  const WIDTH  = 380;
+  const PADX   = 22;
   const FONT   = '"Courier New", Courier, monospace';
 
-  // Palette — warm thermal paper
-  const PAPER  = '#fdf8ed';
-  const INK    = '#111111';
-  const MUTED  = '#7a7060';
-  const FAINT  = '#c5b99a';
-  const ACCENT = '#f97316'; // orange for grand total
-  const ERR    = '#c0392b'; // discount red
+  // ── Palette — bright thermal paper ──────────────────────────────────────
+  const PAPER    = '#FEFEF8';   // bright white with micro warmth
+  const INK      = '#111111';   // near-black, crisp
+  const MUTED    = '#7A7060';   // warm mid-gray
+  const FAINT    = '#CDC5B8';   // very light for deco
+  const SAVE     = '#B83A2A';   // discount red
+  const SEP_CLR  = '#C4BDB0';   // separator lines
+  const BG       = '#DDD8D0';   // outer shadow background
 
-  // Column right-edges (logical px, monospace-aligned)
-  const C_NAME = PADX;       // left-aligned
-  const C_QTY  = 200;        // qty right-edge
-  const C_RATE = 298;        // unit price right-edge
-  const C_AMT  = WIDTH - PADX; // line total right-edge
+  // ── Column grid (all right-aligned except item name) ─────────────────────
+  const C_AMT   = WIDTH - PADX;        // line total right edge
+  const C_RATE  = C_AMT  - 80;         // unit rate right edge
+  const C_QTY   = C_RATE - 48;         // qty right edge
+  const NAME_W  = C_QTY  - PADX - 10;  // max width for item name column
+
+  const LH      = 20;   // line height
+  const SEP_H   = 14;   // separator height
+  const EDGE_H  = 18;   // torn edge height
 
   const items    = sale.items || [];
   const hasDisc  = (sale.discount ?? 0) > 0;
   const hasLogo  = !!(LOGO_URL?.trim());
-  const hasCustomer = !!(sale.customer_name || sale.customer_phone);
-  const hasBothNameAndPhone = !!(sale.customer_name && sale.customer_phone);
+  const hasCustName  = !!sale.customer_name;
+  const hasCustPhone = !!sale.customer_phone;
+  const hasCustomer  = hasCustName || hasCustPhone;
 
-  // ── Height calculation ───────────────────────────────────────────────────
-  const EDGE_H  = 14;  // torn-edge height top + bottom
-  const LH      = 22;  // standard line height
-  const SEP_H   = 16;  // separator total height (line + gap)
+  // ── Pre-measure item name wrapping (temp canvas) ──────────────────────────
+  const tmpCtx   = document.createElement('canvas').getContext('2d');
+  const ITEM_FONT = `12px ${FONT}`;
 
-  let bodyH = 0;
-  bodyH += 18;                        // top inner padding
-  if (hasLogo) bodyH += 64;
-  bodyH += 32;                        // shop name
-  bodyH += LH;                        // "* RECEIPT *" deco
-  bodyH += LH;                        // bill #
-  bodyH += LH;                        // date
-  bodyH += SEP_H;                     // sep
-  bodyH += LH;                        // column headers
-  bodyH += SEP_H;                     // sep
-  bodyH += items.length * LH;         // item rows
-  bodyH += SEP_H;                     // sep
-  bodyH += LH;                        // subtotal
-  if (hasDisc) bodyH += LH;           // discount
-  bodyH += SEP_H;                     // solid rule
-  bodyH += 30;                        // TOTAL (bigger)
-  bodyH += SEP_H;                     // sep
-  bodyH += LH;                        // thank you
-  bodyH += LH;                        // shop name repeat
-  if (hasCustomer) bodyH += LH;       // customer name or phone
-  if (hasBothNameAndPhone) bodyH += LH; // customer phone (second line)
-  bodyH += LH;                        // star line
-  bodyH += 14;                        // bottom inner padding
+  function wrapText(text, maxW) {
+    tmpCtx.font = ITEM_FONT;
+    if (tmpCtx.measureText(text).width <= maxW) return [text];
+    const words = text.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (cur && tmpCtx.measureText(test).width > maxW) { lines.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [text];
+  }
+
+  const rows    = items.map(item => {
+    const lines = wrapText(item.name.toUpperCase(), NAME_W);
+    return { ...item, lines, rowH: lines.length * LH };
+  });
+  const itemsH = rows.reduce((s, r) => s + r.rowH, 0);
+
+  // ── Canvas height calculation ─────────────────────────────────────────────
+  let bodyH = 22;
+  if (hasLogo) bodyH += 68;
+  bodyH += 28;                           // shop name
+  bodyH += 14;                           // gap + deco line 1
+  bodyH += LH + 10;                      // deco RECEIPT + gap
+  bodyH += LH;                           // BILL #
+  bodyH += LH;                           // DATE
+  bodyH += SEP_H;                        // ---
+  bodyH += LH;                           // column headers
+  bodyH += SEP_H;                        // ---
+  bodyH += itemsH;                       // item rows (variable, wrapping)
+  bodyH += SEP_H;                        // ---
+  bodyH += LH;                           // SUBTOTAL
+  if (hasDisc) bodyH += LH;             // DISCOUNT
+  bodyH += SEP_H + 8;                    // === thick sep
+  bodyH += 36;                           // TOTAL
+  bodyH += SEP_H + 8;                    // === thick sep
+  if (hasCustomer) {
+    if (hasCustName)  bodyH += LH;
+    if (hasCustPhone) bodyH += LH;
+    bodyH += SEP_H;
+  }
+  bodyH += LH;                           // THANK YOU
+  bodyH += LH;                           // shop name footer
+  bodyH += 12;                           // gap
+  bodyH += 26;                           // barcode deco
+  bodyH += 20;                           // bottom padding
 
   const CANVAS_H = EDGE_H + bodyH + EDGE_H;
 
-  // ── Create canvas ────────────────────────────────────────────────────────
+  // ── Create canvas ─────────────────────────────────────────────────────────
   const canvas  = document.createElement('canvas');
   canvas.width  = WIDTH  * DPR;
   canvas.height = CANVAS_H * DPR;
   const ctx     = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
 
-  // ── Outer background (surface behind paper) ──────────────────────────────
-  ctx.fillStyle = '#e6e0d4';
+  // ── Outer background ──────────────────────────────────────────────────────
+  ctx.fillStyle = BG;
   ctx.fillRect(0, 0, WIDTH, CANVAS_H);
 
-  // ── Paper shape with torn top + bottom edges ─────────────────────────────
-  const TEETH = Math.ceil(WIDTH / 12);
-  const TW    = WIDTH / TEETH;   // tooth width
-
+  // ── Paper with torn edges ─────────────────────────────────────────────────
+  const TEETH = Math.ceil(WIDTH / 10);
+  const TW    = WIDTH / TEETH;
   ctx.beginPath();
-  // Top torn edge — zigzag from left→right
   ctx.moveTo(0, EDGE_H);
   for (let i = 0; i < TEETH; i++) {
     const x = i * TW;
-    ctx.lineTo(x + TW * 0.5, 3);          // peak (upward)
-    ctx.lineTo(x + TW,       EDGE_H);     // valley
+    ctx.lineTo(x + TW * 0.5, 4);
+    ctx.lineTo(x + TW, EDGE_H);
   }
-  // Right side straight down
   ctx.lineTo(WIDTH, CANVAS_H - EDGE_H);
-  // Bottom torn edge — zigzag right→left
   for (let i = TEETH; i > 0; i--) {
     const x = i * TW;
-    ctx.lineTo(x - TW * 0.5, CANVAS_H - 3);    // peak (downward)
-    ctx.lineTo(x - TW,       CANVAS_H - EDGE_H); // valley
+    ctx.lineTo(x - TW * 0.5, CANVAS_H - 4);
+    ctx.lineTo(x - TW, CANVAS_H - EDGE_H);
   }
-  ctx.lineTo(0, EDGE_H);
   ctx.closePath();
-
-  // Drop shadow behind paper
-  ctx.shadowColor   = 'rgba(0,0,0,0.18)';
-  ctx.shadowBlur    = 10;
-  ctx.shadowOffsetX = 3;
-  ctx.shadowOffsetY = 3;
-  ctx.fillStyle = PAPER;
+  ctx.shadowColor   = 'rgba(0,0,0,0.22)';
+  ctx.shadowBlur    = 18;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle     = PAPER;
   ctx.fill();
-  // Reset shadow
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur  = 0;
+  ctx.shadowColor   = 'transparent';
+  ctx.shadowBlur    = 0;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 
-  // ── Subtle horizontal grain lines (thermal paper texture) ────────────────
-  for (let gy = EDGE_H; gy < CANVAS_H - EDGE_H; gy += 4) {
-    ctx.strokeStyle = 'rgba(0,0,0,0.018)';
+  // ── Thermal paper grain ───────────────────────────────────────────────────
+  for (let gy = EDGE_H; gy < CANVAS_H - EDGE_H; gy += 3) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.010)';
     ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(0,     gy);
-    ctx.lineTo(WIDTH, gy);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(WIDTH, gy); ctx.stroke();
   }
 
-  // ── Drawing helpers ──────────────────────────────────────────────────────
-  let y = EDGE_H + 18;
+  let y = EDGE_H + 22;
 
+  // ── Drawing helpers ───────────────────────────────────────────────────────
   const dSep = () => {
     ctx.save();
-    ctx.strokeStyle = FAINT;
-    ctx.lineWidth   = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(PADX, y);
-    ctx.lineTo(WIDTH - PADX, y);
-    ctx.stroke();
+    ctx.strokeStyle = SEP_CLR; ctx.lineWidth = 0.8;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(PADX, y); ctx.lineTo(WIDTH - PADX, y); ctx.stroke();
     ctx.restore();
     y += SEP_H;
   };
 
-  const sSep = () => {
+  const thickSep = () => {
     ctx.save();
-    ctx.strokeStyle = INK;
-    ctx.lineWidth   = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(PADX, y);
-    ctx.lineTo(WIDTH - PADX, y);
-    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(PADX, y); ctx.lineTo(WIDTH - PADX, y); ctx.stroke();
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(PADX, y + 4); ctx.lineTo(WIDTH - PADX, y + 4); ctx.stroke();
     ctx.restore();
-    y += SEP_H;
+    y += SEP_H + 8;
   };
 
-  // ── Logo ─────────────────────────────────────────────────────────────────
+  // ── Logo ──────────────────────────────────────────────────────────────────
   if (hasLogo) {
     await new Promise(res => {
-      const img = new Image();
-      img.onload  = () => { ctx.drawImage(img, (WIDTH - 48) / 2, y, 48, 48); res(); };
+      const img   = new Image();
+      img.onload  = () => { ctx.drawImage(img, (WIDTH - 56) / 2, y, 56, 56); res(); };
       img.onerror = res;
       img.src     = LOGO_URL;
     });
-    y += 60;
+    y += 64;
   }
 
   // ── Shop name ─────────────────────────────────────────────────────────────
@@ -168,33 +182,49 @@ async function _drawReceipt(sale) {
   ctx.fillStyle = INK;
   ctx.textAlign = 'center';
   ctx.fillText(SHOP_NAME.toUpperCase(), WIDTH / 2, y);
-  y += 32;
+  y += 28;
 
-  // ── Deco row ──────────────────────────────────────────────────────────────
-  ctx.font      = `11px ${FONT}`;
-  ctx.fillStyle = MUTED;
+  // ── Deco: faint dots + RECEIPT label ─────────────────────────────────────
+  ctx.font = `9px ${FONT}`;
+  ctx.fillStyle = FAINT;
   ctx.textAlign = 'center';
-  ctx.fillText('* * * * * * RECEIPT * * * * * *', WIDTH / 2, y);
-  y += LH;
+  ctx.fillText('. . . . . . . . . . . . . . . . . . . . . . . . .', WIDTH / 2, y);
+  y += 14;
+  ctx.font      = `bold 10px ${FONT}`;
+  ctx.fillStyle = MUTED;
+  ctx.fillText('* * * *  SALES  RECEIPT  * * * *', WIDTH / 2, y);
+  y += LH + 10;
 
-  // ── Bill # and date ───────────────────────────────────────────────────────
+  // ── Bill # and Date ───────────────────────────────────────────────────────
   const dateStr = new Date(sale.timestamp?.toDate?.() ?? Date.now())
     .toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
-  ctx.font      = `12px ${FONT}`;
-  ctx.fillStyle = INK;
+
+  ctx.font      = `11px ${FONT}`;
+  ctx.fillStyle = MUTED;
   ctx.textAlign = 'left';
-  ctx.fillText(`BILL #  ${String(sale.saleId ?? '').padStart(8, '0')}`, PADX, y);
+  ctx.fillText('BILL #', PADX, y);
+  ctx.font      = `bold 11px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'right';
+  ctx.fillText(String(sale.saleId ?? '').padStart(8, '0'), WIDTH - PADX, y);
   y += LH;
-  ctx.fillText(`DATE    ${dateStr}`, PADX, y);
+
+  ctx.font      = `11px ${FONT}`;
+  ctx.fillStyle = MUTED;
+  ctx.textAlign = 'left';
+  ctx.fillText('DATE', PADX, y);
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'right';
+  ctx.fillText(dateStr, WIDTH - PADX, y);
   y += LH;
 
   dSep();
 
-  // ── Column headers ────────────────────────────────────────────────────────
-  ctx.font      = `bold 11px ${FONT}`;
+  // ── Column headers ─────────────────────────────────────────────────────────
+  ctx.font      = `bold 9.5px ${FONT}`;
   ctx.fillStyle = MUTED;
   ctx.textAlign = 'left';
-  ctx.fillText('ITEM',  C_NAME, y);
+  ctx.fillText('ITEM', PADX, y);
   ctx.textAlign = 'right';
   ctx.fillText('QTY',  C_QTY,  y);
   ctx.fillText('RATE', C_RATE, y);
@@ -203,90 +233,105 @@ async function _drawReceipt(sale) {
 
   dSep();
 
-  // ── Item rows ─────────────────────────────────────────────────────────────
-  items.forEach((item, idx) => {
-    // Alternating very faint row tint
+  // ── Item rows (wrapped names) ──────────────────────────────────────────────
+  rows.forEach((item, idx) => {
     if (idx % 2 === 1) {
-      ctx.fillStyle = 'rgba(0,0,0,0.03)';
-      ctx.fillRect(PADX, y - LH + 4, WIDTH - PADX * 2, LH);
+      ctx.fillStyle = 'rgba(0,0,0,0.024)';
+      ctx.fillRect(PADX - 4, y - LH + 6, WIDTH - (PADX - 4) * 2, item.rowH);
     }
-    const name = item.name.length > 18 ? item.name.slice(0, 17) + '\u2026' : item.name;
-    ctx.font      = `13px ${FONT}`;
+    // Name lines
+    ctx.font      = `12px ${FONT}`;
     ctx.fillStyle = INK;
     ctx.textAlign = 'left';
-    ctx.fillText(name.toUpperCase(), C_NAME, y);
+    item.lines.forEach((line, li) => {
+      ctx.fillText(line, PADX, y + li * LH);
+    });
+    // QTY × RATE = AMT on the last name line
+    const numY = y + (item.lines.length - 1) * LH;
+    ctx.fillStyle = MUTED;
     ctx.textAlign = 'right';
-    ctx.fillText(String(item.qty),                             C_QTY,  y);
-    ctx.fillText(`${CURRENCY}${item.price.toFixed(2)}`,        C_RATE, y);
+    ctx.fillText(`x${item.qty}`,                             C_QTY,  numY);
+    ctx.fillText(`${CURRENCY}${item.price.toFixed(2)}`,      C_RATE, numY);
     ctx.fillStyle = INK;
-    ctx.fillText(`${CURRENCY}${item.line_total.toFixed(2)}`,   C_AMT,  y);
-    y += LH;
+    ctx.fillText(`${CURRENCY}${item.line_total.toFixed(2)}`, C_AMT,  numY);
+    y += item.rowH;
   });
 
   dSep();
 
   // ── Subtotal ──────────────────────────────────────────────────────────────
-  ctx.font      = `12px ${FONT}`;
+  ctx.font      = `11px ${FONT}`;
   ctx.fillStyle = MUTED;
   ctx.textAlign = 'left';
-  ctx.fillText('SUBTOTAL', C_RATE - 68, y);
+  ctx.fillText('SUBTOTAL', C_RATE - 82, y);
   ctx.fillStyle = INK;
   ctx.textAlign = 'right';
   ctx.fillText(`${CURRENCY}${(sale.subtotal ?? sale.total).toFixed(2)}`, C_AMT, y);
   y += LH;
 
-  // ── Discount ──────────────────────────────────────────────────────────────
   if (hasDisc) {
-    ctx.font      = `12px ${FONT}`;
-    ctx.fillStyle = ERR;
+    ctx.fillStyle = SAVE;
     ctx.textAlign = 'left';
-    ctx.fillText('DISCOUNT', C_RATE - 68, y);
+    ctx.fillText('DISCOUNT', C_RATE - 82, y);
     ctx.textAlign = 'right';
     ctx.fillText(`- ${CURRENCY}${sale.discount.toFixed(2)}`, C_AMT, y);
     y += LH;
   }
 
-  sSep();
+  thickSep();
 
   // ── Grand total ───────────────────────────────────────────────────────────
-  ctx.font      = `bold 17px ${FONT}`;
+  ctx.font      = `bold 18px ${FONT}`;
   ctx.fillStyle = INK;
   ctx.textAlign = 'left';
-  ctx.fillText('TOTAL', C_RATE - 68, y + 12);
-  ctx.fillStyle = ACCENT;
+  ctx.fillText('TOTAL', PADX, y + 14);
   ctx.textAlign = 'right';
-  ctx.fillText(`${CURRENCY}${sale.total.toFixed(2)}`, C_AMT, y + 12);
-  y += 30;
+  ctx.fillText(`${CURRENCY}${sale.total.toFixed(2)}`, C_AMT, y + 14);
+  y += 36;
 
-  dSep();
+  thickSep();
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  ctx.font      = `11px ${FONT}`;
-  ctx.fillStyle = MUTED;
-  ctx.textAlign = 'center';
-  ctx.fillText('THANK YOU FOR SHOPPING!', WIDTH / 2, y);
-  y += LH;
-  ctx.font      = `bold 11px ${FONT}`;
-  ctx.fillText(SHOP_NAME.toUpperCase(), WIDTH / 2, y);
-  y += LH;
-
+  // ── Customer info ──────────────────────────────────────────────────────────
   if (hasCustomer) {
-    ctx.font      = `11px ${FONT}`;
+    ctx.font      = `10.5px ${FONT}`;
     ctx.fillStyle = MUTED;
-    if (sale.customer_name) {
+    ctx.textAlign = 'center';
+    if (hasCustName) {
       ctx.fillText(`CUSTOMER : ${sale.customer_name.toUpperCase()}`, WIDTH / 2, y);
       y += LH;
     }
-    if (sale.customer_phone) {
-      const phoneLabel = sale.customer_name ? 'PHONE    :' : 'CUSTOMER :';
-      ctx.fillText(`${phoneLabel} ${sale.customer_phone}`, WIDTH / 2, y);
+    if (hasCustPhone) {
+      const lbl = hasCustName ? 'PHONE    :' : 'CUSTOMER :';
+      ctx.fillText(`${lbl} ${sale.customer_phone}`, WIDTH / 2, y);
       y += LH;
     }
+    dSep();
   }
 
-  ctx.font      = `11px ${FONT}`;
-  ctx.fillStyle = FAINT;
-  ctx.fillText('* * * * * * * * * * * * * * *', WIDTH / 2, y);
+  // ── Footer ────────────────────────────────────────────────────────────────
+  ctx.font      = `bold 10.5px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'center';
+  ctx.fillText('* THANK YOU FOR SHOPPING! *', WIDTH / 2, y);
+  y += LH;
+  ctx.font      = `10px ${FONT}`;
+  ctx.fillStyle = MUTED;
+  ctx.fillText(SHOP_NAME.toUpperCase(), WIDTH / 2, y);
+  y += LH + 12;
+
+  // ── Decorative barcode ────────────────────────────────────────────────────
+  const barH  = 20;
+  const barX0 = PADX + 8;
+  const barW  = WIDTH - (PADX + 8) * 2;
+  const pat   = [1,2,1,1,3,1,2,1,1,2,3,1,1,2,1,3,2,1,1,2,1,1,3,2,1,1,2,1,2,1,1,3,1,2,1];
+  const patTot = pat.reduce((s, v) => s + v, 0);
+  const unit  = barW / patTot;
+  let bx      = barX0;
+  ctx.fillStyle = INK;
+  pat.forEach((w, i) => {
+    if (i % 2 === 0) ctx.fillRect(bx, y, w * unit - 0.5, barH);
+    bx += w * unit;
+  });
 
   return canvas;
 }
