@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 9 (Documentation & Polish — ✅ Complete)
-- **Next action:** Milestone 1 complete — tag v1.0 release
-- **Last session:** 2026-05-31 — Completed Phase 9: README, shop.config.js.template, seed-demo.js, a11y fixes (aria-labels, touch targets, focus-visible), bundle audit (112 KB unminified)
+- **Phase:** 11 (Firestore Architecture Hardening — 📋 Planned)
+- **Next action:** Execute Phase 11 (/gsd-execute-phase 11)
+- **Last session:** 2026-06-01 — Planned Phase 11: Firestore hardening (RBAC, date-sharded summaries, immutable sales)
 
 ## Phase Progress
 
@@ -20,6 +20,8 @@
 | 7 | Data Export (Excel) | ✅ Complete |
 | 8 | Staff Management & Settings | ✅ Complete |
 | 9 | Documentation & Polish | ✅ Complete |
+| 10 | Modern Responsive Redesign | ✅ Complete |
+| 11 | Firestore Architecture Hardening | 📋 Planned |
 
 ## Decisions Log
 

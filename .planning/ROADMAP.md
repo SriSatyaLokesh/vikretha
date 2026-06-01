@@ -383,6 +383,42 @@ Plans:
 
 ---
 
+### Phase 11 — Firestore Architecture Hardening
+
+**Goal:** Role-based security rules, date-sharded aggregation, and optimized dashboard reads per ADR-0001.
+
+**Delivers:** Secure RBAC, immutable sales, daily/monthly summary docs, 93% read reduction on dashboard.
+
+**Requirements covered:** ADR-0001-SEC, ADR-0001-PERF, ADR-0001-AGG, ADR-0001-BACKFILL
+
+**Depends on:** Phase 10 (all existing phases complete)
+
+**Key tasks:**
+- Rewrite firestore.rules with role-based access (owner/admin/cashier)
+- Add write validation (required fields, type checks, immutable sales)
+- Extend billing batch with daily_summary + monthly_summary writes
+- Bootstrap owner role in auth.js config creation
+- Migrate dashboard to read from date-sharded summaries (8 reads vs 100+)
+- Remove legacy summary/totals writes
+- Create backfill script for existing sales data
+
+**UAT:**
+- [ ] Security rules deployed and enforcing RBAC
+- [ ] Billing writes daily_summary + monthly_summary atomically
+- [ ] Dashboard reads from sharded docs (not sales scan)
+- [ ] Sales are immutable (update/delete denied by rules)
+- [ ] Backfill script works for existing data
+- [ ] Owner role set on first bootstrap
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Security rules v2 + billing summary writes + auth owner bootstrap
+- [ ] 11-02-PLAN.md — Dashboard migration to date-sharded reads + backfill script + remove legacy summary
+- [ ] 11-03-PLAN.md — Human verification checkpoint
+
+---
+
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |
