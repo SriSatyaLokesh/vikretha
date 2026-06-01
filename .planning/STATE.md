@@ -5,7 +5,7 @@
 - **Milestone:** 1 (MVP)
 - **Phase:** 11 (Firestore Architecture Hardening — 📋 Planned)
 - **Next action:** Execute Phase 11 (/gsd-execute-phase 11)
-- **Last session:** 2026-06-01 — Planned Phase 11: Firestore hardening (RBAC, date-sharded summaries, immutable sales)
+- **Last session:** 2026-06-01 — Added Phase 12: Customer Contact & Autofill (phone typeahead, name autofill, receipt display)
 
 ## Phase Progress
 
@@ -22,6 +22,7 @@
 | 9 | Documentation & Polish | ✅ Complete |
 | 10 | Modern Responsive Redesign | ✅ Complete |
 | 11 | Firestore Architecture Hardening | 📋 Planned |
+| 12 | Customer Contact & Autofill | 🆕 Added |
 
 ## Decisions Log
 

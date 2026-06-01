@@ -417,6 +417,38 @@ Plans:
 - [ ] 11-02-PLAN.md — Dashboard migration to date-sharded reads + backfill script + remove legacy summary
 - [ ] 11-03-PLAN.md — Human verification checkpoint
 
+
+---
+
+### Phase 12 — Customer Contact & Autofill
+
+**Goal:** Store customer name + phone in a customers collection; enable phone typeahead in billing with auto-fill of customer name; display customer name on receipt.
+
+**Delivers:** Billing screen with phone autocomplete (live search as user types), customer name auto-populated when a known number is selected, unknown customers saved automatically, and customer name rendered on the receipt canvas.
+
+**Requirements covered:** FR-02.9, FR-03.5
+
+**Depends on:** Phase 4, Phase 11
+
+**Key tasks:**
+- Create customers Firestore subcollection under shop doc (fields: 
+ame, phone, lastSaleAt)
+- Update modules/billing.js: phone input with datalist/dropdown autocomplete, auto-fill name on selection, upsert customer on sale submit
+- Update modules/receipt.js: render customer name on canvas (below Sale ID header)
+
+**UAT:**
+- [ ] Typing a phone number in billing shows matching customer suggestions
+- [ ] Selecting a suggestion auto-fills the customer name field
+- [ ] Submitting a sale with a new phone + name saves customer to Firestore
+- [ ] Next time same phone is entered, name auto-fills
+- [ ] Receipt canvas shows customer name when available
+- [ ] Receipt still renders correctly when no customer name provided
+
+**Plans:** To be planned
+
+Plans:
+- [ ] 12-01-PLAN.md — customers Firestore collection + billing.js phone autocomplete + name autofill + upsert on submit
+- [ ] 12-02-PLAN.md — receipt.js canvas update to show customer name + human verification checkpoint
 ---
 
 ## Backlog (Post-MVP)
