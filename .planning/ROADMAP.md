@@ -526,8 +526,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — modules/billing.js: adhoc item entry + cart integration + skip stock decrement + sale doc flag
-- [ ] 14-02-PLAN.md — Post-submit save-to-inventory prompt + human verification checkpoint
+- [x] 14-01-PLAN.md — modules/billing.js: adhoc item entry + cart integration + skip stock decrement + sale doc flag
+- [x] 14-02-PLAN.md — Post-submit save-to-inventory prompt + human verification checkpoint
 
 ---
 ## Backlog (Post-MVP)

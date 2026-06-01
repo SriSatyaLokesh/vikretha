@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 13 (Inventory Item Sizes & Piece Variant Quantities — ✅ Complete)
-- **Next action:** Plan Phase 14 (next milestone or backlog)
-- **Last session:** 2026-06-01 — Phase 13 verified complete; Phase 14 (ad-hoc billing items) added to roadmap
+- **Phase:** 14 (Ad-hoc Items in Billing — ✅ Complete)
+- **Next action:** Plan Phase 15 or next backlog item
+- **Last session:** 2026-06-02 — Phase 14 executed and verified complete
 
 ## Phase Progress
 
@@ -24,7 +24,7 @@
 | 11 | Firestore Architecture Hardening | ✅ Complete |
 | 12 | Customer Contact & Autofill | ✅ Complete |
 | 13 | Inventory Item Sizes & Piece Variant Quantities | ✅ Complete |
-| 14 | Ad-hoc Items in Billing | 🔜 Not started |
+| 14 | Ad-hoc Items in Billing | ✅ Complete |
 
 ## Decisions Log
 
