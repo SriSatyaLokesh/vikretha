@@ -93,7 +93,8 @@ async function _drawReceipt(sale) {
   bodyH += LH;                           // THANK YOU
   bodyH += LH;                           // shop name footer
   bodyH += 12;                           // gap
-  bodyH += 26;                           // barcode deco
+  bodyH += 26;                           // Code 39 barcode bars
+  bodyH += 16;                           // sale ID text below barcode
   bodyH += 20;                           // bottom padding
 
   const CANVAS_H = EDGE_H + bodyH + EDGE_H;
@@ -319,19 +320,50 @@ async function _drawReceipt(sale) {
   ctx.fillText(SHOP_NAME.toUpperCase(), WIDTH / 2, y);
   y += LH + 12;
 
-  // ── Decorative barcode ────────────────────────────────────────────────────
-  const barH  = 20;
-  const barX0 = PADX + 8;
-  const barW  = WIDTH - (PADX + 8) * 2;
-  const pat   = [1,2,1,1,3,1,2,1,1,2,3,1,1,2,1,3,2,1,1,2,1,1,3,2,1,1,2,1,2,1,1,3,1,2,1];
-  const patTot = pat.reduce((s, v) => s + v, 0);
-  const unit  = barW / patTot;
+  // ── Code 39 Barcode (encodes sale ID) ───────────────────────────────────────
+  const CODE39 = {
+    '0':'000110100','1':'100100001','2':'001100001','3':'101100000',
+    '4':'000110001','5':'100110000','6':'001110000','7':'000100101',
+    '8':'100100100','9':'001100100','A':'100001001','B':'001001001',
+    'C':'101001000','D':'000011001','E':'100011000','F':'001011000',
+    'G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+    'K':'100000011','L':'001000011','M':'101000010','N':'000010011',
+    'O':'100010010','P':'001010010','Q':'000000111','R':'100000110',
+    'S':'001000110','T':'000010110','U':'110000001','V':'011000001',
+    'W':'111000000','X':'010010001','Y':'110010000','Z':'011010000',
+    '-':'000101001','.':'100101000',' ':'001101000','*':'010010100'
+  };
+  const C39_N = 1, C39_W = 3, C39_GAP = 1;
+  const saleIdStr = String(sale.saleId ?? '').padStart(8, '0').toUpperCase();
+  const c39chars  = ('*' + saleIdStr + '*').split('');
+  // Count total units for scaling
+  let c39total = 0;
+  c39chars.forEach((ch, ci) => {
+    const p = CODE39[ch] ?? CODE39['0'];
+    for (const b of p) c39total += b === '1' ? C39_W : C39_N;
+    if (ci < c39chars.length - 1) c39total += C39_GAP;
+  });
+  const barH  = 24;
+  const barX0 = PADX + 4;
+  const barW  = WIDTH - (PADX + 4) * 2;
+  const c39u  = barW / c39total;
   let bx      = barX0;
   ctx.fillStyle = INK;
-  pat.forEach((w, i) => {
-    if (i % 2 === 0) ctx.fillRect(bx, y, w * unit - 0.5, barH);
-    bx += w * unit;
+  c39chars.forEach((ch, ci) => {
+    const p = CODE39[ch] ?? CODE39['0'];
+    p.split('').forEach((bit, i) => {
+      const ew = (bit === '1' ? C39_W : C39_N) * c39u;
+      if (i % 2 === 0) ctx.fillRect(bx, y, ew - 0.3, barH);  // bar (odd positions)
+      bx += ew;
+    });
+    if (ci < c39chars.length - 1) bx += C39_GAP * c39u;      // inter-char gap
   });
+  y += barH + 6;
+  // Sale ID text below barcode (like reference image)
+  ctx.font      = `9px ${FONT}`;
+  ctx.fillStyle = MUTED;
+  ctx.textAlign = 'center';
+  ctx.fillText(`* ${saleIdStr} *`, WIDTH / 2, y);
 
   return canvas;
 }
