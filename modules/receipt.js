@@ -34,6 +34,7 @@ async function _drawReceipt(sale) {
   const hasDisc  = (sale.discount ?? 0) > 0;
   const hasLogo  = !!(LOGO_URL?.trim());
   const hasCustomer = !!(sale.customer_name || sale.customer_phone);
+  const hasBothNameAndPhone = !!(sale.customer_name && sale.customer_phone);
 
   // ── Height calculation ───────────────────────────────────────────────────
   const EDGE_H  = 14;  // torn-edge height top + bottom
@@ -59,7 +60,8 @@ async function _drawReceipt(sale) {
   bodyH += SEP_H;                     // sep
   bodyH += LH;                        // thank you
   bodyH += LH;                        // shop name repeat
-  if (hasCustomer) bodyH += LH;       // customer
+  if (hasCustomer) bodyH += LH;       // customer name or phone
+  if (hasBothNameAndPhone) bodyH += LH; // customer phone (second line)
   bodyH += LH;                        // star line
   bodyH += 14;                        // bottom inner padding
 
@@ -269,11 +271,17 @@ async function _drawReceipt(sale) {
   y += LH;
 
   if (hasCustomer) {
-    const customerLabel = sale.customer_name || sale.customer_phone;
     ctx.font      = `11px ${FONT}`;
     ctx.fillStyle = MUTED;
-    ctx.fillText(`CUSTOMER : ${customerLabel.toUpperCase()}`, WIDTH / 2, y);
-    y += LH;
+    if (sale.customer_name) {
+      ctx.fillText(`CUSTOMER : ${sale.customer_name.toUpperCase()}`, WIDTH / 2, y);
+      y += LH;
+    }
+    if (sale.customer_phone) {
+      const phoneLabel = sale.customer_name ? 'PHONE    :' : 'CUSTOMER :';
+      ctx.fillText(`${phoneLabel} ${sale.customer_phone}`, WIDTH / 2, y);
+      y += LH;
+    }
   }
 
   ctx.font      = `11px ${FONT}`;
