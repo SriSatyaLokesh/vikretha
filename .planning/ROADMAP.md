@@ -451,6 +451,41 @@ Plans:
 - [x] 12-02-PLAN.md — receipt.js canvas update to show customer name + human verification checkpoint
 ---
 
+
+### Phase 13 — Inventory Item Sizes & Piece Variant Quantities
+
+**Goal:** Enforce correct unit types in inventory (pieces locked by default; liquid units hidden unless "Other" chosen), allow size-variant configuration for piece-type items (width, dimension, PSI), track per-size quantities, and display size details in billing cart and on the receipt.
+
+**Delivers:** Inventory add/edit form defaults to "Pieces" unit (CG/litres hidden unless "Other" selected). Piece-type items can have size variants (width, size label, optional PSI, per-size stock). Billing cart shows selected size alongside product name. Receipt canvas renders size info per line item. Low-stock flag triggers if any size variant is below threshold.
+
+**Requirements covered:** FR-05.1, FR-05.2, FR-02.1, FR-03.1
+
+**Depends on:** Phase 6, Phase 3, Phase 4
+
+**Key tasks:**
+- Inventory add/edit: unit field defaults to "Pieces"; liquid units (CG, litres) hidden unless user taps "Other"
+- Inventory add/edit: "Does this item have sizes?" toggle for piece-type items
+- Size variant form: width field, size/dimension label field, PSI field (optional), stock quantity per size
+- Firestore schema: `sizes[]` array on inventory item doc (fields: label, width, psi, stock)
+- Billing: when adding a sized item to cart, show size picker (dropdown/radio)
+- Cart line item displays product name + selected size label
+- Atomic batch write: decrement per-size stock on billing submit
+- Receipt canvas: render size label on each line item that has a size
+- Low-stock badge: flag item if any size variant stock falls below threshold
+
+**UAT:**
+- [ ] Inventory add form shows "Pieces" unit by default; liquid units visible only when "Other" is tapped
+- [ ] Piece-type item with sizes toggle: can add multiple size variants (width, label, PSI, qty)
+- [ ] Each size variant has its own stock quantity
+- [ ] In billing, adding a sized item shows a size picker before it enters the cart
+- [ ] Cart line item shows product name + selected size label
+- [ ] Sale submission decrements the correct per-size stock
+- [ ] Receipt shows size label next to each line item that has one
+- [ ] Low-stock flag appears on item if any one size variant is below threshold
+
+**Plans:** To be planned
+
+---
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |

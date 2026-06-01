@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 12 (Customer Contact & Autofill — ✅ Complete)
-- **Next action:** Plan next phase or review backlog
-- **Last session:** 2026-06-01 — Phase 12 complete: customer contact book, phone autofill, name+phone on receipt
+- **Phase:** 13 (Inventory Item Sizes & Piece Variant Quantities — 🔜 Not started)
+- **Next action:** Plan Phase 13 (inventory-piece-sizes)
+- **Last session:** 2026-06-01 — Phase 13 added: inventory piece unit enforcement + size variants + receipt size display
 
 ## Phase Progress
 
@@ -23,6 +23,7 @@
 | 10 | Modern Responsive Redesign | ✅ Complete |
 | 11 | Firestore Architecture Hardening | ✅ Complete |
 | 12 | Customer Contact & Autofill | ✅ Complete |
+| 13 | Inventory Item Sizes & Piece Variant Quantities | 🔜 Not started |
 
 ## Decisions Log
 
