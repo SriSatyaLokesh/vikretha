@@ -61,8 +61,11 @@ async function _drawReceipt(sale) {
   }
 
   const rows    = items.map(item => {
-    const lines = wrapText(item.name.toUpperCase(), NAME_W);
-    return { ...item, lines, rowH: lines.length * LH };
+    const nameText  = item.name.toUpperCase();
+    const nameLines = wrapText(nameText, NAME_W);
+    const sizeText  = item.size_label ? item.size_label.toUpperCase() : null;
+    const rowH      = nameLines.length * LH + (sizeText ? 12 : 0);
+    return { ...item, lines: nameLines, sizeText, rowH };
   });
   const itemsH = rows.reduce((s, r) => s + r.rowH, 0);
 
@@ -227,6 +230,13 @@ async function _drawReceipt(sale) {
     ctx.fillText(`${CURRENCY}${item.price.toFixed(2)}`,      C_RATE, numY);
     ctx.fillStyle = INK;
     ctx.fillText(`${CURRENCY}${item.line_total.toFixed(2)}`, C_AMT,  numY);
+    // Size sub-line
+    if (item.sizeText) {
+      ctx.font      = `10px ${FONT}`;
+      ctx.fillStyle = MUTED;
+      ctx.textAlign = 'left';
+      ctx.fillText(item.sizeText, PADX, numY + 12);
+    }
     y += item.rowH;
   });
 

@@ -169,11 +169,17 @@ export function render(container) {
       return;
     }
     if (card && card.getAttribute('aria-disabled') !== 'true') {
-      const id = card.dataset.id;
+      const id  = card.dataset.id;
+      const inv = _inventory.find(p => p.id === id);
+      if (!inv) return;
+      if (inv.hasSizes && inv.sizes && Object.keys(inv.sizes).length > 0) {
+        _showSizePicker(container, inv);
+        return;
+      }
       if (!_cart.has(id)) {
-        const inv = _inventory.find(p => p.id === id);
-        if (inv) _cart.set(id, { id: inv.id, name: inv.name,
-          price: Number(inv.price), unit: inv.unit || 'pc', qty: 1 });
+        _cart.set(id, { id: inv.id, cartKey: inv.id, name: inv.name,
+          price: Number(inv.price), unit: inv.unit || 'pc', qty: 1,
+          sizeKey: null, sizeLabel: null });
       }
       _refresh(container);
     }
@@ -268,10 +274,19 @@ function _renderGrid(query = '') {
   }
 
   grid.innerHTML = items.map(item => {
-    const cartItem = _cart.get(item.id);
+    const inCartCheck = item.hasSizes
+      ? [..._cart.keys()].some(k => k.startsWith(item.id + '::'))
+      : _cart.has(item.id);
+    const cartItem = inCartCheck
+      ? (item.hasSizes
+          ? { qty: [..._cart.values()].filter(e => e.id === item.id).reduce((s, e) => s + e.qty, 0) }
+          : _cart.get(item.id))
+      : null;
     const inCart   = !!cartItem;
     const qty      = cartItem?.qty ?? 0;
-    const stock    = Number(item.stock ?? 0);
+    const stock    = (item.hasSizes && item.sizes)
+      ? Object.values(item.sizes).reduce((s, v) => s + (v.stock ?? 0), 0)
+      : Number(item.stock ?? 0);
     const lowStock = stock > 0 && stock <= 5;
     const noStock  = stock === 0;
     const stockBadge = noStock
@@ -294,7 +309,9 @@ function _renderGrid(query = '') {
             <span class="product-card-price">${CURRENCY}${Number(item.price)}</span>
             <span class="product-card-stock">/${escapeHtml(item.unit || 'pc')}</span>
           </div>
-          ${inCart ? `
+          ${(item.hasSizes && inCart) ? `
+            <span style="font-size:0.75rem;color:var(--primary);font-weight:600;">In cart ✓</span>` :
+            inCart ? `
             <div class="card-qty-ctrl" role="group" aria-label="Quantity">
               <button class="card-qty-btn" data-step="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
               <span class="card-qty-num">${qty}</span>
@@ -323,14 +340,17 @@ function _renderCartRows() {
 
   rows.innerHTML = [..._cart.values()].map(item => `
     <div class="cart-item">
-      <div class="cart-item-name">${escapeHtml(item.name)}</div>
+      <div>
+        <div class="cart-item-name">${escapeHtml(item.name)}</div>
+        ${item.sizeLabel ? `<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">${escapeHtml(item.sizeLabel)}</div>` : ''}
+      </div>
       <div class="cart-qty-control">
-        <button class="cart-qty-btn" data-cart="dec" data-id="${escapeHtml(item.id)}" aria-label="Decrease">−</button>
+        <button class="cart-qty-btn" data-cart="dec" data-id="${escapeHtml(item.cartKey || item.id)}" aria-label="Decrease">−</button>
         <span style="min-width:28px;text-align:center;font-size:0.875rem;font-weight:600;font-variant-numeric:tabular-nums;">${item.qty}</span>
-        <button class="cart-qty-btn" data-cart="inc" data-id="${escapeHtml(item.id)}" aria-label="Increase">+</button>
+        <button class="cart-qty-btn" data-cart="inc" data-id="${escapeHtml(item.cartKey || item.id)}" aria-label="Increase">+</button>
       </div>
       <span style="font-size:0.875rem;font-weight:600;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap;">${CURRENCY}${(item.price * item.qty).toFixed(2)}</span>
-      <button class="cart-remove-btn" data-cart="remove" data-id="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)}">
+      <button class="cart-remove-btn" data-cart="remove" data-id="${escapeHtml(item.cartKey || item.id)}" aria-label="Remove ${escapeHtml(item.name)}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>`).join('');
@@ -372,6 +392,79 @@ function _updateTotals() {
     if ($('disc-val')) $('disc-val').textContent = `−${fmt(disc)}`;
   }
 }
+
+
+// ── Size picker sheet for sized inventory items ────────────────────
+function _showSizePicker(container, inv) {
+  document.body.style.overflow = 'hidden';
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:80vh;overflow-y:auto;box-sizing:border-box;';
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
+  const titleEl = document.createElement('h2');
+  titleEl.style.cssText = 'font-size:1.05rem;font-weight:700;color:var(--text-primary);margin:0;';
+  titleEl.textContent = 'Select Size — ' + inv.name;
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
+  header.appendChild(titleEl);
+  header.appendChild(closeBtn);
+  const optionsList = document.createElement('div');
+  Object.entries(inv.sizes).forEach(([sizeKey, sizeData]) => {
+    const outOfStock = sizeData.stock <= 0;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+    const info = document.createElement('div');
+    const sizeLabelEl = document.createElement('div');
+    sizeLabelEl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);';
+    sizeLabelEl.textContent = sizeData.label;
+    const meta = document.createElement('div');
+    meta.style.cssText = 'font-size:0.78rem;color:var(--text-secondary);margin-top:2px;';
+    const parts = [];
+    if (sizeData.width) parts.push('W: ' + sizeData.width);
+    if (sizeData.psi)   parts.push('PSI: ' + sizeData.psi);
+    meta.textContent = parts.join(' · ');
+    info.appendChild(sizeLabelEl);
+    if (parts.length) info.appendChild(meta);
+    const stockEl = document.createElement('div');
+    stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;';
+    stockEl.textContent = sizeData.stock + ' in stock';
+    row.appendChild(info);
+    row.appendChild(stockEl);
+    if (!outOfStock) {
+      row.addEventListener('click', () => {
+        const cartKey = inv.id + '::' + sizeKey;
+        if (_cart.has(cartKey)) {
+          _cart.get(cartKey).qty++;
+        } else {
+          _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
+            price: Number(inv.price), unit: 'pcs', qty: 1,
+            sizeKey, sizeLabel: sizeData.label });
+        }
+        _close();
+        _refresh(container);
+      });
+    }
+    optionsList.appendChild(row);
+  });
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-secondary btn-full';
+  cancelBtn.style.marginTop = '8px';
+  cancelBtn.addEventListener('click', _close);
+  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+  closeBtn.addEventListener('click', _close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
+  sheet.appendChild(header);
+  sheet.appendChild(optionsList);
+  sheet.appendChild(cancelBtn);
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
+
 
 // ── Subscribe to inventory collection ────────────────────────
 function _loadInventory(container) {
@@ -423,8 +516,14 @@ async function _handleSubmit(container) {
   catch { saleId = _generateOfflineSaleId(); }
 
   const cartArr = [..._cart.values()].map(i => ({
-    item_id: i.id, name: i.name, price: i.price, unit: i.unit,
-    qty: i.qty, line_total: +(i.price * i.qty).toFixed(2)
+    item_id:    i.id,
+    name:       i.name,
+    price:      i.price,
+    unit:       i.unit,
+    qty:        i.qty,
+    line_total: +(i.price * i.qty).toFixed(2),
+    size_key:   i.sizeKey   || null,
+    size_label: i.sizeLabel || null
   }));
   const subtotal   = +cartArr.reduce((s, i) => s + i.line_total, 0).toFixed(2);
   const discRaw    = parseFloat(document.getElementById('discount-val')?.value) || 0;
@@ -447,12 +546,14 @@ async function _handleSubmit(container) {
       created_by: auth.currentUser?.email ?? null
     });
 
-    // 2. Inventory stock decrement (one update per cart item)
+    // 2. Inventory stock decrement (per-size or total)
     for (const item of cartArr) {
-      batch.update(
-        doc(db, 'shops', SHOP_ID, 'inventory', item.item_id),
-        { stock: increment(-item.qty) }
-      );
+      const invRef = doc(db, 'shops', SHOP_ID, 'inventory', item.item_id);
+      if (item.size_key) {
+        batch.update(invRef, { [`sizes.${item.size_key}.stock`]: increment(-item.qty) });
+      } else {
+        batch.update(invRef, { stock: increment(-item.qty) });
+      }
     }
 
     // 4. Daily summary — date-keyed, no stale counter problem
