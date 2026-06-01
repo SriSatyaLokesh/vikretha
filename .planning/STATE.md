@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 13 (Inventory Item Sizes & Piece Variant Quantities — 🔜 Not started)
-- **Next action:** Plan Phase 13 (inventory-piece-sizes)
-- **Last session:** 2026-06-01 — Phase 13 added: inventory piece unit enforcement + size variants + receipt size display
+- **Phase:** 13 (Inventory Item Sizes & Piece Variant Quantities — � In progress — Plans 01+02 complete, awaiting Plan 03 human verification)
+- **Next action:** Human verification checkpoint — run app and complete 25-step checklist in 13-03-PLAN.md
+- **Last session:** 2025-07-13 — Plans 01+02 executed: inventory.js rewritten, billing.js size picker, receipt.js size sub-line
 
 ## Phase Progress
 
@@ -23,7 +23,7 @@
 | 10 | Modern Responsive Redesign | ✅ Complete |
 | 11 | Firestore Architecture Hardening | ✅ Complete |
 | 12 | Customer Contact & Autofill | ✅ Complete |
-| 13 | Inventory Item Sizes & Piece Variant Quantities | 🔜 Not started |
+| 13 | Inventory Item Sizes & Piece Variant Quantities | � In progress (2/3 plans) |
 
 ## Decisions Log
 
