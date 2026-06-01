@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 11 (Firestore Architecture Hardening — 📋 Planned)
-- **Next action:** Execute Phase 11 (/gsd-execute-phase 11)
-- **Last session:** 2026-06-01 — Added Phase 12: Customer Contact & Autofill (phone typeahead, name autofill, receipt display)
+- **Phase:** 12 (Customer Contact & Autofill — 🔨 In Progress)
+- **Next action:** Execute Phase 12 (/gsd-execute-phase 12)
+- **Last session:** 2026-06-01 — Phase 11 approved. Phase 12 planned: customer autofill + receipt name
 
 ## Phase Progress
 
@@ -21,8 +21,8 @@
 | 8 | Staff Management & Settings | ✅ Complete |
 | 9 | Documentation & Polish | ✅ Complete |
 | 10 | Modern Responsive Redesign | ✅ Complete |
-| 11 | Firestore Architecture Hardening | 📋 Planned |
-| 12 | Customer Contact & Autofill | 🆕 Added |
+| 11 | Firestore Architecture Hardening | ✅ Complete |
+| 12 | Customer Contact & Autofill | 🔨 In Progress |
 
 ## Decisions Log
 

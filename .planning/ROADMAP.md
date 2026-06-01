@@ -413,9 +413,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Security rules v2 + billing summary writes + auth owner bootstrap
-- [ ] 11-02-PLAN.md — Dashboard migration to date-sharded reads + backfill script + remove legacy summary
-- [ ] 11-03-PLAN.md — Human verification checkpoint
+- [x] 11-01-PLAN.md — Security rules v2 + billing summary writes + auth owner bootstrap
+- [x] 11-02-PLAN.md — Dashboard migration to date-sharded reads + backfill script + remove legacy summary
+- [x] 11-03-PLAN.md — Human verification checkpoint
 
 
 ---
@@ -444,7 +444,7 @@ ame, phone, lastSaleAt)
 - [ ] Receipt canvas shows customer name when available
 - [ ] Receipt still renders correctly when no customer name provided
 
-**Plans:** To be planned
+**Plans:** 2 plans
 
 Plans:
 - [ ] 12-01-PLAN.md — customers Firestore collection + billing.js phone autocomplete + name autofill + upsert on submit
