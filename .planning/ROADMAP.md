@@ -491,6 +491,45 @@ Plans:
 - [ ] 13-03-PLAN.md — Human verification checkpoint
 
 ---
+
+### Phase 14 — Ad-hoc Items in Billing
+
+**Goal:** Allow shop staff to add custom one-off line items during a sale — items that don't exist in inventory — by typing a name and price inline. After the sale is submitted, optionally prompt to save the ad-hoc item to inventory for future reuse.
+
+**Delivers:** "Add custom item" entry in the billing product grid / cart area. Staff types item name + price → item enters cart like a regular product but marked as ad-hoc. On sale submission success, a bottom-sheet prompt asks "Add this item to inventory?" with an optional quantity-on-hand field. Accepting creates the inventory doc; dismissing skips silently.
+
+**Requirements covered:** FR-02.1, FR-05.1
+
+**Depends on:** Phase 3, Phase 6
+
+**Key tasks:**
+- Billing: "Other item +" button in product grid or at bottom of cart section
+- Custom item entry form: name (required) + price (required) fields, inline in billing
+- Ad-hoc cart entry: same structure as inventory item but with `adhoc: true`, no `id` (or ephemeral ID), no stock decrement in batch write
+- Sale doc stores ad-hoc items with `adhoc: true` flag; receipt renders them identically to regular items
+- Post-submit prompt: bottom-sheet "Save 'ItemName' to inventory for future use?" with optional stock and unit fields
+- Accepting prompt: creates Firestore inventory doc (name, price, unit, stock if provided)
+- Dismissing prompt: no action, UX continues normally
+- Multiple ad-hoc items in one sale: prompt shown once per unique ad-hoc item sequentially
+
+**UAT:**
+- [ ] "Other item +" button visible in billing screen
+- [ ] Typing name + price adds item to cart immediately
+- [ ] Ad-hoc cart rows display correctly (name, price, qty stepper)
+- [ ] Sale submits successfully with mixed inventory + ad-hoc items
+- [ ] Inventory stock decremented only for regular items (ad-hoc items skipped)
+- [ ] Receipt shows ad-hoc items identically to regular items
+- [ ] Post-submit prompt appears for each unique ad-hoc item
+- [ ] Accepting saves item to inventory; item appears in inventory list
+- [ ] Dismissing skips silently, no errors
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — modules/billing.js: adhoc item entry + cart integration + skip stock decrement + sale doc flag
+- [ ] 14-02-PLAN.md — Post-submit save-to-inventory prompt + human verification checkpoint
+
+---
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |
