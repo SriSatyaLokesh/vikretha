@@ -18,6 +18,8 @@ let _lastDoc  = null; // pagination cursor
 let _loading  = false;
 let _fromDate = null; // ISO date string 'YYYY-MM-DD' or null
 let _toDate   = null;
+let _fromTime = null; // 'HH:MM' or null
+let _toTime   = null;
 let _searchTimer = null;
 let _escKeyHandler = null;
 
@@ -40,10 +42,12 @@ function _buildQuery(afterDoc = null) {
   const constraints = [orderBy('timestamp', 'desc'), limit(25)];
 
   if (_fromDate) {
-    constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(_fromDate + 'T00:00:00'))));
+    const timeStr = _fromTime || '00:00';
+    constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(`${_fromDate}T${timeStr}:00`))));
   }
   if (_toDate) {
-    constraints.push(where('timestamp', '<=', Timestamp.fromDate(new Date(_toDate + 'T23:59:59'))));
+    const timeStr = _toTime || '23:59';
+    constraints.push(where('timestamp', '<=', Timestamp.fromDate(new Date(`${_toDate}T${timeStr}:59`))));
   }
   if (afterDoc) {
     constraints.push(startAfter(afterDoc));
@@ -127,18 +131,21 @@ function _renderRows() {
 
   tbody.innerHTML = _filtered.map(docSnap => {
     const data = docSnap.data();
-    const dateStr = data.timestamp?.toDate
-      ? new Date(data.timestamp.toDate()).toLocaleString(LOCALE, { dateStyle: 'short', timeStyle: 'short' })
-      : '—';
-    const customer = data.customer_name ? escapeHtml(data.customer_name) : '<span style="color:var(--text-secondary)">—</span>';
+    let datePart = '—', timePart = '';
+    if (data.timestamp?.toDate) {
+      const d = new Date(data.timestamp.toDate());
+      datePart = d.toLocaleDateString(LOCALE, { dateStyle: 'short' });
+      timePart = d.toLocaleTimeString(LOCALE, { timeStyle: 'short' });
+    }
+    const customer = data.customer_name ? escapeHtml(data.customer_name) : '<span class="rpt-dim">—</span>';
     const amount   = _fmt(data.total);
-    const badge    = data.editedAt ? ' <span class="rpt-amended-badge" title="Amended">✏️</span>' : '';
+    const badge    = data.editedAt ? ' <span class="rpt-amended-badge" title="Amended">✏</span>' : '';
 
     return `<tr data-doc-id="${escapeHtml(docSnap.id)}">
-      <td>${escapeHtml(dateStr)}</td>
-      <td>${escapeHtml(data.saleId || docSnap.id)}</td>
+      <td><span class="rpt-date-primary">${escapeHtml(datePart)}</span><span class="rpt-date-time">${escapeHtml(timePart)}</span></td>
+      <td class="rpt-sale-id">${escapeHtml(data.saleId || docSnap.id)}</td>
       <td>${customer}</td>
-      <td>${escapeHtml(amount)}${badge}</td>
+      <td class="rpt-amount-cell">${escapeHtml(amount)}${badge}</td>
     </tr>`;
   }).join('');
 }
@@ -185,43 +192,45 @@ function _renderDetailPanel(data, docId) {
     const lineTotal = (item.qty || 0) * (item.price || 0);
     return `<tr>
       <td>${escapeHtml(item.name || '')}</td>
-      <td>${escapeHtml(item.size_label || '—')}</td>
-      <td style="text-align:center">${escapeHtml(String(item.qty || 0))}</td>
-      <td style="text-align:right">${escapeHtml(_fmt(item.price))}</td>
-      <td style="text-align:right">${escapeHtml(_fmt(lineTotal))}</td>
+      <td class="rpt-cell-center">${escapeHtml(item.size_label || '—')}</td>
+      <td class="rpt-cell-center">${escapeHtml(String(item.qty || 0))}</td>
+      <td class="rpt-cell-right">${escapeHtml(_fmt(item.price))}</td>
+      <td class="rpt-cell-right rpt-cell-bold">${escapeHtml(_fmt(lineTotal))}</td>
     </tr>`;
   }).join('');
 
   // Amendment notice
   const amendedNotice = data.editedAt ? (() => {
     const editedDate = data.editedAt?.toDate
-      ? new Date(data.editedAt.toDate()).toLocaleDateString(LOCALE)
+      ? new Date(data.editedAt.toDate()).toLocaleString(LOCALE, { dateStyle: 'short', timeStyle: 'short' })
       : '—';
     return `<div class="rpt-amendment-notice">
-      ⚠️ Amended by ${escapeHtml(data.editedBy || '—')} on ${escapeHtml(editedDate)}
-      · Original total: ${escapeHtml(_fmt(data.originalTotal))}
+      <span class="rpt-amend-icon">✎</span>
+      Amended by <strong>${escapeHtml(data.editedBy || '—')}</strong> on ${escapeHtml(editedDate)}
+      &nbsp;·&nbsp; Original total: <strong>${escapeHtml(_fmt(data.originalTotal))}</strong>
     </div>`;
   })() : '';
 
   // Customer section
   const customerSection = (data.customer_name || data.customer_phone) ? `
-    <div style="margin:10px 0;font-size:0.9rem;">
-      <strong>Customer:</strong>
-      ${data.customer_name ? escapeHtml(data.customer_name) : ''}
-      ${data.customer_phone ? `<span style="color:var(--text-secondary);margin-left:8px;">${escapeHtml(data.customer_phone)}</span>` : ''}
+    <div class="rpt-customer-row">
+      <span class="rpt-customer-icon">👤</span>
+      <span class="rpt-customer-name">${data.customer_name ? escapeHtml(data.customer_name) : ''}</span>
+      ${data.customer_phone ? `<span class="rpt-customer-phone">${escapeHtml(data.customer_phone)}</span>` : ''}
     </div>` : '';
 
   // Discount row
   const discountRow = (data.discount && data.discount > 0)
-    ? `<tr><td colspan="4" style="text-align:right;color:var(--text-secondary)">Discount</td><td style="text-align:right">${escapeHtml(_fmt(data.discount))}</td></tr>`
+    ? `<tr class="rpt-discount-row"><td colspan="4" class="rpt-cell-right rpt-dim">Discount</td><td class="rpt-cell-right">${escapeHtml(_fmt(data.discount))}</td></tr>`
     : '';
 
   panel.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div>
-        <div style="font-weight:700;font-size:1rem;">${escapeHtml(data.saleId || docId)}</div>
-        <div style="color:var(--text-secondary);font-size:0.82rem;">${escapeHtml(dateStr)}</div>
+    <div class="rpt-panel-header">
+      <div class="rpt-panel-title-wrap">
+        <div class="rpt-panel-sale-id">${escapeHtml(data.saleId || docId)}</div>
+        <div class="rpt-panel-date">${escapeHtml(dateStr)}</div>
       </div>
+      <button class="rpt-close-x" id="rpt-close-x" aria-label="Close">✕</button>
     </div>
 
     ${amendedNotice}
@@ -230,31 +239,36 @@ function _renderDetailPanel(data, docId) {
     <table class="rpt-items-table">
       <thead>
         <tr>
-          <th>Item</th><th>Size</th>
-          <th style="text-align:center">Qty</th>
-          <th style="text-align:right">Rate</th>
-          <th style="text-align:right">Total</th>
+          <th>Item</th>
+          <th class="rpt-cell-center">Size</th>
+          <th class="rpt-cell-center">Qty</th>
+          <th class="rpt-cell-right">Rate</th>
+          <th class="rpt-cell-right">Total</th>
         </tr>
       </thead>
       <tbody>${itemRows}</tbody>
       <tfoot>
-        <tr><td colspan="4" style="text-align:right;color:var(--text-secondary)">Subtotal</td>
-            <td style="text-align:right">${escapeHtml(_fmt(data.subtotal))}</td></tr>
+        <tr class="rpt-subtotal-row">
+          <td colspan="4" class="rpt-cell-right rpt-dim">Subtotal</td>
+          <td class="rpt-cell-right">${escapeHtml(_fmt(data.subtotal))}</td>
+        </tr>
         ${discountRow}
-        <tr style="font-weight:700;">
-          <td colspan="4" style="text-align:right">Total</td>
-          <td style="text-align:right">${escapeHtml(_fmt(data.total))}</td>
+        <tr class="rpt-total-row">
+          <td colspan="4" class="rpt-cell-right">Total</td>
+          <td class="rpt-cell-right">${escapeHtml(_fmt(data.total))}</td>
         </tr>
       </tfoot>
     </table>
 
-    <div id="sale-actions" class="rpt-detail-actions">
+    <div class="rpt-detail-actions">
       <button id="rpt-detail-close" class="btn btn-ghost">← Back</button>
-      <button id="rpt-view-receipt" class="btn btn-primary">View / Resend Receipt</button>
-      <div id="rpt-edit-zone"></div>
-    </div>`;
+      <button id="rpt-view-receipt" class="btn btn-primary">🧾 View / Resend Receipt</button>
+    </div>
 
-  // Bind close
+    <div id="rpt-edit-zone" class="rpt-edit-zone-wrap"></div>`;
+
+  // Bind close buttons
+  panel.querySelector('#rpt-close-x').addEventListener('click', _closeDetail);
   panel.querySelector('#rpt-detail-close').addEventListener('click', _closeDetail);
 
   // Bind receipt navigation
@@ -276,9 +290,12 @@ function _addEditRow(item) {
   tr.dataset.itemId    = item.item_id    || '';
   tr.dataset.adhoc     = item.adhoc      ? 'true' : 'false';
   tr.innerHTML = `
-    <td><input type="text"   class="rpt-edit-name"  value="${escapeHtml(item.name  || '')}" style="width:100%;box-sizing:border-box;"></td>
-    <td><input type="number" class="rpt-edit-qty"   value="${escapeHtml(String(item.qty   ?? 1))}"  min="1"   step="1"    style="width:60px;"></td>
-    <td><input type="number" class="rpt-edit-price" value="${escapeHtml(String(item.price ?? 0))}" min="0"   step="0.01" style="width:90px;"></td>
+    <td><input type="text"   class="rpt-edit-input rpt-edit-name-input  rpt-edit-name"
+               value="${escapeHtml(item.name  || '')}"></td>
+    <td><input type="number" class="rpt-edit-input rpt-edit-qty-input   rpt-edit-qty"
+               value="${escapeHtml(String(item.qty   ?? 1))}"  min="1"   step="1"></td>
+    <td><input type="number" class="rpt-edit-input rpt-edit-price-input rpt-edit-price"
+               value="${escapeHtml(String(item.price ?? 0))}" min="0"   step="0.01"></td>
     <td><button class="rpt-rm-row btn-icon" title="Remove" aria-label="Remove row">×</button></td>`;
   tbody.appendChild(tr);
 }
@@ -304,7 +321,9 @@ function _recalcEditTotals() {
 
   const totalsEl = document.getElementById('rpt-edit-totals');
   if (totalsEl) {
-    totalsEl.textContent = `Subtotal: ${_fmt(subtotal)}  |  Discount: ${_fmt(discount)}  |  Total: ${_fmt(newTotal)}`;
+    totalsEl.innerHTML = `<span>Subtotal <strong>${escapeHtml(_fmt(subtotal))}</strong></span>`
+      + (discount > 0 ? `<span>Discount <strong class="rpt-discount-val">−${escapeHtml(_fmt(discount))}</strong></span>` : '')
+      + `<span class="rpt-total-val">Total <strong>${escapeHtml(_fmt(newTotal))}</strong></span>`;
   }
 }
 
@@ -414,34 +433,36 @@ async function _injectEditZone(data, docId) {
   }
 
   zone.innerHTML = `
-    <button id="rpt-edit-btn" class="btn btn-warning btn-sm" style="margin-top:4px;">
-      ✏️ Edit Bill
-    </button>
-    <div id="rpt-edit-form" style="display:none;margin-top:12px;">
-      <p class="rpt-edit-warning">
-        ⚠️ Editing a bill is permanent and logged. Adjust only to correct errors.
-      </p>
-      <table class="rpt-edit-items-table" id="rpt-edit-items">
-        <thead><tr>
-          <th>Item name</th><th>Qty</th><th>Unit price (${escapeHtml(CURRENCY)})</th><th></th>
-        </tr></thead>
-        <tbody id="rpt-edit-tbody"></tbody>
-      </table>
-      <button type="button" id="rpt-add-row" class="btn btn-ghost btn-sm" style="margin-top:4px;">
-        + Add row
+    <div class="rpt-edit-section">
+      <button id="rpt-edit-btn" class="btn rpt-edit-toggle-btn" aria-expanded="false">
+        ✎ Edit Bill
       </button>
-      <div class="rpt-edit-discount" style="margin-top:10px;">
-        <label for="rpt-edit-disc">Discount (${escapeHtml(CURRENCY)})</label>
-        <input type="number" id="rpt-edit-disc" min="0" step="0.01"
-               class="rpt-date-input" style="width:100px;"
-               value="${escapeHtml(String(data.discount ?? 0))}">
+      <div id="rpt-edit-form" class="rpt-edit-form" style="display:none;">
+        <p class="rpt-edit-warning">
+          ⚠️ Changes are permanent and logged. Edit only to correct errors.
+        </p>
+        <table class="rpt-edit-items-table" id="rpt-edit-items">
+          <thead><tr>
+            <th>Item</th><th>Qty</th><th>Price (${escapeHtml(CURRENCY)})</th><th></th>
+          </tr></thead>
+          <tbody id="rpt-edit-tbody"></tbody>
+        </table>
+        <button type="button" id="rpt-add-row" class="btn btn-ghost btn-sm rpt-add-row-btn">
+          + Add item
+        </button>
+        <div class="rpt-edit-discount-row">
+          <label for="rpt-edit-disc" class="rpt-edit-label">Discount (${escapeHtml(CURRENCY)})</label>
+          <input type="number" id="rpt-edit-disc" min="0" step="0.01"
+                 class="rpt-edit-input rpt-disc-input"
+                 value="${escapeHtml(String(data.discount ?? 0))}">
+        </div>
+        <div class="rpt-edit-totals-bar" id="rpt-edit-totals"></div>
+        <div class="rpt-edit-footer">
+          <button type="button" id="rpt-save-edit" class="btn btn-primary">Save changes</button>
+          <button type="button" id="rpt-cancel-edit" class="btn btn-ghost">Cancel</button>
+        </div>
+        <div id="rpt-edit-error" class="rpt-edit-error" style="display:none;"></div>
       </div>
-      <div class="rpt-edit-totals" id="rpt-edit-totals" style="margin-top:8px;font-size:0.9rem;"></div>
-      <div class="rpt-edit-actions" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
-        <button type="button" id="rpt-save-edit" class="btn btn-primary">Save changes</button>
-        <button type="button" id="rpt-cancel-edit" class="btn btn-ghost">Cancel</button>
-      </div>
-      <div id="rpt-edit-error" class="rpt-edit-error" style="display:none;"></div>
     </div>`;
 
   _populateEditRows(data.items || []);
@@ -450,7 +471,11 @@ async function _injectEditZone(data, docId) {
   // Toggle form
   zone.querySelector('#rpt-edit-btn').addEventListener('click', () => {
     const form = zone.querySelector('#rpt-edit-form');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    const btn  = zone.querySelector('#rpt-edit-btn');
+    const open = form.style.display === 'none';
+    form.style.display = open ? 'block' : 'none';
+    btn.setAttribute('aria-expanded', String(open));
+    btn.classList.toggle('rpt-edit-toggle-btn--open', open);
   });
 
   // Add row
@@ -492,6 +517,8 @@ export async function render(container) {
   _loading    = false;
   _fromDate   = null;
   _toDate     = null;
+  _fromTime   = null;
+  _toTime     = null;
   if (_searchTimer)  { clearTimeout(_searchTimer);  _searchTimer  = null; }
   if (_escKeyHandler){ document.removeEventListener('keydown', _escKeyHandler); _escKeyHandler = null; }
 
@@ -499,15 +526,27 @@ export async function render(container) {
     <div class="reports-screen">
       <!-- Filter bar -->
       <div class="reports-filter-bar">
-        <div class="reports-filter-dates">
-          <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
-          <span class="rpt-date-sep">–</span>
-          <input type="date" id="rpt-to"   class="rpt-date-input" aria-label="To date">
+        <div class="rpt-filter-group">
+          <span class="rpt-filter-label">From</span>
+          <div class="rpt-datetime-pair">
+            <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
+            <input type="time" id="rpt-from-time" class="rpt-time-input" aria-label="From time">
+          </div>
+        </div>
+        <span class="rpt-date-sep">→</span>
+        <div class="rpt-filter-group">
+          <span class="rpt-filter-label">To</span>
+          <div class="rpt-datetime-pair">
+            <input type="date" id="rpt-to" class="rpt-date-input" aria-label="To date">
+            <input type="time" id="rpt-to-time" class="rpt-time-input" aria-label="To time">
+          </div>
+        </div>
+        <div class="rpt-filter-btns">
           <button id="rpt-filter-btn" class="btn btn-sm">Filter</button>
           <button id="rpt-clear-btn"  class="btn btn-sm btn-ghost">Clear</button>
         </div>
         <input type="search" id="rpt-search" class="rpt-search-input"
-               placeholder="Search Sale ID, name, phone…" aria-label="Search sales">
+               placeholder="Search by Sale ID, name or phone…" aria-label="Search sales">
       </div>
 
       <!-- Sales list table -->
@@ -515,14 +554,16 @@ export async function render(container) {
         <table class="reports-table" id="rpt-table">
           <thead>
             <tr>
-              <th>Date</th><th>Sale ID</th><th>Customer</th>
+              <th>Date &amp; Time</th><th>Sale ID</th><th>Customer</th>
               <th class="rpt-col-amount">Amount</th>
             </tr>
           </thead>
           <tbody id="rpt-tbody"></tbody>
         </table>
         <div id="rpt-empty"   class="rpt-empty"   style="display:none">No sales found.</div>
-        <div id="rpt-loading" class="rpt-loading" style="display:none">Loading…</div>
+        <div id="rpt-loading" class="rpt-loading" style="display:none">
+          <div class="rpt-spinner"></div> Loading…
+        </div>
       </div>
       <div id="rpt-pagination" class="rpt-pagination" style="display:none">
         <button id="rpt-load-more" class="btn btn-ghost">Load more</button>
@@ -537,20 +578,26 @@ export async function render(container) {
 
   // ── Event bindings ────────────────────────────────────────────────────────
 
-  const rptFrom = container.querySelector('#rpt-from');
-  const rptTo   = container.querySelector('#rpt-to');
+  const rptFrom     = container.querySelector('#rpt-from');
+  const rptTo       = container.querySelector('#rpt-to');
+  const rptFromTime = container.querySelector('#rpt-from-time');
+  const rptToTime   = container.querySelector('#rpt-to-time');
 
   container.querySelector('#rpt-filter-btn').addEventListener('click', () => {
-    _fromDate = rptFrom.value || null;
-    _toDate   = rptTo.value   || null;
+    _fromDate = rptFrom.value     || null;
+    _toDate   = rptTo.value       || null;
+    _fromTime = rptFromTime.value || null;
+    _toTime   = rptToTime.value   || null;
     _loadSales(true);
   });
 
   container.querySelector('#rpt-clear-btn').addEventListener('click', () => {
-    rptFrom.value = '';
-    rptTo.value   = '';
-    _fromDate = null;
-    _toDate   = null;
+    rptFrom.value     = '';
+    rptTo.value       = '';
+    rptFromTime.value = '';
+    rptToTime.value   = '';
+    _fromDate = null; _toDate   = null;
+    _fromTime = null; _toTime   = null;
     _loadSales(true);
   });
 
