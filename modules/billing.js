@@ -18,6 +18,8 @@ let _cart      = new Map(); // item_id → { id, name, price, unit, qty }
 let _discMode  = 'pct';     // 'pct' | 'inr'
 let _unsubInv  = null;      // inventory onSnapshot unsubscribe
 let _customers = [];        // [{ name, phone }] — loaded once per billing session
+let _billingTypeFilter   = '';
+let _billingBranchFilter = '';
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -42,6 +44,8 @@ export function render(container) {
   _cart      = new Map();
   _discMode  = 'pct';
   _customers = [];
+  _billingTypeFilter   = '';
+  _billingBranchFilter = '';
 
   container.innerHTML = `
     <div id="billing-screen" class="billing-screen">
@@ -57,6 +61,16 @@ export function render(container) {
           <input id="product-search" type="search" autocomplete="off"
             class="billing-search-input" placeholder="Search products..."
             aria-label="Search products">
+        </div>
+        <div id="billing-filter-row" style="display:flex;gap:8px;padding:0 0 8px;flex-wrap:wrap;">
+          <select id="billing-type-filter"
+            style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+            <option value="">All Types</option>
+          </select>
+          <select id="billing-branch-filter"
+            style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+            <option value="">All Branches</option>
+          </select>
         </div>
         <div id="product-grid" class="product-grid"></div>
         <div style="padding:8px 4px 4px;">
@@ -146,6 +160,17 @@ export function render(container) {
   // ── Attach event listeners ────────────────────────────────
   container.querySelector('#product-search')
     .addEventListener('input', e => _renderGrid(e.target.value));
+
+  container.querySelector('#billing-type-filter')
+    .addEventListener('change', e => {
+      _billingTypeFilter = e.target.value;
+      _renderGrid(container.querySelector('#product-search')?.value ?? '');
+    });
+  container.querySelector('#billing-branch-filter')
+    .addEventListener('change', e => {
+      _billingBranchFilter = e.target.value;
+      _renderGrid(container.querySelector('#product-search')?.value ?? '');
+    });
 
   container.querySelector('#discount-val')
     .addEventListener('input', _updateTotals);
@@ -266,6 +291,29 @@ function _renderGrid(query = '') {
   const q     = query.trim().toLowerCase();
   const items = q ? _inventory.filter(p => p.name.toLowerCase().includes(q)) : _inventory;
 
+  // Populate filter dropdowns from all inventory items
+  const typeEl   = document.getElementById('billing-type-filter');
+  const branchEl = document.getElementById('billing-branch-filter');
+  if (typeEl) {
+    const types = [...new Set(_inventory.map(p => p.type || '').filter(Boolean))].sort();
+    const cur = typeEl.value;
+    typeEl.innerHTML = '<option value="">All Types</option>' +
+      types.map(t => `<option value="${escapeHtml(t)}"${t === cur ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+    if (!types.includes(cur)) { typeEl.value = ''; _billingTypeFilter = ''; }
+  }
+  if (branchEl) {
+    const branches = [...new Set(_inventory.map(p => p.branch || '').filter(Boolean))].sort();
+    const cur = branchEl.value;
+    branchEl.innerHTML = '<option value="">All Branches</option>' +
+      branches.map(b => `<option value="${escapeHtml(b)}"${b === cur ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+    if (!branches.includes(cur)) { branchEl.value = ''; _billingBranchFilter = ''; }
+  }
+
+  // Apply type/branch filter
+  let filteredItems = items;
+  if (_billingTypeFilter)   filteredItems = filteredItems.filter(p => (p.type   ?? '') === _billingTypeFilter);
+  if (_billingBranchFilter) filteredItems = filteredItems.filter(p => (p.branch ?? '') === _billingBranchFilter);
+
   if (_inventory.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;padding-top:48px;">
@@ -286,7 +334,7 @@ function _renderGrid(query = '') {
     return;
   }
 
-  grid.innerHTML = items.map(item => {
+  grid.innerHTML = filteredItems.map(item => {
     const inCartCheck = item.hasSizes
       ? [..._cart.keys()].some(k => k.startsWith(item.id + '::'))
       : _cart.has(item.id);
@@ -317,6 +365,7 @@ function _renderGrid(query = '') {
         aria-disabled="${noStock}">
         <div class="product-card-name">${escapeHtml(item.name)}</div>
         ${stockBadge}
+        ${item.color ? `<div style="margin-bottom:2px;"><span style="display:inline-block;font-size:0.7rem;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
         <div class="product-card-footer">
           <div>
             <span class="product-card-price">${CURRENCY}${Number(item.price)}</span>
