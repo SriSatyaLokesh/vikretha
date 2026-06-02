@@ -894,7 +894,6 @@ select.form-input { cursor: pointer; }
   transition:background 0.15s; min-height:44px;
 }
 .rpt-edit-toggle-btn:hover { background:var(--slate-100); }
-.rpt-edit-toggle-btn::before { content:'✎'; color:var(--warning-text); font-style:normal; }
 .rpt-edit-toggle-btn::after {
   content:'›'; margin-left:auto; font-size:1.2rem;
   color:var(--text-muted); transition:transform 0.2s ease;
@@ -978,3 +977,44 @@ select.form-input { cursor: pointer; }
   padding:9px 12px; background:var(--danger-bg); border-radius:var(--radius-xs);
   border:1px solid var(--danger);
 }
+
+/* Inventory picker */
+.rpt-add-row-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+.rpt-picker-wrap { margin-top:8px; }
+.rpt-picker-inner {
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  overflow:hidden; background:var(--bg-surface);
+  box-shadow:var(--shadow-md);
+}
+.rpt-picker-inner > input {
+  width:100%; box-sizing:border-box;
+  border:none; border-bottom:1px solid var(--border); border-radius:0;
+  padding:10px 12px; font:inherit; background:var(--bg-app);
+  color:var(--text-primary);
+}
+.rpt-picker-inner > input:focus { outline:none; border-bottom-color:var(--primary); }
+.rpt-picker-list { max-height:220px; overflow-y:auto; }
+.rpt-picker-loading, .rpt-picker-empty {
+  padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;
+}
+.rpt-picker-item {
+  width:100%; text-align:left; padding:11px 14px;
+  background:none; border:none; border-bottom:1px solid var(--border);
+  cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+  gap:8px; font:inherit; min-height:44px; transition:background 0.12s;
+}
+.rpt-picker-item:last-child { border-bottom:none; }
+.rpt-picker-item:hover { background:var(--slate-50); }
+.rpt-picker-name { font-size:0.875rem; font-weight:500; color:var(--text-primary); text-align:left; }
+.rpt-picker-price { font-size:0.8rem; color:var(--text-secondary); flex-shrink:0; white-space:nowrap; }
+.rpt-picker-size-header {
+  display:flex; align-items:center; gap:8px; padding:8px 12px;
+  border-bottom:1px solid var(--border); background:var(--bg-app);
+}
+.rpt-picker-back {
+  background:none; border:none; cursor:pointer; padding:4px 8px;
+  font-size:0.8rem; color:var(--primary); border-radius:var(--radius-xs);
+  font:inherit; min-height:32px; transition:background 0.12s;
+}
+.rpt-picker-back:hover { background:var(--primary-light); }
+.rpt-picker-size-title { font-size:0.83rem; font-weight:600; color:var(--text-primary); }

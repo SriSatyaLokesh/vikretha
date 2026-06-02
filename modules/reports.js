@@ -22,6 +22,7 @@ let _fromTime = null; // 'HH:MM' or null
 let _toTime   = null;
 let _searchTimer = null;
 let _escKeyHandler = null;
+let _invCache = null; // inventory items cache (fetched once per session)
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -292,6 +293,99 @@ function _renderDetailPanel(data, docId) {
   });
 }
 
+// ── Inventory fetch + picker (for edit form add-item) ───────────────────────
+
+async function _fetchInventory() {
+  if (_invCache) return _invCache;
+  try {
+    const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'inventory'));
+    _invCache = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return _invCache;
+  } catch (e) {
+    console.warn('reports: inventory fetch failed', e);
+    return [];
+  }
+}
+
+function _renderPickerList(listEl, items, zone, wrap) {
+  if (items.length === 0) {
+    listEl.innerHTML = `<div class="rpt-picker-empty">No items found.</div>`;
+    return;
+  }
+  listEl.innerHTML = items.map(item => {
+    const priceStr = (item.hasSizes && item.sizes) ? 'Multiple sizes' : _fmt(item.price);
+    return `<button type="button" class="rpt-picker-item" data-item-id="${escapeHtml(item.id)}">`
+      + `<span class="rpt-picker-name">${escapeHtml(item.name)}</span>`
+      + `<span class="rpt-picker-price">${escapeHtml(priceStr)}</span>`
+      + `</button>`;
+  }).join('');
+  listEl.querySelectorAll('.rpt-picker-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = items.find(i => i.id === btn.dataset.itemId);
+      if (!item) return;
+      if (item.hasSizes && item.sizes && Object.keys(item.sizes).length > 0) {
+        _renderSizePicker(listEl, item, zone, wrap, items);
+      } else {
+        _addEditRow({ name: item.name, price: item.price, qty: 1, unit: item.unit || '',
+                     item_id: item.id, adhoc: false });
+        _recalcEditTotals();
+        wrap.innerHTML = '';
+      }
+    });
+  });
+}
+
+function _renderSizePicker(listEl, item, zone, wrap, allItems) {
+  listEl.innerHTML =
+    `<div class="rpt-picker-size-header">`
+    + `<button type="button" class="rpt-picker-back" aria-label="Back to items">← Back</button>`
+    + `<span class="rpt-picker-size-title">${escapeHtml(item.name)}</span>`
+    + `</div>`
+    + Object.entries(item.sizes).map(([sizeKey, sd]) =>
+        `<button type="button" class="rpt-picker-item rpt-picker-size-row" data-size-key="${escapeHtml(sizeKey)}">`
+        + `<span class="rpt-picker-name">${escapeHtml(sd.label || sizeKey)}</span>`
+        + `<span class="rpt-picker-price">${escapeHtml(_fmt(sd.price ?? item.price))}</span>`
+        + `</button>`
+      ).join('');
+  listEl.querySelector('.rpt-picker-back')?.addEventListener('click', () =>
+    _renderPickerList(listEl, allItems, zone, wrap));
+  listEl.querySelectorAll('.rpt-picker-size-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sd = item.sizes[btn.dataset.sizeKey];
+      _addEditRow({ name: item.name, price: sd.price ?? item.price, qty: 1,
+                   unit: item.unit || '', item_id: item.id,
+                   size_key: btn.dataset.sizeKey, size_label: sd.label || btn.dataset.sizeKey,
+                   adhoc: false });
+      _recalcEditTotals();
+      wrap.innerHTML = '';
+    });
+  });
+}
+
+function _openInvPicker(zone) {
+  const wrap = zone.querySelector('#rpt-picker-wrap');
+  if (!wrap) return;
+  // Toggle — second tap on button closes the picker
+  if (wrap.querySelector('.rpt-picker-inner')) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML =
+    `<div class="rpt-picker-inner">`
+    + `<input type="search" id="rpt-picker-q" class="" placeholder="Search inventory…" autocomplete="off" aria-label="Search inventory">`
+    + `<div id="rpt-picker-list" class="rpt-picker-list"><div class="rpt-picker-loading">Loading…</div></div>`
+    + `</div>`;
+  const searchEl = wrap.querySelector('#rpt-picker-q');
+  const listEl   = wrap.querySelector('#rpt-picker-list');
+  searchEl.focus();
+  _fetchInventory().then(items => {
+    _renderPickerList(listEl, items, zone, wrap);
+    searchEl.addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      _renderPickerList(listEl, q ? items.filter(i => i.name.toLowerCase().includes(q)) : items, zone, wrap);
+    });
+  });
+}
+
 // ── Edit bill form (Plan 02) ──────────────────────────────────────────────────
 
 function _addEditRow(item) {
@@ -461,9 +555,11 @@ async function _injectEditZone(data, docId) {
           </tr></thead>
           <tbody id="rpt-edit-tbody"></tbody>
         </table>
-        <button type="button" id="rpt-add-row" class="btn btn-ghost btn-sm rpt-add-row-btn">
-          + Add item
-        </button>
+        <div class="rpt-add-row-actions">
+          <button type="button" id="rpt-add-inv" class="btn btn-ghost btn-sm">+ From inventory</button>
+          <button type="button" id="rpt-add-custom" class="btn btn-ghost btn-sm">+ Custom item</button>
+        </div>
+        <div id="rpt-picker-wrap" class="rpt-picker-wrap"></div>
         <div class="rpt-edit-discount-row">
           <label for="rpt-edit-disc" class="rpt-edit-label">Discount (${escapeHtml(CURRENCY)})</label>
           <input type="number" id="rpt-edit-disc" min="0" step="0.01"
@@ -496,10 +592,14 @@ async function _injectEditZone(data, docId) {
     }
   });
 
-  // Add row
-  zone.querySelector('#rpt-add-row').addEventListener('click', () => {
-    _addEditRow({ name: '', price: 0, qty: 1, unit: '' });
+  // Add row — from inventory
+  zone.querySelector('#rpt-add-inv').addEventListener('click', () => _openInvPicker(zone));
+  // Add row — custom freehand item
+  zone.querySelector('#rpt-add-custom').addEventListener('click', () => {
+    _addEditRow({ name: '', price: 0, qty: 1, unit: '', adhoc: true });
     _recalcEditTotals();
+    const wrap = zone.querySelector('#rpt-picker-wrap');
+    if (wrap) wrap.innerHTML = ''; // close picker if open
   });
 
   // Live recalc
