@@ -129,6 +129,20 @@ function _renderRows() {
 
   if (emptyEl) emptyEl.style.display = 'none';
 
+  // Stats bar
+  const statsEl = document.getElementById('rpt-stats-bar');
+  if (statsEl) {
+    if (_filtered.length > 0) {
+      const totalSum = _filtered.reduce((s, d) => s + (d.data().total || 0), 0);
+      statsEl.style.display = 'flex';
+      statsEl.innerHTML =
+        `<span class="rpt-stat-chip"><strong>${_filtered.length}</strong>&nbsp;sale${_filtered.length !== 1 ? 's' : ''}</span>` +
+        `<span class="rpt-stat-chip rpt-stat-total">Total&nbsp;<strong>${_fmt(totalSum)}</strong></span>`;
+    } else {
+      statsEl.style.display = 'none';
+    }
+  }
+
   tbody.innerHTML = _filtered.map(docSnap => {
     const data = docSnap.data();
     let datePart = '—', timePart = '';
@@ -528,6 +542,11 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="reports-screen">
+      <!-- Page header -->
+      <div class="rpt-page-header">
+        <h2 class="rpt-page-title">Sales History</h2>
+      </div>
+
       <!-- Filter bar -->
       <div class="reports-filter-bar">
         <div class="rpt-filter-group">
@@ -546,12 +565,15 @@ export async function render(container) {
           </div>
         </div>
         <div class="rpt-filter-btns">
-          <button id="rpt-filter-btn" class="btn btn-sm">Filter</button>
+          <button id="rpt-filter-btn" class="btn btn-primary btn-sm">Filter</button>
           <button id="rpt-clear-btn"  class="btn btn-sm btn-ghost">Clear</button>
         </div>
         <input type="search" id="rpt-search" class="rpt-search-input"
                placeholder="Search by Sale ID, name or phone…" aria-label="Search sales">
       </div>
+
+      <!-- Stats summary -->
+      <div id="rpt-stats-bar" class="rpt-stats-bar" style="display:none;"></div>
 
       <!-- Sales list table -->
       <div class="reports-list-wrap">

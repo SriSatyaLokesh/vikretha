@@ -636,15 +636,38 @@ select.form-input { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 
 /* ── Reports module ─────────────────────── */
-.reports-screen { display:flex; flex-direction:column; gap:0; min-height:100%; background:var(--bg-app); }
+.reports-screen { display:flex; flex-direction:column; gap:14px; min-height:100%; background:var(--bg-app); padding:16px; }
+
+/* Page header */
+.rpt-page-header { display:flex; align-items:center; justify-content:space-between; padding:0 2px; }
+.rpt-page-title {
+  margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary);
+  display:flex; align-items:center; gap:10px;
+}
+.rpt-page-title::before {
+  content:''; display:inline-block; width:4px; height:22px;
+  background:var(--primary); border-radius:var(--radius-full); flex-shrink:0;
+}
+
+/* Stats chips */
+.rpt-stats-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 2px; }
+.rpt-stat-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:5px 12px; border-radius:var(--radius-full);
+  background:var(--bg-surface); border:1px solid var(--border);
+  font-size:0.8rem; color:var(--text-secondary); box-shadow:var(--shadow-xs);
+}
+.rpt-stat-chip strong { color:var(--text-primary); }
+.rpt-stat-total strong { color:var(--primary); font-size:0.88rem; }
 
 /* ── Filter card ── */
 .reports-filter-bar {
   display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
   padding:14px 16px 12px;
   background:var(--bg-surface);
-  border-bottom:1px solid var(--border);
-  box-shadow:var(--shadow-xs);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
 }
 .rpt-filter-group { display:flex; flex-direction:column; gap:3px; }
 .rpt-filter-label {
@@ -680,11 +703,13 @@ select.form-input { cursor: pointer; }
 /* ── Sales list ── */
 .reports-list-wrap {
   background:var(--bg-surface);
-  border-bottom:1px solid var(--border);
-  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
 }
 .reports-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
-.reports-table thead { position:sticky; top:0; z-index:2; }
+.reports-table thead { position:static; }
 .reports-table th {
   text-align:left; padding:10px 16px;
   border-bottom:2px solid var(--border);
@@ -698,8 +723,9 @@ select.form-input { cursor: pointer; }
 .reports-table tbody tr {
   cursor:pointer; transition:background 0.12s;
 }
-.reports-table tbody tr:hover  { background:var(--slate-50); }
-.reports-table tbody tr:active { background:var(--slate-100); }
+.reports-table tbody tr:nth-child(even)       { background:var(--slate-50); }
+.reports-table tbody tr:hover                 { background:var(--slate-100) !important; }
+.reports-table tbody tr:active                { background:var(--slate-200) !important; }
 .reports-table tbody tr:last-child td { border-bottom:none; }
 .rpt-col-amount { text-align:right; }
 .reports-table td:last-child { text-align:right; }
@@ -711,8 +737,8 @@ select.form-input { cursor: pointer; }
 /* Sale ID — monospace muted */
 .rpt-sale-id { font-family:monospace; font-size:0.83rem; color:var(--text-secondary); }
 
-/* Amount — bold with orange for positive */
-.rpt-amount-cell { font-weight:600; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+/* Amount — orange */
+.rpt-amount-cell { font-weight:700; color:var(--primary); font-variant-numeric:tabular-nums; }
 .rpt-dim { color:var(--text-muted); }
 
 /* Amended badge — orange pill */
