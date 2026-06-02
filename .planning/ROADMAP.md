@@ -571,7 +571,7 @@ Plans:
 Plans:
 - [x] 15-01-PLAN.md -- modules/reports.js (sales history list, pagination, date filter, search, detail panel, View Receipt)
 - [x] 15-02-PLAN.md -- Owner bill editing (edit form, updateDoc, audit fields) + firestore.rules sales update permission
-- [ ] 15-03-PLAN.md -- Human verification checkpoint
+- [x] 15-03-PLAN.md -- Human verification checkpoint
 
 ---
 ## Backlog (Post-MVP)
