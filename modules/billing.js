@@ -482,7 +482,7 @@ function _showSizePicker(container, inv) {
     const info = document.createElement('div');
     const sizeLabelEl = document.createElement('div');
     sizeLabelEl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);';
-    sizeLabelEl.textContent = sizeData.label;
+    sizeLabelEl.textContent = sizeData.color ? sizeData.label + ' · ' + sizeData.color : sizeData.label;
     const meta = document.createElement('div');
     meta.style.cssText = 'font-size:0.78rem;color:var(--text-secondary);margin-top:2px;';
     const parts = [];
@@ -499,12 +499,13 @@ function _showSizePicker(container, inv) {
     if (!outOfStock) {
       row.addEventListener('click', () => {
         const cartKey = inv.id + '::' + sizeKey;
+        const sizeLabel = sizeData.color ? sizeData.label + ' · ' + sizeData.color : sizeData.label;
         if (_cart.has(cartKey)) {
           _cart.get(cartKey).qty++;
         } else {
           _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
             price: Number(inv.price), unit: 'pcs', qty: 1,
-            sizeKey, sizeLabel: sizeData.label });
+            sizeKey, sizeLabel });
         }
         _close();
         _refresh(container);

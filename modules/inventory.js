@@ -357,16 +357,19 @@ function _inputStyle(extra) {
   return 'width:100%;height:44px;padding:0 12px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.95rem;background:var(--bg-surface);color:var(--text-primary);outline:none;transition:border-color 0.15s;box-sizing:border-box;' + (extra || '');
 }
 
-// ── Sanitise size key ─────────────────────────────────────────
-function _sizeKey(label) {
-  return label.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 40);
+// ── Sanitise size key (label + optional color for uniqueness) ──
+function _sizeKey(label, color) {
+  const base = label.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 25);
+  if (!color) return base;
+  const col  = color.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 20);
+  return (base + '-' + col).substring(0, 40);
 }
 
 // ── Append a size variant row ─────────────────────────────────
-function _appendSizeRow(sizesList, { label = '', width = '', psi = '', stock = '' } = {}) {
+function _appendSizeRow(sizesList, { label = '', color = '', width = '', psi = '', stock = '' } = {}) {
   const row = document.createElement('div');
   row.className = 'size-row';
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:8px;background:var(--bg-surface);border-radius:8px;padding:8px;';
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:8px;background:var(--bg-surface);border-radius:8px;padding:8px;';
   const mkInput = (cls, placeholder, val, type) => {
     const el = document.createElement('input');
     el.type = type || 'text';
@@ -384,7 +387,8 @@ function _appendSizeRow(sizesList, { label = '', width = '', psi = '', stock = '
   removeBtn.textContent = '×';
   removeBtn.style.cssText = 'background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--danger);align-self:center;padding:0 4px;';
   removeBtn.addEventListener('click', () => row.remove());
-  row.appendChild(mkInput('size-label-input', 'Label (e.g. 10x12)', label));
+  row.appendChild(mkInput('size-label-input', 'Size (e.g. 8, L, 10x12)', label));
+  row.appendChild(mkInput('size-color-input', 'Color (e.g. White)', color));
   row.appendChild(mkInput('size-width-input', 'Width (opt)', width));
   row.appendChild(mkInput('size-psi-input',   'PSI (opt)', psi));
   row.appendChild(mkInput('size-stock-input', 'Qty', stock, 'number'));
@@ -712,14 +716,15 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
         sizes = {};
         for (const row of rows) {
           const lbl  = row.querySelector('.size-label-input').value.trim();
+          const col  = row.querySelector('.size-color-input').value.trim();
           const wid  = row.querySelector('.size-width-input').value.trim();
           const ps   = row.querySelector('.size-psi-input').value.trim();
           const stk  = parseInt(row.querySelector('.size-stock-input').value, 10);
           if (!lbl)                      { errEl.textContent = 'Each size must have a label.';   errEl.style.display = 'block'; return; }
           if (isNaN(stk) || stk < 0)    { errEl.textContent = 'Size stock must be 0 or more.'; errEl.style.display = 'block'; return; }
-          const key = _sizeKey(lbl);
-          if (sizes[key])                { errEl.textContent = `Duplicate size: "${lbl}".`;      errEl.style.display = 'block'; return; }
-          sizes[key] = { label: lbl, width: wid || null, psi: ps || null, stock: stk };
+          const key = _sizeKey(lbl, col);
+          if (sizes[key])                { errEl.textContent = `Duplicate size/color combo: "${lbl}${col ? ' · ' + col : ''}".`; errEl.style.display = 'block'; return; }
+          sizes[key] = { label: lbl, color: col || null, width: wid || null, psi: ps || null, stock: stk };
         }
         stock = 0;
       } else {
