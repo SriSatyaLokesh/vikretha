@@ -4,7 +4,7 @@
 
 - **Milestone:** 1 (MVP)
 - **Phase:** 15 (Sales History & Bill Management — ✅ Complete)
-- **Next action:** Plan Phase 16 or start new milestone
+- **Next action:** Plan Phase 16 — Inventory Fields Enhancement
 - **Last session:** 2026-06-02 — Phase 15 complete — sales history, detail panel, owner bill editing, Firestore rules
 
 ## Phase Progress
@@ -26,6 +26,7 @@
 | 13 | Inventory Item Sizes & Piece Variant Quantities | ✅ Complete |
 | 14 | Ad-hoc Items in Billing | ✅ Complete |
 | 15 | Sales History & Bill Management | ✅ Complete |
+| 16 | Inventory Fields Enhancement (type, branch, color) | 🔲 Not started |
 
 ## Decisions Log
 

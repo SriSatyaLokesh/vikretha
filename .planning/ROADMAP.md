@@ -574,6 +574,45 @@ Plans:
 - [x] 15-03-PLAN.md -- Human verification checkpoint
 
 ---
+
+### Phase 16 — Inventory Fields Enhancement (type, branch, color)
+
+**Goal:** Extend inventory items with product classification fields — `type` (product category), `branch` (store branch/location), and `color` — so that stock can be organized, filtered, and accurately described. `size` and `quantity` (stock) already exist; this phase ensures all item attributes needed by a retail shop are captured.
+
+**Delivers:** Inventory add/edit forms capture type, branch, and color. List view shows and filters by these fields. Billing product grid displays color info and supports filter-by-type/branch. Export includes the new columns.
+
+**Requirements covered:** FR-06 (Inventory Management)
+
+**Depends on:** Phase 6, Phase 13
+
+**Key tasks:**
+- Extend Firestore inventory doc schema: add `type` (string, product category), `branch` (string), `color` (string, optional)
+- Update `modules/inventory.js` add/edit item form — new fields: Type, Branch, Color
+- Update inventory table/mobile-list display columns to include Type, Branch, Color
+- Add client-side filter chips / dropdowns for Type and Branch in inventory screen
+- Update `modules/billing.js` product grid card — show color badge; add Type filter tab or dropdown
+- Update `modules/export.js` — include type, branch, color columns in Excel export
+- Migration note: existing docs without these fields default to empty string (no backfill needed)
+
+**UAT:**
+- [ ] Add item form has Type, Branch, Color fields
+- [ ] Saved items store type, branch, color in Firestore
+- [ ] Inventory list shows type, branch, color per item
+- [ ] Filtering by Type or Branch narrows the list correctly
+- [ ] Billing product grid shows color on item card
+- [ ] Billing grid can be filtered by Type or Branch
+- [ ] Excel export includes type, branch, color columns
+- [ ] Items without color/branch show blank (no crash)
+- [ ] Existing items (without new fields) still display correctly
+
+**Plans:** TBD
+
+Plans:
+- [ ] 16-01-PLAN.md — Inventory schema + CRUD forms (type, branch, color fields)
+- [ ] 16-02-PLAN.md — Billing grid + Export integration
+- [ ] 16-03-PLAN.md — Human verification checkpoint
+
+---
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |
