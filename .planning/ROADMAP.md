@@ -608,8 +608,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — Inventory schema + CRUD forms (type, branch, color fields)
-- [ ] 16-02-PLAN.md — Billing grid + Export integration
+- [x] 16-01-PLAN.md — Inventory schema + CRUD forms (type, branch, color fields)
+- [x] 16-02-PLAN.md — Billing grid + Export integration
 - [ ] 16-03-PLAN.md — Human verification checkpoint
 
 ---
