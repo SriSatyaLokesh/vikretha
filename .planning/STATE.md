@@ -3,8 +3,8 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 14 (Ad-hoc Items in Billing — ✅ Complete)
-- **Next action:** Plan Phase 15 or next backlog item
+- **Phase:** 15 (Sales History & Bill Management — 🔲 Not started)
+- **Next action:** Plan Phase 15 (/gsd-plan-phase 15)
 - **Last session:** 2026-06-02 — Phase 14 executed and verified complete
 
 ## Phase Progress
@@ -25,6 +25,7 @@
 | 12 | Customer Contact & Autofill | ✅ Complete |
 | 13 | Inventory Item Sizes & Piece Variant Quantities | ✅ Complete |
 | 14 | Ad-hoc Items in Billing | ✅ Complete |
+| 15 | Sales History & Bill Management | 🔲 Not started |
 
 ## Decisions Log
 

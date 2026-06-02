@@ -530,6 +530,48 @@ Plans:
 - [x] 14-02-PLAN.md — Post-submit save-to-inventory prompt + human verification checkpoint
 
 ---
+### Phase 15 -- Sales History & Bill Management
+
+**Goal:** Sales history list with search and date-range filter, re-send receipt for any past sale via WhatsApp, and owner-only bill editing with an audit trail.
+
+**Delivers:** A dedicated Sales History screen showing all past sales (paginated, filterable). Tapping a sale shows the full receipt detail and allows re-sharing it. Owner role can edit a past bill's line items, quantities, discount, and totals -- changes are saved with an audit record.
+
+**Requirements covered:** FR-04.8 (sales history list), FR-04.9 (resend receipt), FR-04.10 (owner bill editing)
+
+**Depends on:** Phase 4, Phase 11
+
+**Key tasks:**
+- Create `modules/sales-history.js`
+- Sales history list: paginated (25/page), reverse-chronological, date-range picker, search by customer name/phone or Sale ID
+- Sale detail view: full receipt data (line items, totals, customer, Sale ID, date) with "Resend Receipt" button
+- Resend receipt: regenerate canvas receipt from stored sale doc -- Web Share API / wa.me fallback
+- Bill editing (owner-only via RBAC):
+  - "Edit Bill" button visible only when shopConfig.role === 'owner'
+  - Inline edit form: modify line items (name, qty, price), change discount, recalculate total
+  - Firestore updateDoc on save (owner exempt from immutability rule -- amend security rule)
+  - Audit fields written on update: editedAt, editedBy, originalTotal, amendedTotal
+  - Receipt regenerated and re-rendered from updated doc after save
+
+**UAT:**
+- [ ] Sales History accessible from nav/dashboard
+- [ ] List shows all past sales, most recent first
+- [ ] Date-range filter narrows the list correctly
+- [ ] Search by customer name, phone, or Sale ID works
+- [ ] Tapping a sale opens detail view with all receipt data
+- [ ] "Resend Receipt" re-generates canvas and opens share sheet / wa.me
+- [ ] "Edit Bill" button visible only to owner role (hidden for cashier/admin)
+- [ ] Owner can modify line items, quantities, prices, and discount
+- [ ] Saving edits updates sale doc and shows amended totals
+- [ ] Audit fields (editedAt, editedBy, originalTotal, amendedTotal) stored on doc
+- [ ] Receipt re-renders correctly from amended data
+- [ ] Cashier cannot edit bills (rule denies write)
+
+**Plans:** To be planned
+
+Plans:
+- [ ] (plans TBD -- run /gsd-plan-phase 15)
+
+---
 ## Backlog (Post-MVP)
 
 | ID | Item | Notes |
