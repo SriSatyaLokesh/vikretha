@@ -566,10 +566,12 @@ Plans:
 - [ ] Receipt re-renders correctly from amended data
 - [ ] Cashier cannot edit bills (rule denies write)
 
-**Plans:** To be planned
+**Plans:** 3 plans
 
 Plans:
-- [ ] (plans TBD -- run /gsd-plan-phase 15)
+- [ ] 15-01-PLAN.md -- modules/reports.js (sales history list, pagination, date filter, search, detail panel, View Receipt)
+- [ ] 15-02-PLAN.md -- Owner bill editing (edit form, updateDoc, audit fields) + firestore.rules sales update permission
+- [ ] 15-03-PLAN.md -- Human verification checkpoint
 
 ---
 ## Backlog (Post-MVP)
