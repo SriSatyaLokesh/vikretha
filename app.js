@@ -163,12 +163,67 @@ async function handleRoute() {
   try {
     const module = await import(`./modules/${route}.js`);
     module.render(content, routeParam);
-  } catch (_) {
+  } catch (err) {
+    const isNotFound = err?.message?.includes('Failed to fetch') ||
+                       err?.message?.includes('dynamically imported') ||
+                       err?.name   === 'TypeError';
     content.innerHTML = `
-      <div class="empty-state">
-        <p style="font-size:1.5rem;margin-bottom:8px;">🚧</p>
-        <p><strong>${route}</strong> coming soon</p>
-        <p style="margin-top:8px;font-size:0.8rem;">Phase implementation pending</p>
+      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;">
+        <div style="
+          background:var(--bg-surface);
+          border:1px solid var(--border);
+          border-radius:16px;
+          padding:40px 32px;
+          max-width:360px;
+          width:100%;
+          text-align:center;
+          box-shadow:var(--shadow-md);
+        ">
+          <div style="
+            width:64px;height:64px;
+            background:var(--danger-bg);
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            margin:0 auto 20px;
+            font-size:1.75rem;
+          ">⚠️</div>
+          <h2 style="
+            font-size:1.125rem;
+            font-weight:700;
+            color:var(--text-primary);
+            margin:0 0 8px;
+          ">Unable to load page</h2>
+          <p style="
+            font-size:0.875rem;
+            color:var(--text-secondary);
+            margin:0 0 24px;
+            line-height:1.5;
+          ">${isNotFound
+              ? 'The server did not respond. Check your internet connection and try again.'
+              : 'Something went wrong while loading this page.'}
+          </p>
+          <button
+            onclick="window.location.reload()"
+            style="
+              display:inline-flex;align-items:center;gap:8px;
+              padding:10px 20px;
+              background:var(--primary);
+              color:var(--primary-text);
+              border:none;
+              border-radius:8px;
+              font:600 0.875rem/1 inherit;
+              cursor:pointer;
+              transition:background 0.15s;
+            "
+            onmouseover="this.style.background='var(--primary-hover)'"
+            onmouseout="this.style.background='var(--primary)'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            Retry
+          </button>
+        </div>
       </div>
     `;
   }

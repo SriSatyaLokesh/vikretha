@@ -949,7 +949,6 @@ function _showConfirmation(container, { saleId, total, cartArr }) {
                  background:transparent;border:1.5px solid var(--border);
                  color:var(--text-secondary);font:inherit;font-size:0.875rem;">
           View Receipt
-          <span style="font-size:0.75rem;color:var(--text-muted);">(coming soon)</span>
         </button>
       </div>
     </div>`;
