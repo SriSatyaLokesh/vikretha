@@ -11,10 +11,12 @@ import {
 import { SHOP_ID, CURRENCY } from '../shop.config.js';
 
 // ── Module State ──────────────────────────────────────────────
-let _items    = [];
-let _sortMode = 'name';
-let _search   = '';
-let _unsub    = null;
+let _items        = [];
+let _sortMode     = 'name';
+let _search       = '';
+let _unsub        = null;
+let _typeFilter   = '';
+let _branchFilter = '';
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -34,9 +36,11 @@ const isLow = it => {
 // ── Entry Point ───────────────────────────────────────────────
 export function render(container) {
   _unsub?.();
-  _items    = [];
-  _sortMode = 'name';
-  _search   = '';
+  _items        = [];
+  _sortMode     = 'name';
+  _search       = '';
+  _typeFilter   = '';
+  _branchFilter = '';
 
   container.innerHTML = `
     <div id="inv-screen">
@@ -57,11 +61,21 @@ export function render(container) {
         </div>
         <button id="inv-add-fab" class="btn btn-primary btn-sm">+ Add Item</button>
       </div>
+      <div id="inv-filter-row" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <select id="inv-type-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+          <option value="">All Types</option>
+        </select>
+        <select id="inv-branch-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+          <option value="">All Branches</option>
+        </select>
+      </div>
       <div class="inv-table-wrap">
         <table class="inv-table">
           <thead>
             <tr>
               <th>Name</th>
+              <th>Type</th>
+              <th>Branch</th>
               <th>Stock</th>
               <th>Price</th>
               <th>Unit</th>
@@ -95,6 +109,11 @@ export function render(container) {
   });
   fab.addEventListener('click', () => _showAddModal(container));
 
+  const typeFilterEl   = container.querySelector('#inv-type-filter');
+  const branchFilterEl = container.querySelector('#inv-branch-filter');
+  typeFilterEl.addEventListener('change', () => { _typeFilter = typeFilterEl.value; _renderList(container); });
+  branchFilterEl.addEventListener('change', () => { _branchFilter = branchFilterEl.value; _renderList(container); });
+
   const attachClick = id => {
     const el = container.querySelector(id);
     if (!el) return;
@@ -123,8 +142,29 @@ function _renderList(container) {
   const mobileList = container.querySelector('#inv-mobile-list');
   if (!tableBody || !mobileList) return;
 
+  // Populate filter dropdowns from all items
+  const typeEl   = container.querySelector('#inv-type-filter');
+  const branchEl = container.querySelector('#inv-branch-filter');
+  if (typeEl) {
+    const types    = [...new Set(_items.map(it => it.type   || '').filter(Boolean))].sort();
+    const curType  = typeEl.value;
+    typeEl.innerHTML = '<option value="">All Types</option>' +
+      types.map(t => `<option value="${escapeHtml(t)}"${t === curType ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+    if (!types.includes(curType)) { typeEl.value = ''; _typeFilter = ''; }
+  }
+  if (branchEl) {
+    const branches  = [...new Set(_items.map(it => it.branch || '').filter(Boolean))].sort();
+    const curBranch = branchEl.value;
+    branchEl.innerHTML = '<option value="">All Branches</option>' +
+      branches.map(b => `<option value="${escapeHtml(b)}"${b === curBranch ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+    if (!branches.includes(curBranch)) { branchEl.value = ''; _branchFilter = ''; }
+  }
+
   const q = _search.toLowerCase();
   let list = _items.filter(it => it.name.toLowerCase().includes(q));
+
+  if (_typeFilter)   list = list.filter(it => (it.type   ?? '') === _typeFilter);
+  if (_branchFilter) list = list.filter(it => (it.branch ?? '') === _branchFilter);
 
   if (_sortMode === 'name') {
     list.sort((a, b) => a.name.localeCompare(b.name));
@@ -147,12 +187,12 @@ function _renderList(container) {
   </div>`;
 
   if (_items.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="5">${emptyHtml}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7">${emptyHtml}</td></tr>`;
     mobileList.innerHTML = emptyHtml;
     return;
   }
   if (list.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="5">${noMatchHtml}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7">${noMatchHtml}</td></tr>`;
     mobileList.innerHTML = noMatchHtml;
     return;
   }
@@ -173,6 +213,8 @@ function _renderList(container) {
     }
     return `<tr data-item-id="${escapeHtml(item.id)}" style="cursor:pointer;">
       <td class="cell-name">${escapeHtml(item.name)}${lowBadge}</td>
+      <td>${escapeHtml(item.type   ?? '')}</td>
+      <td>${escapeHtml(item.branch ?? '')}</td>
       <td style="font-variant-numeric:tabular-nums;">${stockDisplay}${sizesBadge}</td>
       <td style="font-variant-numeric:tabular-nums;">${fmtPrice(item.price)}</td>
       <td>${escapeHtml(item.unit ?? '')}</td>
@@ -194,6 +236,8 @@ function _renderList(container) {
     return `<div class="inv-card" data-item-id="${escapeHtml(item.id)}">
       <div>
         <div class="inv-card-name">${escapeHtml(item.name)}</div>
+        ${item.color  ? `<div style="margin-top:2px;"><span class="badge" style="font-size:0.7rem;background:var(--bg-surface);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
+        ${(item.type || item.branch) ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${[item.type, item.branch].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
         <div class="inv-card-meta">${fmtPrice(item.price)} / ${escapeHtml(item.unit ?? 'pc')}</div>
       </div>
       <div class="inv-card-right">
@@ -515,6 +559,60 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   threshWrap.appendChild(threshInput);
   form.appendChild(threshWrap);
 
+  // Type field
+  const typeWrap = document.createElement('div');
+  typeWrap.style.cssText = 'margin-bottom:14px;';
+  const typeLbl = document.createElement('label');
+  typeLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  typeLbl.textContent = 'Type';
+  const typeInput = document.createElement('input');
+  typeInput.id = 'inv-type';
+  typeInput.type = 'text';
+  typeInput.placeholder = 'e.g. Doors, Windows, Hardware';
+  typeInput.style.cssText = _inputStyle();
+  if (item) typeInput.value = item.type ?? '';
+  typeInput.addEventListener('focus', () => { typeInput.style.borderColor = 'var(--theme-color)'; });
+  typeInput.addEventListener('blur',  () => { typeInput.style.borderColor = 'var(--border)'; });
+  typeWrap.appendChild(typeLbl);
+  typeWrap.appendChild(typeInput);
+  form.appendChild(typeWrap);
+
+  // Branch field
+  const branchWrap = document.createElement('div');
+  branchWrap.style.cssText = 'margin-bottom:14px;';
+  const branchLbl = document.createElement('label');
+  branchLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  branchLbl.textContent = 'Branch';
+  const branchInput = document.createElement('input');
+  branchInput.id = 'inv-branch';
+  branchInput.type = 'text';
+  branchInput.placeholder = 'e.g. Main, Warehouse';
+  branchInput.style.cssText = _inputStyle();
+  if (item) branchInput.value = item.branch ?? '';
+  branchInput.addEventListener('focus', () => { branchInput.style.borderColor = 'var(--theme-color)'; });
+  branchInput.addEventListener('blur',  () => { branchInput.style.borderColor = 'var(--border)'; });
+  branchWrap.appendChild(branchLbl);
+  branchWrap.appendChild(branchInput);
+  form.appendChild(branchWrap);
+
+  // Color field
+  const colorWrap = document.createElement('div');
+  colorWrap.style.cssText = 'margin-bottom:14px;';
+  const colorLbl = document.createElement('label');
+  colorLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  colorLbl.textContent = 'Color';
+  const colorInput = document.createElement('input');
+  colorInput.id = 'inv-color';
+  colorInput.type = 'text';
+  colorInput.placeholder = 'e.g. White, Grey';
+  colorInput.style.cssText = _inputStyle();
+  if (item) colorInput.value = item.color ?? '';
+  colorInput.addEventListener('focus', () => { colorInput.style.borderColor = 'var(--theme-color)'; });
+  colorInput.addEventListener('blur',  () => { colorInput.style.borderColor = 'var(--border)'; });
+  colorWrap.appendChild(colorLbl);
+  colorWrap.appendChild(colorInput);
+  form.appendChild(colorWrap);
+
   // Error area
   const errEl = document.createElement('p');
   errEl.style.cssText = 'color:var(--danger);font-size:0.85rem;margin:8px 0 0;display:none;';
@@ -638,8 +736,11 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
 
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
+    const type   = form.querySelector('#inv-type')?.value.trim()   ?? '';
+    const branch = form.querySelector('#inv-branch')?.value.trim() ?? '';
+    const color  = form.querySelector('#inv-color')?.value.trim()  ?? '';
     try {
-      await onSave({ name: item ? item.name : name, unitType: _unitType, unit, price, stock, threshold, hasSizes, sizes });
+      await onSave({ name: item ? item.name : name, unitType: _unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color });
       _close();
     } catch (err) {
       errEl.textContent = err.message;
@@ -662,8 +763,8 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
 function _showAddModal(container) {
   _showPieceModal(
     container, 'Add Item', null,
-    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes }) => {
-      const docData = { name, unitType, unit, price, stock, threshold, hasSizes };
+    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color }) => {
+      const docData = { name, unitType, unit, price, stock, threshold, hasSizes, type, branch, color };
       if (hasSizes && sizes) docData.sizes = sizes;
       await addDoc(collection(db, 'shops', SHOP_ID, 'inventory'), docData);
     },
@@ -675,8 +776,8 @@ function _showAddModal(container) {
 function _showEditModal(container, item) {
   _showPieceModal(
     container, `Edit: ${item.name}`, item,
-    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes }) => {
-      const updates = { unitType, unit, price, stock, threshold, hasSizes };
+    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color }) => {
+      const updates = { unitType, unit, price, stock, threshold, hasSizes, type, branch, color };
       if (hasSizes && sizes) updates.sizes = sizes;
       await updateDoc(doc(db, 'shops', SHOP_ID, 'inventory', item.id), updates);
     },
