@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 15 (Sales History & Bill Management — 🔲 Not started)
-- **Next action:** Plan Phase 15 (/gsd-plan-phase 15)
-- **Last session:** 2026-06-02 — Phase 14 executed and verified complete
+- **Phase:** 15 (Sales History & Bill Management — � In progress — awaiting verification)
+- **Next action:** Human verify Phase 15 (checkpoint 15-03)
+- **Last session:** 2026-06-02 — Phase 15 Plans 01 & 02 executed; checkpoint 15-03 pending user verification
 
 ## Phase Progress
 
@@ -25,7 +25,7 @@
 | 12 | Customer Contact & Autofill | ✅ Complete |
 | 13 | Inventory Item Sizes & Piece Variant Quantities | ✅ Complete |
 | 14 | Ad-hoc Items in Billing | ✅ Complete |
-| 15 | Sales History & Bill Management | 🔲 Not started |
+| 15 | Sales History & Bill Management | � In progress |
 
 ## Decisions Log
 
@@ -40,6 +40,9 @@
 | 2026-05-31 | Lightweight unit tests | Basic tests for utility functions |
 | 2026-05-31 | Canvas 2D for receipt image | No external library needed; browser-native, no CDN dependency |
 | 2026-05-31 | AbortError caught separately in WhatsApp share | Prevents wa.me fallback when user simply dismisses native share sheet |
+| 2026-06-02 | No default date range in reports | Always loads latest 25 sales on mount for best UX |
+| 2026-06-02 | getRole == 'owner' for bill editing, not isOwnerOrAdmin | Admins explicitly excluded from bill editing per requirement |
+| 2026-06-02 | originalTotal preserves first original on re-edits | Prevents overwriting audit trail on subsequent edits |
 
 ## Blockers
 
