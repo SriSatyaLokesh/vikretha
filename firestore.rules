@@ -105,8 +105,14 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['saleId', 'timestamp', 'items', 'total'])
         && request.resource.data.total >= 0;
 
-      // No updates or deletes — immutable
-      allow update, delete: if false;
+      // Owner can amend a sale (correction with audit trail). Delete still blocked.
+      allow update: if isAuthorized(shopId)
+        && getRole(shopId) == 'owner'
+        && request.resource.data.keys().hasAll(['saleId', 'timestamp', 'items', 'total',
+            'editedAt', 'editedBy', 'originalTotal', 'amendedTotal'])
+        && request.resource.data.total >= 0
+        && request.resource.data.amendedTotal >= 0;
+      allow delete: if false;
     }
 
     // ── counters (sale ID sequence) ───────────────────────────────────────────
