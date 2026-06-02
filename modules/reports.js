@@ -476,6 +476,10 @@ async function _injectEditZone(data, docId) {
     form.style.display = open ? 'block' : 'none';
     btn.setAttribute('aria-expanded', String(open));
     btn.classList.toggle('rpt-edit-toggle-btn--open', open);
+    // Scroll expanded form into view so user doesn't miss it
+    if (open) {
+      setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    }
   });
 
   // Add row
