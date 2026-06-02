@@ -194,7 +194,7 @@ async function _exportInventory(container) {
     const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'inventory'));
 
     const rows = [
-      ['ID', 'Name', 'Type', 'Branch', 'Color', 'Unit', 'Price', 'Stock', 'Threshold', 'Status']
+      ['ID', 'Name', 'Type', 'brand', 'Color', 'Unit', 'Price', 'Stock', 'Threshold', 'Status']
     ];
     const dataRows = [];
     snap.forEach(docSnap => {
@@ -205,7 +205,7 @@ async function _exportInventory(container) {
         _safeStr(docSnap.id),
         _safeStr(d.name   || ''),
         _safeStr(d.type   || ''),
-        _safeStr(d.branch || ''),
+        _safeStr(d.brand || ''),
         _safeStr(d.color  || ''),
         _safeStr(d.unit   || ''),
         d.price  || 0,

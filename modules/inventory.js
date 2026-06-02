@@ -16,7 +16,7 @@ let _sortMode     = 'name';
 let _search       = '';
 let _unsub        = null;
 let _typeFilter   = '';
-let _branchFilter = '';
+let _brandFilter = '';
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -40,7 +40,7 @@ export function render(container) {
   _sortMode     = 'name';
   _search       = '';
   _typeFilter   = '';
-  _branchFilter = '';
+  _brandFilter = '';
 
   container.innerHTML = `
     <div id="inv-screen">
@@ -65,8 +65,8 @@ export function render(container) {
         <select id="inv-type-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
           <option value="">All Types</option>
         </select>
-        <select id="inv-branch-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
-          <option value="">All Branches</option>
+        <select id="inv-brand-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+          <option value="">All Brands</option>
         </select>
       </div>
       <div class="inv-table-wrap">
@@ -75,7 +75,7 @@ export function render(container) {
             <tr>
               <th>Name</th>
               <th>Type</th>
-              <th>Branch</th>
+              <th>Brand</th>
               <th>Stock</th>
               <th>Price</th>
               <th>Unit</th>
@@ -110,9 +110,9 @@ export function render(container) {
   fab.addEventListener('click', () => _showAddModal(container));
 
   const typeFilterEl   = container.querySelector('#inv-type-filter');
-  const branchFilterEl = container.querySelector('#inv-branch-filter');
+  const brandFilterEl = container.querySelector('#inv-brand-filter');
   typeFilterEl.addEventListener('change', () => { _typeFilter = typeFilterEl.value; _renderList(container); });
-  branchFilterEl.addEventListener('change', () => { _branchFilter = branchFilterEl.value; _renderList(container); });
+  brandFilterEl.addEventListener('change', () => { _brandFilter = brandFilterEl.value; _renderList(container); });
 
   const attachClick = id => {
     const el = container.querySelector(id);
@@ -144,7 +144,7 @@ function _renderList(container) {
 
   // Populate filter dropdowns from all items
   const typeEl   = container.querySelector('#inv-type-filter');
-  const branchEl = container.querySelector('#inv-branch-filter');
+  const brandEl = container.querySelector('#inv-brand-filter');
   if (typeEl) {
     const types    = [...new Set(_items.map(it => it.type   || '').filter(Boolean))].sort();
     const curType  = typeEl.value;
@@ -152,19 +152,19 @@ function _renderList(container) {
       types.map(t => `<option value="${escapeHtml(t)}"${t === curType ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
     if (!types.includes(curType)) { typeEl.value = ''; _typeFilter = ''; }
   }
-  if (branchEl) {
-    const branches  = [...new Set(_items.map(it => it.branch || '').filter(Boolean))].sort();
-    const curBranch = branchEl.value;
-    branchEl.innerHTML = '<option value="">All Branches</option>' +
-      branches.map(b => `<option value="${escapeHtml(b)}"${b === curBranch ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-    if (!branches.includes(curBranch)) { branchEl.value = ''; _branchFilter = ''; }
+  if (brandEl) {
+    const brands  = [...new Set(_items.map(it => it.brand || '').filter(Boolean))].sort();
+    const curbrand = brandEl.value;
+    brandEl.innerHTML = '<option value="">All Brands</option>' +
+      brands.map(b => `<option value="${escapeHtml(b)}"${b === curbrand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+    if (!brands.includes(curbrand)) { brandEl.value = ''; _brandFilter = ''; }
   }
 
   const q = _search.toLowerCase();
   let list = _items.filter(it => it.name.toLowerCase().includes(q));
 
   if (_typeFilter)   list = list.filter(it => (it.type   ?? '') === _typeFilter);
-  if (_branchFilter) list = list.filter(it => (it.branch ?? '') === _branchFilter);
+  if (_brandFilter) list = list.filter(it => (it.brand ?? '') === _brandFilter);
 
   if (_sortMode === 'name') {
     list.sort((a, b) => a.name.localeCompare(b.name));
@@ -214,7 +214,7 @@ function _renderList(container) {
     return `<tr data-item-id="${escapeHtml(item.id)}" style="cursor:pointer;">
       <td class="cell-name">${escapeHtml(item.name)}${lowBadge}</td>
       <td>${escapeHtml(item.type   ?? '')}</td>
-      <td>${escapeHtml(item.branch ?? '')}</td>
+      <td>${escapeHtml(item.brand ?? '')}</td>
       <td style="font-variant-numeric:tabular-nums;">${stockDisplay}${sizesBadge}</td>
       <td style="font-variant-numeric:tabular-nums;">${fmtPrice(item.price)}</td>
       <td>${escapeHtml(item.unit ?? '')}</td>
@@ -237,7 +237,7 @@ function _renderList(container) {
       <div>
         <div class="inv-card-name">${escapeHtml(item.name)}</div>
         ${item.color  ? `<div style="margin-top:2px;"><span class="badge" style="font-size:0.7rem;background:var(--bg-surface);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
-        ${(item.type || item.branch) ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${[item.type, item.branch].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
+        ${(item.type || item.brand) ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${[item.type, item.brand].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
         <div class="inv-card-meta">${fmtPrice(item.price)} / ${escapeHtml(item.unit ?? 'pc')}</div>
       </div>
       <div class="inv-card-right">
@@ -577,23 +577,23 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   typeWrap.appendChild(typeInput);
   form.appendChild(typeWrap);
 
-  // Branch field
-  const branchWrap = document.createElement('div');
-  branchWrap.style.cssText = 'margin-bottom:14px;';
-  const branchLbl = document.createElement('label');
-  branchLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
-  branchLbl.textContent = 'Branch';
-  const branchInput = document.createElement('input');
-  branchInput.id = 'inv-branch';
-  branchInput.type = 'text';
-  branchInput.placeholder = 'e.g. Main, Warehouse';
-  branchInput.style.cssText = _inputStyle();
-  if (item) branchInput.value = item.branch ?? '';
-  branchInput.addEventListener('focus', () => { branchInput.style.borderColor = 'var(--theme-color)'; });
-  branchInput.addEventListener('blur',  () => { branchInput.style.borderColor = 'var(--border)'; });
-  branchWrap.appendChild(branchLbl);
-  branchWrap.appendChild(branchInput);
-  form.appendChild(branchWrap);
+  // brand field
+  const brandWrap = document.createElement('div');
+  brandWrap.style.cssText = 'margin-bottom:14px;';
+  const brandLbl = document.createElement('label');
+  brandLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  brandLbl.textContent = 'Brand';
+  const brandInput = document.createElement('input');
+  brandInput.id = 'inv-brand';
+  brandInput.type = 'text';
+  brandInput.placeholder = 'e.g. Nike, Samsung, Local';
+  brandInput.style.cssText = _inputStyle();
+  if (item) brandInput.value = item.brand ?? '';
+  brandInput.addEventListener('focus', () => { brandInput.style.borderColor = 'var(--theme-color)'; });
+  brandInput.addEventListener('blur',  () => { brandInput.style.borderColor = 'var(--border)'; });
+  brandWrap.appendChild(brandLbl);
+  brandWrap.appendChild(brandInput);
+  form.appendChild(brandWrap);
 
   // Color field
   const colorWrap = document.createElement('div');
@@ -737,10 +737,10 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     const type   = form.querySelector('#inv-type')?.value.trim()   ?? '';
-    const branch = form.querySelector('#inv-branch')?.value.trim() ?? '';
+    const brand = form.querySelector('#inv-brand')?.value.trim() ?? '';
     const color  = form.querySelector('#inv-color')?.value.trim()  ?? '';
     try {
-      await onSave({ name: item ? item.name : name, unitType: _unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color });
+      await onSave({ name: item ? item.name : name, unitType: _unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color });
       _close();
     } catch (err) {
       errEl.textContent = err.message;
@@ -763,8 +763,8 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
 function _showAddModal(container) {
   _showPieceModal(
     container, 'Add Item', null,
-    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color }) => {
-      const docData = { name, unitType, unit, price, stock, threshold, hasSizes, type, branch, color };
+    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color }) => {
+      const docData = { name, unitType, unit, price, stock, threshold, hasSizes, type, brand, color };
       if (hasSizes && sizes) docData.sizes = sizes;
       await addDoc(collection(db, 'shops', SHOP_ID, 'inventory'), docData);
     },
@@ -776,8 +776,8 @@ function _showAddModal(container) {
 function _showEditModal(container, item) {
   _showPieceModal(
     container, `Edit: ${item.name}`, item,
-    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes, type, branch, color }) => {
-      const updates = { unitType, unit, price, stock, threshold, hasSizes, type, branch, color };
+    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color }) => {
+      const updates = { unitType, unit, price, stock, threshold, hasSizes, type, brand, color };
       if (hasSizes && sizes) updates.sizes = sizes;
       await updateDoc(doc(db, 'shops', SHOP_ID, 'inventory', item.id), updates);
     },

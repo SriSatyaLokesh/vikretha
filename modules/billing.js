@@ -19,7 +19,7 @@ let _discMode  = 'pct';     // 'pct' | 'inr'
 let _unsubInv  = null;      // inventory onSnapshot unsubscribe
 let _customers = [];        // [{ name, phone }] — loaded once per billing session
 let _billingTypeFilter   = '';
-let _billingBranchFilter = '';
+let _billingbrandFilter = '';
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -45,7 +45,7 @@ export function render(container) {
   _discMode  = 'pct';
   _customers = [];
   _billingTypeFilter   = '';
-  _billingBranchFilter = '';
+  _billingbrandFilter = '';
 
   container.innerHTML = `
     <div id="billing-screen" class="billing-screen">
@@ -67,9 +67,9 @@ export function render(container) {
             style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
             <option value="">All Types</option>
           </select>
-          <select id="billing-branch-filter"
+          <select id="billing-brand-filter"
             style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
-            <option value="">All Branches</option>
+            <option value="">All Brands</option>
           </select>
         </div>
         <div id="product-grid" class="product-grid"></div>
@@ -166,9 +166,9 @@ export function render(container) {
       _billingTypeFilter = e.target.value;
       _renderGrid(container.querySelector('#product-search')?.value ?? '');
     });
-  container.querySelector('#billing-branch-filter')
+  container.querySelector('#billing-brand-filter')
     .addEventListener('change', e => {
-      _billingBranchFilter = e.target.value;
+      _billingbrandFilter = e.target.value;
       _renderGrid(container.querySelector('#product-search')?.value ?? '');
     });
 
@@ -293,7 +293,7 @@ function _renderGrid(query = '') {
 
   // Populate filter dropdowns from all inventory items
   const typeEl   = document.getElementById('billing-type-filter');
-  const branchEl = document.getElementById('billing-branch-filter');
+  const brandEl = document.getElementById('billing-brand-filter');
   if (typeEl) {
     const types = [...new Set(_inventory.map(p => p.type || '').filter(Boolean))].sort();
     const cur = typeEl.value;
@@ -301,18 +301,18 @@ function _renderGrid(query = '') {
       types.map(t => `<option value="${escapeHtml(t)}"${t === cur ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
     if (!types.includes(cur)) { typeEl.value = ''; _billingTypeFilter = ''; }
   }
-  if (branchEl) {
-    const branches = [...new Set(_inventory.map(p => p.branch || '').filter(Boolean))].sort();
-    const cur = branchEl.value;
-    branchEl.innerHTML = '<option value="">All Branches</option>' +
-      branches.map(b => `<option value="${escapeHtml(b)}"${b === cur ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-    if (!branches.includes(cur)) { branchEl.value = ''; _billingBranchFilter = ''; }
+  if (brandEl) {
+    const brands = [...new Set(_inventory.map(p => p.brand || '').filter(Boolean))].sort();
+    const cur = brandEl.value;
+    brandEl.innerHTML = '<option value="">All Brands</option>' +
+      brands.map(b => `<option value="${escapeHtml(b)}"${b === cur ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+    if (!brands.includes(cur)) { brandEl.value = ''; _billingbrandFilter = ''; }
   }
 
-  // Apply type/branch filter
+  // Apply type/brand filter
   let filteredItems = items;
   if (_billingTypeFilter)   filteredItems = filteredItems.filter(p => (p.type   ?? '') === _billingTypeFilter);
-  if (_billingBranchFilter) filteredItems = filteredItems.filter(p => (p.branch ?? '') === _billingBranchFilter);
+  if (_billingbrandFilter) filteredItems = filteredItems.filter(p => (p.brand ?? '') === _billingbrandFilter);
 
   if (_inventory.length === 0) {
     grid.innerHTML = `
