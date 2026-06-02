@@ -605,7 +605,7 @@ Plans:
 - [ ] Items without color/branch show blank (no crash)
 - [ ] Existing items (without new fields) still display correctly
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
 - [ ] 16-01-PLAN.md — Inventory schema + CRUD forms (type, branch, color fields)
