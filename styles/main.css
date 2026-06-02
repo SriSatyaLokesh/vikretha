@@ -634,3 +634,57 @@ select.form-input { cursor: pointer; }
 /* == 25. Accessibility == */
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+/* ── Reports module ─────────────────────── */
+.reports-screen { display:flex; flex-direction:column; gap:12px; padding:16px; }
+.reports-filter-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.reports-filter-dates { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.rpt-date-input { padding:6px 10px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:0.85rem; }
+.rpt-date-sep { color:var(--text-secondary); }
+.rpt-search-input { flex:1; min-width:180px; padding:8px 12px; border-radius:8px;
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  font-size:0.9rem; }
+.reports-list-wrap { overflow-x:auto; }
+.reports-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.reports-table th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--border);
+  color:var(--text-secondary); font-weight:600; white-space:nowrap; }
+.reports-table td { padding:9px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
+.reports-table tbody tr:hover { background:var(--hover,rgba(255,255,255,0.04)); }
+.rpt-col-amount { text-align:right; }
+.reports-table td:last-child { text-align:right; }
+.rpt-amended-badge { font-size:0.75rem; margin-left:4px; }
+.rpt-empty, .rpt-loading { padding:32px; text-align:center; color:var(--text-secondary); }
+.rpt-pagination { display:flex; justify-content:center; padding:8px 0; }
+.rpt-detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55);
+  display:flex; align-items:flex-end; justify-content:center; z-index:200; }
+@media(min-width:600px) { .rpt-detail-overlay { align-items:center; } }
+.rpt-detail-panel { background:var(--surface); border-radius:16px 16px 0 0;
+  width:100%; max-width:560px; max-height:85vh; overflow-y:auto; padding:20px; }
+@media(min-width:600px) { .rpt-detail-panel { border-radius:16px; max-height:80vh; } }
+.rpt-items-table { width:100%; border-collapse:collapse; font-size:0.85rem; margin:10px 0; }
+.rpt-items-table th { padding:6px 8px; border-bottom:1px solid var(--border);
+  color:var(--text-secondary); font-size:0.78rem; }
+.rpt-items-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
+.rpt-items-table tfoot td { padding:6px 8px; }
+.rpt-detail-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+.rpt-amendment-notice { background:rgba(255,180,0,0.12); border:1px solid rgba(255,180,0,0.3);
+  border-radius:8px; padding:10px 14px; font-size:0.82rem; color:var(--text-secondary);
+  margin:10px 0; }
+.btn-warning { background:rgba(220,120,0,0.15); color:#c47000; border:1px solid rgba(220,120,0,0.3); }
+.btn-warning:hover { background:rgba(220,120,0,0.25); }
+.rpt-edit-warning { font-size:0.8rem; color:var(--text-secondary);
+  background:rgba(255,180,0,0.1); border-radius:6px; padding:7px 10px; margin-bottom:8px; }
+.rpt-edit-items-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+.rpt-edit-items-table th, .rpt-edit-items-table td { padding:5px 6px;
+  border-bottom:1px solid var(--border); }
+.rpt-edit-items-table input { background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:4px 6px; color:var(--text); font:inherit; }
+.rpt-edit-items-table input:focus { outline:2px solid var(--primary); }
+.rpt-rm-row { background:none; border:none; cursor:pointer; color:var(--text-secondary);
+  font-size:1.1rem; padding:2px 6px; border-radius:4px; }
+.rpt-rm-row:hover { color:var(--danger,#e55); }
+.rpt-edit-totals { padding:8px 0; border-top:1px solid var(--border);
+  color:var(--text-secondary); }
+.rpt-edit-error { color:var(--danger,#e55); font-size:0.85rem; margin-top:6px; }
+.btn-icon { background:none; border:none; cursor:pointer; }
