@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 1 (MVP)
-- **Phase:** 16 (Inventory Fields Enhancement — 🔄 In Progress, Wave 1 complete)
-- **Next action:** Phase 16 Plan 03 — Human verification checkpoint
-- **Last session:** 2026-06-02 — Phase 16 Wave 1 complete — inventory type/branch/color fields, billing filter, export columns
+- **Phase:** 16 (Inventory Fields Enhancement — ✅ Complete)
+- **Next action:** Milestone 1 complete — all 16 phases done
+- **Last session:** 2026-06-03 — Phase 16 Plan 03 approved — Milestone 1 MVP complete
 
 ## Phase Progress
 
@@ -26,7 +26,7 @@
 | 13 | Inventory Item Sizes & Piece Variant Quantities | ✅ Complete |
 | 14 | Ad-hoc Items in Billing | ✅ Complete |
 | 15 | Sales History & Bill Management | ✅ Complete |
-| 16 | Inventory Fields Enhancement (type, branch, color) | � Wave 1 Complete |
+| 16 | Inventory Fields Enhancement (type, branch, color) | ✅ Complete |
 
 ## Decisions Log
 
@@ -50,6 +50,12 @@
 ## Blockers
 
 None.
+
+## Reports
+
+| Report | Path | Generated |
+|--------|------|-----------|
+| Milestone 1 Summary | `.planning/reports/MILESTONE_SUMMARY-v1.md` | 2026-06-03 |
 
 ## Notes
 
