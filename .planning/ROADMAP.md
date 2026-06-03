@@ -37,9 +37,9 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — CSS palette architecture + `data-theme`/`data-dark` on `<html>` + dark mode overrides in main.css
-- [ ] 17-02-PLAN.md — Settings theme picker + dark mode toggle + Firestore persist + init-time apply in firebase-init.js
-- [ ] 17-03-PLAN.md — Human verification checkpoint
+- [x] 17-01-PLAN.md — CSS palette architecture + `data-theme`/`data-dark` on `<html>` + dark mode overrides in main.css
+- [x] 17-02-PLAN.md — Settings theme picker + dark mode toggle + Firestore persist + init-time apply in firebase-init.js
+- [x] 17-03-PLAN.md — Human verification checkpoint
 
 ---
 

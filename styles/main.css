@@ -1157,3 +1157,184 @@ select.form-input { cursor: pointer; }
 .toggle-btn[aria-checked="true"] .toggle-thumb { transform: translateX(18px); }
 [data-dark="true"] .toggle-btn { background: var(--slate-600); }
 [data-dark="true"] .toggle-btn[aria-checked="true"] { background: var(--primary); }
+
+/* ================================================================
+   PHASE 18 — Animation & Toast Notification System
+   ================================================================ */
+
+/* == 20. Toast Notifications == */
+
+#toast-container {
+  position: fixed;
+  bottom: calc(var(--nav-height, 64px) + 12px);
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+  width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  #toast-container {
+    bottom: 24px;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  pointer-events: all;
+  animation: toastSlideIn 0.25s ease forwards;
+  position: relative;
+  word-break: break-word;
+  flex-wrap: wrap;
+}
+
+.toast-success { border-left: 3px solid #22c55e; }
+.toast-error   { border-left: 3px solid #ef4444; }
+.toast-warn    { border-left: 3px solid #f59e0b; }
+.toast-info    { border-left: 3px solid var(--primary); }
+.toast-confirm { border-left: 3px solid var(--primary); }
+
+.toast-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-weight: 700;
+}
+.toast-icon-success { color: #22c55e; }
+.toast-icon-error   { color: #ef4444; }
+.toast-icon-warn    { color: #f59e0b; }
+.toast-icon-info    { color: var(--primary); }
+.toast-icon-confirm { color: var(--primary); }
+
+.toast-message { flex: 1; line-height: 1.45; }
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.toast-close:hover { opacity: 1; }
+
+.toast-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.toast-btn {
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+.toast-btn-confirm {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.toast-btn-confirm:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.toast-btn-cancel:hover  { background: var(--bg-elevated, var(--bg-surface)); }
+
+/* Toast enter/exit animations */
+.toast-enter {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.toast-exit {
+  animation: toastSlideOut 0.3s ease forwards !important;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+
+/* == 21. Page Transitions == */
+
+@keyframes pageSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: pageSlideIn 0.2s ease forwards;
+}
+
+/* == 22. Cart Item Animations == */
+
+@keyframes cartItemIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cartItemOut {
+  from { opacity: 1; transform: translateX(0); max-height: 120px; }
+  to   { opacity: 0; transform: translateX(-12px); max-height: 0; }
+}
+
+.cart-item-enter {
+  animation: cartItemIn 0.2s ease forwards;
+}
+
+.cart-item-exit {
+  animation: cartItemOut 0.25s ease forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* == 23. Bottom-Sheet Slide-Up == */
+
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.sheet-enter {
+  animation: sheetSlideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* == 24. Reduced Motion Overrides == */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast-exit,
+  .page-enter,
+  .cart-item-enter,
+  .cart-item-exit,
+  .sheet-enter {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
