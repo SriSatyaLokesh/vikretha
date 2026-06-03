@@ -10,6 +10,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, THEME_PALETTES } from '../shop.config.js';
 import { applyTheme } from '../lib/firebase-init.js';
+import { toast } from '../lib/toast.js';
 
 function escapeHtml(str) {
   return String(str)
@@ -187,23 +188,23 @@ export function render(container) {
     if (!btn || btn.disabled) return;
 
     const emailToRemove = btn.dataset.email;
-    if (!confirm('Remove access for ' + emailToRemove + '?')) return;
-
-    btn.disabled = true;
-    btn.textContent = '...';
-    try {
-      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
-      await updateDoc(configRef,
-        'authorized_emails', arrayRemove(emailToRemove),
-        new FieldPath('staff_roles', emailToRemove), deleteField()
-      );
-      await _loadStaff();
-    } catch (err) {
-      console.error('[Vikretha] Could not remove email:', err);
-      btn.disabled = false;
-      btn.textContent = 'Remove';
-      alert('Could not remove: ' + err.message);
-    }
+    toast.confirm('Remove access for ' + emailToRemove + '?', async () => {
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+        await updateDoc(configRef,
+          'authorized_emails', arrayRemove(emailToRemove),
+          new FieldPath('staff_roles', emailToRemove), deleteField()
+        );
+        await _loadStaff();
+      } catch (err) {
+        console.error('[Vikretha] Could not remove email:', err);
+        btn.disabled = false;
+        btn.textContent = 'Remove';
+        toast.error('Could not remove: ' + err.message);
+      }
+    });
   });
 
   // ── Add email ────────────────────────────────────────────────

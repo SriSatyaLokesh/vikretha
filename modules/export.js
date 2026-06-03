@@ -9,6 +9,7 @@ import {
   collection, getDocs, query, where, orderBy, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, SHOP_NAME, LOCALE } from '../shop.config.js';
+import { toast } from '../lib/toast.js';
 
 // Cached SheetJS reference after first lazy load
 let _XLSX = null;
@@ -127,7 +128,7 @@ async function _exportSalesMonth(container, year, month) {
     const paddedMonth = String(month + 1).padStart(2, '0');
     XLSX.writeFile(wb, `${_safeName()}_sales_${year}-${paddedMonth}.xlsx`);
   } catch (err) {
-    alert('Export failed: ' + err.message);
+    toast.error('Export failed: ' + err.message);
   } finally {
     _hideProgress(container);
     if (btn) btn.disabled = false;
@@ -177,7 +178,7 @@ async function _exportSalesAll(container) {
     XLSX.utils.book_append_sheet(wb, ws, 'Sales');
     XLSX.writeFile(wb, `${_safeName()}_sales_all.xlsx`);
   } catch (err) {
-    alert('Export failed: ' + err.message);
+    toast.error('Export failed: ' + err.message);
   } finally {
     _hideProgress(container);
     if (btn) btn.disabled = false;
@@ -224,7 +225,7 @@ async function _exportInventory(container) {
     const todayDate = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `${_safeName()}_inventory_${todayDate}.xlsx`);
   } catch (err) {
-    alert('Export failed: ' + err.message);
+    toast.error('Export failed: ' + err.message);
   } finally {
     _hideProgress(container);
     if (btn) btn.disabled = false;

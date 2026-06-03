@@ -11,6 +11,7 @@ import {
   onSnapshot, increment, serverTimestamp, getDocs, setDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
+import { toast } from '../lib/toast.js';
 
 // ── Module State ──────────────────────────────────────────────
 let _inventory = [];        // [{ id, name, price, unit, stock }]
@@ -401,7 +402,7 @@ function _renderCartRows() {
   if (emptyEl) emptyEl.style.display = 'none';
 
   rows.innerHTML = [..._cart.values()].map(item => `
-    <div class="cart-item">
+    <div class="cart-item cart-item-enter">
       <div>
         <div class="cart-item-name">${escapeHtml(item.name)}</div>
         ${item.sizeLabel ? `<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">${escapeHtml(item.sizeLabel)}</div>` : ''}
@@ -868,6 +869,7 @@ async function _handleSubmit(container) {
     _promptSaveAdhocItems(container, adhocItems, () => {
       _showConfirmation(container, { saleId, total, cartArr });
     });
+    toast.success('Sale recorded ✓');
 
   } catch (err) {
     console.error('[Billing] submit error', err);
@@ -877,6 +879,7 @@ async function _handleSubmit(container) {
     _updateTotals(); // restore total in button
     errEl.textContent = 'Failed to save sale. Check your connection and try again.';
     errEl.style.display = 'block';
+    toast.error('Failed to save sale. Check your connection and try again.');
   }
 }
 
