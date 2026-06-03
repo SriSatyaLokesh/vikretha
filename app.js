@@ -2,7 +2,7 @@
  * app.js — Vikretha Application Entry Point
  * Hash router + Firebase auth guard + lazy module loader
  */
-import { auth } from './lib/firebase-init.js';
+import { auth, loadThemeFromFirestore } from './lib/firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { SHOP_NAME } from './shop.config.js';
 
@@ -108,6 +108,7 @@ onAuthStateChanged(auth, (user) => {
   } else {
     // Authenticated — mount shell, then route
     mountAppShell();
+    loadThemeFromFirestore(); // sync palette + dark mode from Firestore (non-blocking)
     const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
     if (!route || route === 'login') {
       // Root or login page → send to dashboard (triggers hashchange → handleRoute)
