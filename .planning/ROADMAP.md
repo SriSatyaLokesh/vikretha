@@ -74,9 +74,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — `lib/toast.js` + `#toast-container` in index.html + CSS animations in main.css
-- [ ] 18-02-PLAN.md — Replace all alert/confirm with toast; add page transitions in app.js; cart entry/exit animations in billing.js
-- [ ] 18-03-PLAN.md — Human verification checkpoint
+- [x] 18-01-PLAN.md — `lib/toast.js` + `#toast-container` in index.html + CSS animations in main.css
+- [x] 18-02-PLAN.md — Replace all alert/confirm with toast; add page transitions in app.js; cart entry/exit animations in billing.js
+- [x] 18-03-PLAN.md — Human verification checkpoint
 
 ---
 
