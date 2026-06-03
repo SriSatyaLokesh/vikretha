@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 2 (v1.1 — Polish & Features)
-- **Phase:** 18 (Animation & Toast Notification System — 🔄 In Progress)
-- **Next action:** Owner UAT on Phase 18 deliverables (toasts, transitions, animations), then run `/gsd-execute-phase 19`
-- **Last session:** 2026-06-03 — Phase 17 approved by owner; Phase 18 execution started
+- **Phase:** 18 (Animation & Toast Notification System — 🔄 Awaiting Human UAT)
+- **Next action:** Open the live app and verify the UAT checklist in plan 18-03, then run `/gsd-execute-phase 19`
+- **Last session:** 2026-06-03 — Phase 17 approved; Phase 18 plans written + executed (Wave 1: toast.js/CSS, Wave 2: alert replacements + transitions — pending owner UAT)
 
 ## Phase Progress
 
