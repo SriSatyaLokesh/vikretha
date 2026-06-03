@@ -1018,3 +1018,142 @@ select.form-input { cursor: pointer; }
 }
 .rpt-picker-back:hover { background:var(--primary-light); }
 .rpt-picker-size-title { font-size:0.83rem; font-weight:600; color:var(--text-primary); }
+
+/* ================================================================
+   THEME PALETTES — data-theme attribute overrides
+   Orange is the default defined in :root.
+   All other palettes override only the four primary tokens.
+   ================================================================ */
+
+[data-theme="emerald"] {
+  --primary:       #10b981;
+  --primary-hover: #059669;
+  --primary-light: #ecfdf5;
+  --primary-ring:  rgba(16,185,129,0.25);
+}
+[data-theme="sky"] {
+  --primary:       #0ea5e9;
+  --primary-hover: #0284c7;
+  --primary-light: #f0f9ff;
+  --primary-ring:  rgba(14,165,233,0.25);
+}
+[data-theme="violet"] {
+  --primary:       #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-light: #f5f3ff;
+  --primary-ring:  rgba(124,58,237,0.25);
+}
+[data-theme="rose"] {
+  --primary:       #f43f5e;
+  --primary-hover: #e11d48;
+  --primary-light: #fff1f2;
+  --primary-ring:  rgba(244,63,94,0.25);
+}
+[data-theme="slate"] {
+  --primary:       #475569;
+  --primary-hover: #334155;
+  --primary-light: #f8fafc;
+  --primary-ring:  rgba(71,85,105,0.25);
+}
+
+/* ================================================================
+   DARK MODE — data-dark="true" attribute overrides
+   Applies to all modules. Orthogonal to palette selection.
+   ================================================================ */
+
+[data-dark="true"] {
+  --bg-app:           var(--slate-900);
+  --bg-surface:       var(--slate-800);
+  --bg-elevated:      var(--slate-800);
+  --bg-sidebar:       #060d1a;
+  --bg-sidebar-hover: var(--slate-900);
+
+  --text-primary:   var(--slate-100);
+  --text-secondary: var(--slate-400);
+  --text-muted:     var(--slate-500);
+
+  --border:        var(--slate-700);
+  --border-strong: var(--slate-600);
+
+  --danger-bg:  rgba(239,68,68,0.15);
+  --success-bg: rgba(34,197,94,0.12);
+  --warning-bg: rgba(245,158,11,0.12);
+  --info-bg:    rgba(14,165,233,0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.24);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.28),0 1px 2px rgba(0,0,0,0.20);
+  --shadow-md: 0 4px 8px rgba(0,0,0,0.32),0 2px 4px rgba(0,0,0,0.20);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,0.36),0 4px 8px rgba(0,0,0,0.20);
+  --shadow-xl: 0 20px 40px rgba(0,0,0,0.44),0 8px 16px rgba(0,0,0,0.24);
+}
+
+/* ================================================================
+   THEME PICKER UI — used in Settings screen (plan 17-02)
+   ================================================================ */
+
+.theme-swatch-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.theme-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  flex-shrink: 0;
+}
+.theme-swatch:hover { transform: scale(1.12); }
+.theme-swatch:focus-visible { box-shadow: 0 0 0 3px var(--primary-ring); }
+.theme-swatch.active {
+  box-shadow: 0 0 0 3px var(--bg-surface), 0 0 0 6px var(--primary);
+}
+
+/* Settings dark mode toggle row */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  margin-top: 14px;
+  gap: 12px;
+}
+.settings-toggle-label {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* iOS-style toggle switch */
+.toggle-btn {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: var(--slate-300);
+  border-radius: 13px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+.toggle-btn[aria-checked="true"] { background: var(--primary); }
+.toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+}
+.toggle-btn[aria-checked="true"] .toggle-thumb { transform: translateX(18px); }
+[data-dark="true"] .toggle-btn { background: var(--slate-600); }
+[data-dark="true"] .toggle-btn[aria-checked="true"] { background: var(--primary); }

@@ -43,3 +43,18 @@ export const WHATSAPP_NUMBER = "";         // Your shop's WhatsApp number with c
  */
 export const THEME_COLOR = "#2563eb";       // Primary color (hex) — used for header, buttons, charts
 export const LOGO_URL = "";                 // URL to shop logo image — shown on receipts (leave empty to hide)
+
+/**
+ * Theme Palettes
+ * Six built-in color themes available in Settings.
+ * The 'id' value matches the data-theme HTML attribute.
+ * 'orange' is the default — no attribute is set on <html> for orange.
+ */
+export const THEME_PALETTES = [
+  { id: 'orange',  label: 'Orange',  primary: '#f97316' },
+  { id: 'emerald', label: 'Emerald', primary: '#10b981' },
+  { id: 'sky',     label: 'Sky',     primary: '#0ea5e9' },
+  { id: 'violet',  label: 'Violet',  primary: '#7c3aed' },
+  { id: 'rose',    label: 'Rose',    primary: '#f43f5e' },
+  { id: 'slate',   label: 'Slate',   primary: '#475569' },
+];
