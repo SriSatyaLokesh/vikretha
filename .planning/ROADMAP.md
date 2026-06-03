@@ -1,9 +1,221 @@
 # Vikretha — Roadmap
 
-## Milestone 1: MVP (v1.0)
+## Milestone 2: Polish & Features (v1.1)
 
-> **Goal:** Fully functional shop management PWA — auth, billing, receipts, dashboard, inventory, export.  
-> **Timeline reference:** PRD §4.2 (5 weeks)
+> **Goal:** High-fidelity UI with theme palettes, dark mode, smooth animations, live SVG charts, customer order history, branded receipts, and easier setup.  
+> **Phases:** 17–22 (continuing from Milestone 1)
+
+---
+
+### Phase 17 — Theme System & Dark Mode
+
+**Goal:** Six predefined color palettes + dark mode toggle, persisted to Firestore and applied instantly via CSS custom properties.
+
+**Delivers:** Settings screen gains a visual theme picker; dark mode toggle. The app's color scheme changes live without reload.
+
+**Requirements covered:** FR-08.1–FR-08.6
+
+**Depends on:** Phase 10 (CSS custom property architecture already in place)
+
+**Key tasks:**
+- Define 6 palette sets in `styles/main.css` as CSS custom property override blocks (data-theme attribute)
+- Add `THEME_PALETTES` constant to `shop.config.js` (palette names + primary/accent/surface hex values)
+- `modules/settings.js` — add Theme section: visual swatch grid (6 palettes); active state ring
+- `modules/settings.js` — add Dark Mode toggle (persists to `config/main.darkMode`)
+- `lib/firebase-init.js` — on init, read `config/main.theme` + `config/main.darkMode`; apply `data-theme` + `data-dark` on `<html>`
+- Write selected theme + dark mode back to Firestore `config/main` on change
+- Ensure all 8 modules render correctly in each palette + dark mode
+
+**UAT:**
+- [ ] Settings shows 6 palette swatches with visible active indicator
+- [ ] Tapping a palette updates the app color instantly (no reload)
+- [ ] Dark mode toggle switches background, text, and surface colors across all screens
+- [ ] Theme + dark mode preference survives page reload
+- [ ] Theme preference syncs across devices (stored in Firestore)
+- [ ] All existing screens (billing, inventory, receipt, reports) look correct in all palettes + dark mode
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — CSS palette architecture + `data-theme`/`data-dark` on `<html>` + dark mode overrides in main.css
+- [ ] 17-02-PLAN.md — Settings theme picker + dark mode toggle + Firestore persist + init-time apply in firebase-init.js
+- [ ] 17-03-PLAN.md — Human verification checkpoint
+
+---
+
+### Phase 18 — Animation & Toast Notification System
+
+**Goal:** Replace all `alert()`/`confirm()` calls with a non-blocking toast system; add page transitions, bottom-sheet slide-up, and cart entry/removal animations.
+
+**Delivers:** App feels native-quality. Feedback is visual and non-blocking. Transitions guide the user's eye between screens.
+
+**Requirements covered:** FR-09.1–FR-09.8, NFR-13, NFR-17
+
+**Depends on:** Phase 17 (CSS custom properties stable)
+
+**Key tasks:**
+- Create `lib/toast.js` — toast manager: `toast.success()`, `toast.error()`, `toast.warn()`, `toast.info()`; max 5 stack; auto-dismiss 3s; slide-in/slide-out CSS animation
+- Add `#toast-container` to `index.html` (fixed bottom-right, z-index above modals)
+- Replace every `alert()` / `confirm()` / `window.alert()` across all modules with `toast.*` calls
+- `app.js` router — add CSS class `page-enter` on route change; CSS transition slides old page out + new page in (200ms)
+- `styles/main.css` — `.page-enter`, `.page-exit` keyframes; `.sheet-enter` for bottom sheets; `.cart-item-enter`, `.cart-item-exit` for billing rows
+- `modules/billing.js` — wrap cart row add/remove in animation classes; use `requestAnimationFrame` for smooth height collapse
+- `@media (prefers-reduced-motion: reduce)` block — sets all transition durations to 0ms
+
+**UAT:**
+- [ ] Sale submitted → green toast "Sale recorded ✓" appears bottom-right, auto-dismisses in 3s
+- [ ] Error (e.g. empty cart submit) → red toast "Add at least one item"
+- [ ] Navigating between screens shows a slide transition
+- [ ] Adding item to cart → row slides/fades in
+- [ ] Removing item → row collapses before disappearing
+- [ ] Bottom sheets (add inventory, ad-hoc item) slide up from bottom
+- [ ] With `prefers-reduced-motion` enabled → all animations skipped, toasts appear instantly
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — `lib/toast.js` + `#toast-container` in index.html + CSS animations in main.css
+- [ ] 18-02-PLAN.md — Replace all alert/confirm with toast; add page transitions in app.js; cart entry/exit animations in billing.js
+- [ ] 18-03-PLAN.md — Human verification checkpoint
+
+---
+
+### Phase 19 — Live SVG Dashboard Charts
+
+**Goal:** Replace the CSS flexbox bar chart with an inline SVG chart; add a real-time today counter that increments live as sales are recorded.
+
+**Delivers:** Dashboard feels alive. Revenue visualization is professional and interactive. Today's counter updates without refresh.
+
+**Requirements covered:** FR-10.1–FR-10.5, NFR-14
+
+**Depends on:** Phase 11 (daily_summary collection drives chart data)
+
+**Key tasks:**
+- Create `lib/svg-chart.js` — `drawAreaChart(container, data, options)`: pure SVG, no library; area + line + axis labels + hover tooltip via `<title>` element
+- `modules/dashboard.js` — replace `.bar-chart-wrap` block with `svg-chart.js` call; pass last-7-day `daily_summary` data
+- `modules/dashboard.js` — add "Today" live counter widget: small real-time sale count badge, updated on each `onSnapshot` event from `daily_summary/{today}`
+- Ensure SVG chart is responsive (viewBox-based, scales to container width)
+- `styles/main.css` — chart area styles (grid lines, tooltip, axis text)
+
+**UAT:**
+- [ ] Dashboard shows an SVG area chart (not CSS bars) for the 7-day revenue
+- [ ] Chart has day labels on the x-axis and proportional area fill
+- [ ] Hovering a data point (desktop) shows a tooltip with exact revenue
+- [ ] Today counter increments live when a new sale is recorded (test with two browser tabs)
+- [ ] Chart reflows correctly on mobile (≤ 430px) — no overflow
+- [ ] Days with zero revenue show a baseline point (not broken)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — `lib/svg-chart.js` + dashboard chart integration + live today counter
+- [ ] 19-02-PLAN.md — Human verification checkpoint
+
+---
+
+### Phase 20 — Customer Order History
+
+**Goal:** Customer lookup in Reports — enter a phone number, see all past bills for that customer with aggregate stats.
+
+**Delivers:** Shop owner can look up a customer's lifetime spend, bill count, and view individual bills. Accessible from the receipt screen.
+
+**Requirements covered:** FR-11.1–FR-11.5
+
+**Depends on:** Phase 12 (customers collection), Phase 15 (reports detail panel)
+
+**Key tasks:**
+- `modules/reports.js` — add "Customers" tab alongside "Sales" in the reports screen
+- Customer search input (phone number); debounced 300ms query against `customers` collection
+- Customer result panel: name, phone, total spend (sum of sale totals), bill count, last sale date
+- Tappable bill list (Firestore query: `sales` where `customer_phone == X` ordered by timestamp DESC, paginated 25)
+- Tapping a bill → opens existing sale detail panel (reuse `_renderDetailPanel`)
+- Receipt screen — add "Customer history →" link (only if customer phone was captured)
+- `styles/main.css` — customer panel layout styles
+
+**UAT:**
+- [ ] Reports screen shows "Sales" and "Customers" tabs
+- [ ] Typing a phone number in Customers tab shows matching customer (or "No customer found")
+- [ ] Customer panel shows correct name, total spend, bill count, last sale date
+- [ ] Tapping a past bill opens the full sale detail panel
+- [ ] "Customer history →" link on receipt screen navigates to that customer's panel
+- [ ] Pagination works: "Load more" shows older bills beyond 25
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Customers tab in reports: search, result panel, bill list
+- [ ] 20-02-PLAN.md — Receipt screen "Customer history" link + reports CSS
+- [ ] 20-03-PLAN.md — Human verification checkpoint
+
+---
+
+### Phase 21 — Branded Receipt
+
+**Goal:** Render shop logo and a custom "thank you" footer message on the Canvas receipt. Both configurable via Settings.
+
+**Delivers:** Receipts look professional and on-brand. Shop owner sets logo URL and footer text once in Settings; every receipt includes them automatically.
+
+**Requirements covered:** FR-12.1–FR-12.4
+
+**Depends on:** Phase 4 (receipt.js Canvas logic)
+
+**Key tasks:**
+- `modules/settings.js` — add "Receipt Branding" section: "Logo URL" input + "Footer text" textarea; save to `config/main.receiptLogoUrl` + `config/main.receiptFooter`
+- `modules/receipt.js` — read `receiptLogoUrl` and `receiptFooter` from shop config (loaded from Firestore on init)
+- Receipt canvas: draw logo image at top (with graceful fallback — timeout or `onerror` draws placeholder box); draw footer text at bottom in italic
+- Update `lib/firebase-init.js` to expose `getShopConfig()` helper so receipt.js can access live config values
+- Maintain < 1s receipt generation including logo (async `Image` load with 2s timeout fallback)
+
+**UAT:**
+- [ ] Settings → Receipt Branding section shows Logo URL + Footer text inputs
+- [ ] Save branding → receipt immediately shows logo + footer on next bill
+- [ ] Logo renders at correct size/position on receipt canvas
+- [ ] If logo URL is empty or fails to load → receipt renders without logo (no crash, no blank receipt)
+- [ ] Footer text appears at bottom of receipt canvas
+- [ ] Downloaded PNG includes logo + footer
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Settings branding fields + receipt.js canvas integration (logo + footer)
+- [ ] 21-02-PLAN.md — Human verification checkpoint
+
+---
+
+### Phase 22 — Setup Simplification
+
+**Goal:** Reduce time-to-first-use for new shop owners: runtime config validation, CLI rules deploy script, and improved README.
+
+**Delivers:** Missing Firebase config shows a clear on-screen error (not a silent JS crash). Firestore rules can be deployed with one command. README has copy-pasteable setup commands.
+
+**Requirements covered:** FR-13.1–FR-13.4, NFR-05
+
+**Depends on:** Phase 1 (shop.config.js structure)
+
+**Key tasks:**
+- `lib/firebase-init.js` — validate `FIREBASE_CONFIG` on init: check `apiKey`, `projectId`, `appId` are non-empty strings; if invalid, render a full-screen "Setup Required" panel with instructions instead of crashing
+- `app.js` — validate `SHOP_ID` and `SHOP_NAME` non-empty on startup; show setup banner if missing
+- `scripts/deploy-rules.js` — Node.js script: reads `firestore.rules` from repo root, calls `firebase deploy --only firestore:rules` via `child_process.exec`; prints coloured success/error output
+- `shop.config.js.template` — expand all inline comments with examples for every field
+- `README.md` — new "Quick Setup (3 commands)" section with copy-pasteable Firebase CLI commands
+
+**UAT:**
+- [ ] With `FIREBASE_CONFIG.apiKey` set to empty string → app shows "Setup Required" panel (not blank screen or JS error)
+- [ ] `node scripts/deploy-rules.js` runs successfully and reports deployed rules version
+- [ ] `shop.config.js.template` has a comment + example for every exported field
+- [ ] README Quick Setup section is self-contained (no external docs needed for basic setup)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — firebase-init.js validation + setup banner + scripts/deploy-rules.js
+- [ ] 22-02-PLAN.md — shop.config.js.template comments expansion + README Quick Setup + human verification checkpoint
+
+---
+
+## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
+
+> All 16 phases complete. See `.planning/reports/MILESTONE_SUMMARY-v1.md`.
 
 ---
 

@@ -1,10 +1,91 @@
 # Vikretha — Requirements
 
-## Milestone 1: MVP (Full Shop Management PWA)
+## Milestone 2: v1.1 — Polish & Features
+
+> Milestone 1 requirements remain valid and implemented. This document defines the **incremental** requirements for v1.1.
 
 ### Functional Requirements
 
-#### FR-01: Authentication (Email/Password)
+#### FR-08: Theme System
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-08.1 | Six predefined color palettes selectable from Settings | Must | Orange (default), Emerald, Sky, Violet, Rose, Slate |
+| FR-08.2 | Active theme persisted to `config/main` in Firestore | Must | Survives reload / device switch |
+| FR-08.3 | Theme applied via CSS custom property overrides — no full reload | Must | Instant apply on selection |
+| FR-08.4 | Dark mode toggle independent of color palette | Must | Persisted alongside theme choice |
+| FR-08.5 | Dark mode applies to all screens: dashboard, billing, inventory, reports, settings | Must | |
+| FR-08.6 | Theme palette swatches shown visually in Settings (not just text) | Should | |
+
+#### FR-09: Animation & Notification System
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-09.1 | Toast/snackbar system replaces all `alert()` / `confirm()` calls | Must | Non-blocking, auto-dismiss (3s), stackable |
+| FR-09.2 | Toast types: success (green), error (red), warning (amber), info (blue) | Must | |
+| FR-09.3 | Page transition animation on hash route change (slide in) | Must | 200ms ease-out |
+| FR-09.4 | Bottom-sheet and modal slide-up animation (transform + opacity) | Must | 250ms ease-out |
+| FR-09.5 | Cart item entry animation (fade-in + height expand) | Must | |
+| FR-09.6 | Cart item removal animation (fade-out + height collapse) | Must | |
+| FR-09.7 | Dashboard summary card count-up animation on load | Should | Numbers animate from 0 to actual value over 600ms |
+| FR-09.8 | Respect `prefers-reduced-motion` — all animations skippable | Must | Accessibility requirement |
+
+#### FR-10: Live Dashboard Charts
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-10.1 | Replace CSS bar chart with SVG-based chart (no library dependency) | Must | Drawn inline, zero CDN |
+| FR-10.2 | 7-day revenue trend — area/line chart with day labels and value tooltips | Must | |
+| FR-10.3 | Chart updates in real-time via existing `onSnapshot` listener | Must | No separate polling |
+| FR-10.4 | Today's live sale counter — increments in real-time as sales are recorded | Should | Small live counter widget on dashboard |
+| FR-10.5 | Chart renders correctly on mobile (≤ 430px) — horizontal scroll or compressed | Must | |
+
+#### FR-11: Customer Order History
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-11.1 | Customer lookup in Reports: enter phone → see customer's past bills | Must | Reuses `customers` collection + sales query |
+| FR-11.2 | Customer panel shows: name, phone, total spend, bill count, last sale date | Must | |
+| FR-11.3 | Tappable bill list per customer → opens existing sale detail panel | Must | |
+| FR-11.4 | Accessible from billing receipt screen: "View customer history" link | Should | |
+| FR-11.5 | Customer search debounced 300ms (consistent with existing search pattern) | Must | |
+
+#### FR-12: Branded Receipt
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-12.1 | Shop logo rendered on receipt canvas (from URL in `shop.config.js` or Settings) | Must | Graceful fallback if logo fails to load |
+| FR-12.2 | Custom footer text on receipt (e.g. "Thank you! Visit again.") — editable in Settings | Must | Persisted to `config/main` |
+| FR-12.3 | Receipt layout upgrade: cleaner fonts, separator lines, padding | Should | |
+| FR-12.4 | Logo and footer applied to both Canvas render and download PNG | Must | |
+
+#### FR-13: Setup Simplification
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| FR-13.1 | `scripts/deploy-rules.js` — Node.js script to deploy `firestore.rules` via Firebase CLI | Must | `node scripts/deploy-rules.js` after `npm install -g firebase-tools` |
+| FR-13.2 | `shop.config.js` runtime validation — clear console error + on-screen banner if required fields missing | Must | Catches common setup mistakes immediately |
+| FR-13.3 | README "Quick Setup" section: copy-pasteable Firebase setup commands | Must | Reduces manual steps |
+| FR-13.4 | `shop.config.js.template` includes inline comments explaining each field | Should | Already partially done — expand with examples |
+
+---
+
+### Non-Functional Requirements (v1.1 additions)
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-13 | CSS animation frame budget | All transitions ≤ 16ms/frame (no layout thrash) |
+| NFR-14 | SVG chart render time | < 50ms for 7-day dataset |
+| NFR-15 | Theme switch perceived latency | < 100ms (CSS var swap, no repaint of DOM) |
+| NFR-16 | Toast system memory | Max 5 toasts visible at once; oldest auto-dismissed |
+| NFR-17 | `prefers-reduced-motion` respected | All animated elements honour media query |
+
+---
+
+### Milestone 1: MVP (Full Shop Management PWA)
+
+> Implemented — see git history and `.planning/reports/MILESTONE_SUMMARY-v1.md` for details.
+
 
 | ID | Requirement | Priority | Source |
 |----|-------------|----------|--------|

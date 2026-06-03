@@ -1,8 +1,17 @@
 # Vikretha — Project Context
 
+## Milestone History
+
+| Milestone | Version | Summary |
+|-----------|---------|---------|
+| 1 | v1.0 (MVP) | Full shop management PWA — auth, billing, receipt, dashboard, inventory, export, redesign, Firestore hardening, customer autofill, piece sizes, ad-hoc billing, sales history, inventory fields (16 phases). Completed 2026-06-03. |
+| 2 | v1.1 (Polish & Features) | High-fidelity UI — theme palettes, dark mode, smooth animations, toast system, live SVG charts, customer order history, branded receipt, CLI setup helper. (Phases 17–22) |
+
+---
+
 ## Overview
 
-**Vikretha** is a zero-cost, self-hosted shop management progressive web app (PWA) for small, independent shop owners (kiranas, boutiques, street vendors). It runs as a static site on GitHub Pages with Firebase Firestore as the backend and Firebase Auth (Phone OTP) for access control.
+**Vikretha** is a zero-cost, self-hosted shop management progressive web app (PWA) for small, independent shop owners (kiranas, boutiques, street vendors). It runs as a static site on GitHub Pages with Firebase Firestore as the backend and Firebase Auth (Email/Password) for access control.
 
 ## Problem
 
