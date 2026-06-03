@@ -8,7 +8,7 @@ import {
   doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
   FieldPath, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { SHOP_ID, THEME_PALETTES } from '../shop.config.js';
+import { SHOP_ID, COLOR_THEME } from '../shop.config.js';
 import { applyTheme } from '../lib/firebase-init.js';
 import { toast } from '../lib/toast.js';
 
@@ -33,8 +33,6 @@ export function render(container) {
       <!-- Appearance -->
       <div class="card settings-card" id="settings-appearance-card">
         <p class="settings-section-label">Appearance</p>
-        <p class="settings-section-hint">Choose a color palette for the app.</p>
-        <div id="theme-swatches" class="theme-swatch-grid"></div>
         <div class="settings-toggle-row">
           <span class="settings-toggle-label">Dark mode</span>
           <button id="dark-mode-toggle" class="toggle-btn" role="switch" aria-checked="false"
@@ -123,55 +121,21 @@ export function render(container) {
 
   _loadStaff();
 
-  // ── Appearance: render swatches + dark mode toggle ───────────────────
+  // ── Appearance: dark mode toggle ───────────────────────────────────────
   function _renderAppearance() {
-    const swatchGrid    = container.querySelector('#theme-swatches');
     const darkToggleBtn = container.querySelector('#dark-mode-toggle');
-    if (!swatchGrid || !darkToggleBtn) return;
-
-    const currentTheme = document.documentElement.dataset.theme || 'orange';
-    const isDark       = document.documentElement.dataset.dark === 'true';
-
-    // Render swatches
-    swatchGrid.innerHTML = THEME_PALETTES.map(p => `
-      <button class="theme-swatch${p.id === currentTheme ? ' active' : ''}"
-              data-theme-id="${p.id}"
-              style="background:${p.primary};"
-              aria-label="${p.label} theme"
-              aria-pressed="${p.id === currentTheme}"
-              title="${p.label}">
-      </button>
-    `).join('');
-
-    // Set dark mode toggle state
+    if (!darkToggleBtn) return;
+    const isDark = document.documentElement.dataset.dark === 'true';
     darkToggleBtn.setAttribute('aria-checked', String(isDark));
   }
 
   _renderAppearance();
 
-  // Swatch click
-  container.querySelector('#theme-swatches').addEventListener('click', async (e) => {
-    const btn = e.target.closest('.theme-swatch');
-    if (!btn) return;
-    const themeId = btn.dataset.themeId;
-    const isDark  = document.documentElement.dataset.dark === 'true';
-    applyTheme(themeId, isDark);
-    localStorage.setItem('vk_theme', themeId);
-    _renderAppearance();
-    try {
-      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
-      await setDoc(configRef, { theme: themeId }, { merge: true });
-    } catch (err) {
-      console.error('[Vikretha] Could not save theme:', err);
-    }
-  });
-
   // Dark mode toggle
   container.querySelector('#dark-mode-toggle').addEventListener('click', async () => {
     const isDark  = document.documentElement.dataset.dark === 'true';
     const newDark = !isDark;
-    const themeId = document.documentElement.dataset.theme || 'orange';
-    applyTheme(themeId, newDark);
+    applyTheme(COLOR_THEME, newDark);
     localStorage.setItem('vk_dark', String(newDark));
     _renderAppearance();
     try {

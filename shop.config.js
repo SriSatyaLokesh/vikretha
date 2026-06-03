@@ -43,10 +43,17 @@ export const THEME_COLOR = "#2563eb";        // Primary color (hex) — used for
 export const LOGO_URL = "";                  // URL to shop logo image — shown on receipts (leave empty to hide)
 
 /**
- * Theme Palettes
- * Six built-in color themes available in Settings.
- * The 'id' value matches the data-theme HTML attribute.
- * 'orange' is the default — no attribute is set on <html> for orange.
+ * Color Theme
+ * Set the app-wide color palette here. This is a config-level setting — not changeable in the app UI.
+ * Available values: 'orange' | 'emerald' | 'sky' | 'violet' | 'rose' | 'slate'
+ * The id matches the data-theme HTML attribute defined in styles/main.css.
+ */
+export const COLOR_THEME = 'orange';
+
+/**
+ * Theme Palette Reference (CSS only — not exposed in the app UI)
+ * These palettes are defined as [data-theme="..."] blocks in styles/main.css.
+ * Change COLOR_THEME above to switch the active palette.
  */
 export const THEME_PALETTES = [
   { id: 'orange',  label: 'Orange',  primary: '#f97316' },
