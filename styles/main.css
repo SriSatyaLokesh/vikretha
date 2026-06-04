@@ -1494,3 +1494,29 @@ select.form-input { cursor: pointer; }
   font-size: 10.5px;
   opacity: 0.6;
 }
+
+/* == Dual chart row (Phase 19 — 7-day + 30-day) == */
+.dash-charts-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (min-width: 600px) {
+  .dash-charts-row { grid-template-columns: 1fr 1fr; }
+}
+/* Tighten card padding inside the row so charts don't feel oversized */
+.dash-charts-row .card { padding: 14px 12px 10px; }
+
+/* == Dual chart row (Phase 19 — 7-day + 30-day) == */
+.dash-charts-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (min-width: 600px) {
+  .dash-charts-row { grid-template-columns: 1fr 1fr; }
+}
+/* Tighten card padding inside the row so charts don't feel oversized */
+.dash-charts-row .card { padding: 14px 12px 10px; }

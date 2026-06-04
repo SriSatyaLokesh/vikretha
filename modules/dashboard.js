@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/dashboard.js - Dashboard Home
  * Live summary cards + 7-day SVG area chart + monthly report.
  * Exported: render(container) - called by app.js on #/dashboard route.
@@ -30,13 +30,13 @@ async function _fetchAndRenderStats(container) {
   const now = new Date();
   const fmt = v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 });
 
-  // -- Read 7 daily_summary docs (7 reads instead of scanning all sales) --
+  // -- Read 30 daily_summary docs (7 for weekly chart + 30 for trend chart) --
   const dayMap = {};
   let todayRev = 0, todayCt = 0, weekRev = 0, weekCt = 0;
   const todayKey = now.toISOString().slice(0, 10);
 
   const dayPromises = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 29; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
@@ -54,13 +54,14 @@ async function _fetchAndRenderStats(container) {
   }
   await Promise.all(dayPromises);
 
-  // Compute today + week totals from the daily docs
-  for (const [key, val] of Object.entries(dayMap)) {
-    weekRev += val.revenue;
-    weekCt  += val.count;
+  // Compute today + week totals (last 7 keys only)
+  const allDayKeys = Object.keys(dayMap); // oldest first, insertion order
+  for (const key of allDayKeys.slice(-7)) {
+    weekRev += dayMap[key].revenue;
+    weekCt  += dayMap[key].count;
     if (key === todayKey) {
-      todayRev = val.revenue;
-      todayCt  = val.count;
+      todayRev = dayMap[key].revenue;
+      todayCt  = dayMap[key].count;
     }
   }
 
@@ -83,19 +84,35 @@ async function _fetchAndRenderStats(container) {
   _setSlot(container, 'dash-month-rev',  fmt(monthRev));
   _setSlot(container, 'dash-month-ct',   monthCt + ' sale' + (monthCt !== 1 ? 's' : ''));
 
-  // -- Render SVG area chart --
+  // -- Render dual SVG area charts --
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const svgContainer = container.querySelector('#dash-svg-chart');
-  if (svgContainer) {
-    const chartData = Object.entries(dayMap).map(([dateKey, { revenue, count }]) => ({
+  const cfmt = { currencyFormatter: v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 }) };
+
+  // 7-day chart: day names, today highlighted
+  const chart7 = container.querySelector('#dash-chart-7d');
+  if (chart7) {
+    const data7 = allDayKeys.slice(-7).map(dateKey => ({
       label: DAY_LABELS[new Date(dateKey + 'T00:00:00').getDay()],
-      value: revenue,
-      count: count,
+      value: dayMap[dateKey].revenue,
+      count: dayMap[dateKey].count,
       isToday: dateKey === todayKey
     }));
-    drawAreaChart(svgContainer, chartData, {
-      currencyFormatter: v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 })
+    drawAreaChart(chart7, data7, cfmt);
+  }
+
+  // 30-day chart: show day-of-month label every 5th point + last point
+  const chart30 = container.querySelector('#dash-chart-30d');
+  if (chart30) {
+    const data30 = allDayKeys.map((dateKey, i) => {
+      const showLabel = i % 5 === 0 || i === allDayKeys.length - 1;
+      return {
+        label: showLabel ? String(new Date(dateKey + 'T00:00:00').getDate()) : '',
+        value: dayMap[dateKey].revenue,
+        count: dayMap[dateKey].count,
+        isToday: dateKey === todayKey
+      };
     });
+    drawAreaChart(chart30, data30, cfmt);
   }
 }
 function _buildMonthOptions(select) {
@@ -219,12 +236,20 @@ export function render(container) {
         </div>
       </div>
 
-      <!-- 7-day SVG area chart -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="section-header" style="margin-bottom:12px;">
-          <span class="section-title">Last 7 Days</span>
+      <!-- Sales trend charts (7-day + 30-day) -->
+      <div class="dash-charts-row">
+        <div class="card">
+          <div class="section-header" style="margin-bottom:10px;">
+            <span class="section-title">Last 7 Days</span>
+          </div>
+          <div id="dash-chart-7d" class="svg-chart-wrap"></div>
         </div>
-        <div id="dash-svg-chart" class="svg-chart-wrap"></div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:10px;">
+            <span class="section-title">Last 30 Days</span>
+          </div>
+          <div id="dash-chart-30d" class="svg-chart-wrap"></div>
+        </div>
       </div>
 
       <!-- Monthly Report -->
