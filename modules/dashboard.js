@@ -1,6 +1,6 @@
 /**
  * modules/dashboard.js - Dashboard Home
- * Live summary cards + 7-day CSS bar chart + monthly report.
+ * Live summary cards + 7-day SVG area chart + monthly report.
  * Exported: render(container) - called by app.js on #/dashboard route.
  */
 
@@ -11,6 +11,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
 import { attachExportMenu } from './export.js';
+import { drawAreaChart } from '../lib/svg-chart.js';
 
 let _unsubSummary = null;
 
@@ -23,34 +24,6 @@ function escapeHtml(s) {
 function _setSlot(container, id, text) {
   const el = container.querySelector('#' + id);
   if (el) el.textContent = text;
-}
-
-function _renderBarChart(container, dayMap) {
-  const barsEl = container.querySelector('#dash-bar-chart');
-  if (!barsEl) return;
-  const entries = Object.entries(dayMap);
-  const maxRev  = Math.max(...entries.map(([, v]) => v.revenue), 1);
-  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const todayKey = new Date().toISOString().slice(0, 10);
-  barsEl.innerHTML = entries.map(([dateKey, { revenue }]) => {
-    const pct     = Math.max((revenue / maxRev) * 100, 4);
-    const dayIdx  = new Date(dateKey + 'T00:00:00').getDay();
-    const label   = DAY_LABELS[dayIdx];
-    const isToday = dateKey === todayKey;
-    const safeLabel = escapeHtml(label);
-    const safeRev   = escapeHtml(
-      CURRENCY + revenue.toLocaleString(LOCALE, { minimumFractionDigits: 2 })
-    );
-    const todayCls = isToday ? ' bar-chart-bar--today' : '';
-    const todayLbl = isToday ? ' bar-chart-label--today' : '';
-    return '<div class="bar-chart-col">'
-      + '<div class="bar-chart-bar' + todayCls + '"'
-      + ' style="height:' + pct + '%"'
-      + ' title="' + safeLabel + ': ' + safeRev + '">'
-      + '</div>'
-      + '<span class="bar-chart-label' + todayLbl + '">' + safeLabel + '</span>'
-      + '</div>';
-  }).join('');
 }
 
 async function _fetchAndRenderStats(container) {
@@ -102,14 +75,27 @@ async function _fetchAndRenderStats(container) {
     }
   } catch (e) { console.warn('[Dashboard] monthly_summary read failed', e); }
 
-  // -- Render --
+  // -- Render stats --
   _setSlot(container, 'dash-today-rev',  fmt(todayRev));
   _setSlot(container, 'dash-today-ct',   todayCt + ' sale' + (todayCt !== 1 ? 's' : ''));
   _setSlot(container, 'dash-week-rev',   fmt(weekRev));
   _setSlot(container, 'dash-week-ct',    weekCt + ' sale' + (weekCt !== 1 ? 's' : ''));
   _setSlot(container, 'dash-month-rev',  fmt(monthRev));
   _setSlot(container, 'dash-month-ct',   monthCt + ' sale' + (monthCt !== 1 ? 's' : ''));
-  _renderBarChart(container, dayMap);
+
+  // -- Render SVG area chart --
+  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const svgContainer = container.querySelector('#dash-svg-chart');
+  if (svgContainer) {
+    const chartData = Object.entries(dayMap).map(([dateKey, { revenue }]) => ({
+      label: DAY_LABELS[new Date(dateKey + 'T00:00:00').getDay()],
+      value: revenue,
+      isToday: dateKey === todayKey
+    }));
+    drawAreaChart(svgContainer, chartData, {
+      currencyFormatter: v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 })
+    });
+  }
 }
 function _buildMonthOptions(select) {
   if (!select) return;
@@ -232,12 +218,12 @@ export function render(container) {
         </div>
       </div>
 
-      <!-- 7-day bar chart -->
+      <!-- 7-day SVG area chart -->
       <div class="card" style="margin-bottom:16px;">
         <div class="section-header" style="margin-bottom:12px;">
           <span class="section-title">Last 7 Days</span>
         </div>
-        <div id="dash-bar-chart" class="bar-chart-wrap"></div>
+        <div id="dash-svg-chart" class="svg-chart-wrap"></div>
       </div>
 
       <!-- Monthly Report -->
@@ -302,6 +288,19 @@ export function render(container) {
       }
       syncBadge.className = 'sync-badge ' + (fromCache ? 'sync-badge--pending' : 'sync-badge--synced');
     }
+
+    // -- Live today counter fast-path (Phase 19) --
+    // Read today rev/count directly from the snapshot -- instant update,
+    // no extra Firestore reads. The full _fetchAndRenderStats below
+    // will also update them, but only after 7 async getDoc calls.
+    const snapData = snap.data() || {};
+    const liveRev = snapData.revenue || 0;
+    const liveCt  = snapData.count   || 0;
+    const fmt = v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 });
+    _setSlot(container, 'dash-today-rev', fmt(liveRev));
+    _setSlot(container, 'dash-today-ct',  liveCt + ' sale' + (liveCt !== 1 ? 's' : ''));
+    // ---------------------------------------------
+
     _fetchAndRenderStats(container);
   }, { includeMetadataChanges: true });
 
