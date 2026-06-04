@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 2 (v1.1 — Polish & Features)
-- **Phase:** 19 (Live SVG Dashboard Charts — 🔄 Planning)
-- **Next action:** Run `/gsd-execute-phase 19`
-- **Last session:** 2026-06-03 — Phase 18 approved by owner; Phase 19 is next
+- **Phase:** 21 (Branded Receipt — 🔲 Not Started)
+- **Next action:** Run `/gsd-plan-phase 21`
+- **Last session:** 2026-06-04 — Phase 20 approved by owner; Phases 19 (SVG Charts, skipped for now) and 21 (Branded Receipt) are next
 
 ## Phase Progress
 
@@ -15,8 +15,8 @@
 |-------|------|--------|
 | 17 | Theme System & Dark Mode | ✅ Complete |
 | 18 | Animation & Toast Notification System | ✅ Complete |
-| 19 | Live SVG Dashboard Charts | 🔄 In Progress |
-| 20 | Customer Order History | 🔲 Not Started |
+| 19 | Live SVG Dashboard Charts | ⏸ Skipped (planned) |
+| 20 | Customer Order History | ✅ Complete |
 | 21 | Branded Receipt | 🔲 Not Started |
 | 22 | Setup Simplification | 🔲 Not Started |
 
