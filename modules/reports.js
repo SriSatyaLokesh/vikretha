@@ -351,18 +351,22 @@ async function _loadCustomerBills(phone, reset, resultEl) {
   const paginEl = resultEl.querySelector('#rpt-cust-bills-pagination');
 
   const salesColl   = collection(db, 'shops', SHOP_ID, 'sales');
+  // No composite index needed: filter by customer_phone only, sort client-side
   const constraints = [
     where('customer_phone', '==', phone),
-    orderBy('timestamp', 'desc'),
-    limit(25)
+    limit(100)
   ];
-  if (!reset && _custLastDoc) constraints.push(startAfter(_custLastDoc));
 
   try {
     const snap   = await getDocs(query(salesColl, ...constraints));
-    _custBills   = reset ? snap.docs : [..._custBills, ...snap.docs];
-    _custLastDoc = snap.docs.at(-1) ?? null;
-    const hasMore = snap.docs.length === 25;
+    const sorted = snap.docs.slice().sort((a, b) => {
+      const ta = a.data().timestamp?.seconds ?? 0;
+      const tb = b.data().timestamp?.seconds ?? 0;
+      return tb - ta;
+    });
+    _custBills   = reset ? sorted : [..._custBills, ...sorted];
+    _custLastDoc = null; // pagination not needed — all loaded at once
+    const hasMore = false;
 
     // Update stats from loaded bills
     const countEl = resultEl.querySelector('#rpt-cust-stat-count');
