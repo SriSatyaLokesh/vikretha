@@ -4,7 +4,7 @@
  */
 import { auth } from './lib/firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { SHOP_NAME, LOGO_URL } from './shop.config.js';
+import { SHOP_NAME, LOGO_URL, SHOP_ID } from './shop.config.js';
 
 // ----- App Shell -----
 // ── SVG icons for nav ───────────────────────────────────────────────────────
@@ -94,6 +94,22 @@ function mountAppShell() {
       if (avatarEl) avatarEl.textContent = user.email[0].toUpperCase();
     }
   }).catch(() => {});
+}
+
+// ----- Setup Config Checks -----
+function _showSetupBanner(msg) {
+  const banner = document.createElement('div');
+  banner.id = 'setup-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;color:#92400e;padding:12px 20px;font-size:.875rem;font-family:system-ui,sans-serif;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)';
+  banner.innerHTML = `<span>⚠️</span><span>${msg} — edit <code style="background:#fde68a;border-radius:3px;padding:1px 4px">shop.config.js</code> and redeploy.</span>`;
+  document.body.prepend(banner);
+}
+
+// ── Config sanity checks ──────────────────────────────────────────────
+if (!SHOP_ID || SHOP_ID.trim() === '' || SHOP_ID === 'shop_001') {
+  _showSetupBanner('SHOP_ID is not configured');
+} else if (!SHOP_NAME || SHOP_NAME.trim() === '' || SHOP_NAME === 'My Shop') {
+  _showSetupBanner('SHOP_NAME is not configured');
 }
 
 // ----- Auth Guard + Router -----
