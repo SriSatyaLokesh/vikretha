@@ -1686,3 +1686,22 @@ select.form-input { cursor: pointer; }
 .rpt-cust-list-name  { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rpt-cust-list-phone { font-size: 0.8rem; color: var(--text-secondary); }
 .rpt-cust-list-date  { font-size: 0.75rem; color: var(--text-muted); flex: 0 0 auto; white-space: nowrap; }
+
+/* ── Detail panel: customer row link ──────────────────────────────────────── */
+a.rpt-customer-row--link {
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background 0.12s;
+}
+a.rpt-customer-row--link:hover  { background: var(--surface-hover); }
+a.rpt-customer-row--link:active { background: var(--surface-press); }
+a.rpt-customer-row--link:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.rpt-customer-hist-hint {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--primary);
+  font-weight: 500;
+  opacity: 0.8;
+}
+a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }

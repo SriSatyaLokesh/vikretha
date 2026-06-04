@@ -467,12 +467,18 @@ function _renderDetailPanel(data, docId) {
     </div>`;
   })() : '';
 
-  const customerSection = (data.customer_name || data.customer_phone) ? `
-    <div class="rpt-customer-row">
+  const customerSection = (data.customer_name || data.customer_phone) ? (() => {
+    const link = data.customer_phone
+      ? ` href="#/reports/customers/${encodeURIComponent(data.customer_phone)}" id="rpt-detail-cust-link"`
+      : '';
+    const tag  = data.customer_phone ? 'a' : 'div';
+    return `<${tag} class="rpt-customer-row${data.customer_phone ? ' rpt-customer-row--link' : ''}"${link}>
       <span class="rpt-customer-icon">&#x1F464;</span>
       <span class="rpt-customer-name">${data.customer_name ? escapeHtml(data.customer_name) : ''}</span>
       ${data.customer_phone ? `<span class="rpt-customer-phone">${escapeHtml(data.customer_phone)}</span>` : ''}
-    </div>` : '';
+      ${data.customer_phone ? `<span class="rpt-customer-hist-hint">&#x2192; history</span>` : ''}
+    </${tag}>`;
+  })() : '';
 
   const discountRow = (data.discount && data.discount > 0)
     ? `<tr class="rpt-discount-row"><td colspan="4" class="rpt-cell-right rpt-dim">Discount</td><td class="rpt-cell-right">${escapeHtml(_fmt(data.discount))}</td></tr>`
