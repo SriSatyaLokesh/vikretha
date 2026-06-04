@@ -1663,3 +1663,26 @@ select.form-input { cursor: pointer; }
   justify-content: center;
   padding: 8px 0;
 }
+
+/* ── Reports: Customer list rows ─────────────────────────────────────────── */
+.rpt-cust-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+  margin-bottom: 2px;
+}
+.rpt-cust-list-row:hover  { background: var(--surface-hover); }
+.rpt-cust-list-row:active { background: var(--surface-press); }
+.rpt-cust-list-row:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.rpt-cust-list-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rpt-cust-list-name  { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpt-cust-list-phone { font-size: 0.8rem; color: var(--text-secondary); }
+.rpt-cust-list-date  { font-size: 0.75rem; color: var(--text-muted); flex: 0 0 auto; white-space: nowrap; }

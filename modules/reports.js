@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/reports.js - Sales History & Bill Management
  * Paginated sales list with date-range filter, search, detail panel, and receipt navigation.
  * Exported: render(container, routeParam) - called by app.js on #/reports route.
@@ -7,8 +7,7 @@
 import { db, auth } from '../lib/firebase-init.js';
 import {
   collection, doc, query, orderBy, where, limit, startAfter,
-  getDocs, getDoc, updateDoc, serverTimestamp, Timestamp,
-  getAggregateFromServer, count, sum
+  getDocs, getDoc, updateDoc, serverTimestamp, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
 
@@ -27,9 +26,11 @@ let _invCache = null; // inventory items cache (fetched once per session)
 
 // ── Customers tab state ───────────────────────────────────────────────────────
 let _activeTab       = 'sales';   // 'sales' | 'customers'
-let _custPhone       = null;      // currently searched phone (normalized)
+let _allCustomers    = [];        // { id, name, phone, lastSaleAt } — loaded once
+let _custListLoaded  = false;
+let _custPhone       = null;      // phone of customer whose bills are shown
 let _custBills       = [];        // customer bill QueryDocumentSnapshots
-let _custLastDoc     = null;      // customer bills pagination cursor
+let _custLastDoc     = null;
 let _custLoading     = false;
 let _custSearchTimer = null;
 
@@ -64,6 +65,7 @@ function _switchTab(tab, container) {
   if (custPane)   custPane.style.display   = tab === 'customers' ? '' : 'none';
   if (filterBar)  filterBar.style.display  = tab === 'sales' ? '' : 'none';
   if (statsBar)   statsBar.style.display   = tab === 'sales' ? '' : 'none';
+  if (tab === 'customers') _loadAllCustomers(container);
 }
 
 // ── Firestore query helpers ───────────────────────────────────────────────────
@@ -224,80 +226,120 @@ function _closeDetail() {
   }
 }
 
-// ── Customer search & panel ───────────────────────────────────────────────────
+// ── Customer section ──────────────────────────────────────────────────────────
 
-async function _loadCustomerSearch(rawPhone, container) {
+async function _loadAllCustomers(container) {
   const resultEl = container.querySelector('#rpt-cust-result');
   if (!resultEl) return;
-  if (!rawPhone) { resultEl.innerHTML = ''; _custPhone = null; return; }
 
-  const phone = rawPhone.replace(/\s+/g, '');
-  _custPhone = phone;
+  if (_custListLoaded) {
+    // Already loaded — just re-render with current search value
+    const q = container.querySelector('#rpt-cust-phone')?.value.trim() || '';
+    _renderCustomerList(_filterCustomers(q), resultEl, container);
+    return;
+  }
 
-  resultEl.innerHTML = '<div class="rpt-cust-loading"><div class="rpt-spinner"></div> Searching...</div>';
+  resultEl.innerHTML = '<div class="rpt-cust-loading"><div class="rpt-spinner"></div> Loading customers...</div>';
 
   try {
-    const custColl = collection(db, 'shops', SHOP_ID, 'customers');
-    const custRef  = doc(custColl, phone);
-    const snap     = await getDoc(custRef);
-
-    if (!snap.exists()) {
-      resultEl.innerHTML = '<p class="rpt-cust-empty">No customer found for that number.</p>';
-      return;
-    }
-
-    const cust = snap.data();
-
-    const salesColl = collection(db, 'shops', SHOP_ID, 'sales');
-    const aggSnap = await getAggregateFromServer(
-      query(salesColl, where('customer_phone', '==', phone)),
-      { billCount: count(), totalSpend: sum('total') }
-    );
-    const { billCount, totalSpend } = aggSnap.data();
-
-    _renderCustomerPanel(cust, { billCount, totalSpend }, resultEl);
-    await _loadCustomerBills(phone, true, resultEl);
-
+    const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'customers'));
+    _allCustomers   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _custListLoaded = true;
+    const q = container.querySelector('#rpt-cust-phone')?.value.trim() || '';
+    _renderCustomerList(_filterCustomers(q), resultEl, container);
   } catch (err) {
-    console.error('Customer search failed', err);
-    resultEl.innerHTML = '<p class="rpt-cust-empty rpt-cust-error">Error loading customer. Please try again.</p>';
+    console.error('Failed to load customers', err);
+    resultEl.innerHTML = '<p class="rpt-cust-empty rpt-cust-error">Failed to load customers. Please try again.</p>';
   }
 }
 
-function _renderCustomerPanel(cust, stats, resultEl) {
-  const lastSaleStr = cust.lastSaleAt?.toDate
-    ? new Date(cust.lastSaleAt.toDate()).toLocaleString(LOCALE, { dateStyle: 'short' })
+function _filterCustomers(q) {
+  if (!q) return _allCustomers;
+  const lower  = q.toLowerCase();
+  const digits = q.replace(/\D/g, '');
+  return _allCustomers.filter(c => {
+    const nameMatch  = (c.name  || '').toLowerCase().includes(lower);
+    const phoneMatch = digits && (c.phone || c.id || '').replace(/\D/g, '').includes(digits);
+    return nameMatch || phoneMatch;
+  });
+}
+
+function _renderCustomerList(customers, resultEl, container) {
+  if (customers.length === 0) {
+    resultEl.innerHTML = '<p class="rpt-cust-empty">No customers found.</p>';
+    return;
+  }
+
+  resultEl.innerHTML = customers.map(c => {
+    const lastStr = c.lastSaleAt?.toDate
+      ? new Date(c.lastSaleAt.toDate()).toLocaleDateString(LOCALE, { dateStyle: 'short' })
+      : '';
+    return `<div class="rpt-cust-list-row" data-phone="${escapeHtml(c.phone || c.id)}"
+                 role="button" tabindex="0">
+      <div class="rpt-cust-list-info">
+        <span class="rpt-cust-list-name">${escapeHtml(c.name || '—')}</span>
+        <span class="rpt-cust-list-phone">${escapeHtml(c.phone || c.id)}</span>
+      </div>
+      ${lastStr ? `<span class="rpt-cust-list-date">${escapeHtml(lastStr)}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  // Attach delegated listener once
+  resultEl.addEventListener('click', e => {
+    const row = e.target.closest('[data-phone]');
+    if (row) _openCustomer(row.dataset.phone, resultEl, container);
+  });
+  resultEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const row = e.target.closest('[data-phone]');
+      if (row) _openCustomer(row.dataset.phone, resultEl, container);
+    }
+  });
+}
+
+async function _openCustomer(phone, listEl, container) {
+  _custPhone  = phone;
+  _custBills  = [];
+  _custLastDoc = null;
+  const cust  = _allCustomers.find(c => (c.phone || c.id) === phone) || { phone };
+  const resultEl = container.querySelector('#rpt-cust-result');
+  if (!resultEl) return;
+
+  const lastStr = cust.lastSaleAt?.toDate
+    ? new Date(cust.lastSaleAt.toDate()).toLocaleDateString(LOCALE, { dateStyle: 'short' })
     : '—';
 
   resultEl.innerHTML = `
+    <button id="rpt-cust-back" class="btn btn-ghost btn-sm" style="margin-bottom:8px;">&#x2190; All customers</button>
     <div class="rpt-cust-card">
       <div class="rpt-cust-card-header">
         <span class="rpt-cust-avatar">&#x1F464;</span>
         <div class="rpt-cust-info">
           <div class="rpt-cust-name">${escapeHtml(cust.name || '—')}</div>
-          <div class="rpt-cust-phone-display">${escapeHtml(cust.phone || '')}</div>
+          <div class="rpt-cust-phone-display">${escapeHtml(phone)}</div>
         </div>
       </div>
-      <div class="rpt-cust-stats">
-        <div class="rpt-cust-stat">
-          <span class="rpt-cust-stat-label">Total Spend</span>
-          <strong>${escapeHtml(_fmt(stats.totalSpend))}</strong>
-        </div>
-        <div class="rpt-cust-stat">
-          <span class="rpt-cust-stat-label">Bills</span>
-          <strong>${escapeHtml(String(stats.billCount))}</strong>
-        </div>
-        <div class="rpt-cust-stat">
-          <span class="rpt-cust-stat-label">Last Sale</span>
-          <strong>${escapeHtml(lastSaleStr)}</strong>
-        </div>
+      <div class="rpt-cust-stats" id="rpt-cust-stats">
+        <div class="rpt-cust-stat"><span class="rpt-cust-stat-label">Bills</span><strong id="rpt-cust-stat-count">…</strong></div>
+        <div class="rpt-cust-stat"><span class="rpt-cust-stat-label">Total Spend</span><strong id="rpt-cust-stat-total">…</strong></div>
+        <div class="rpt-cust-stat"><span class="rpt-cust-stat-label">Last Sale</span><strong>${escapeHtml(lastStr)}</strong></div>
       </div>
     </div>
     <div class="rpt-cust-bills-header">Past Bills</div>
-    <div id="rpt-cust-bills-list" class="rpt-cust-bills-list"></div>
+    <div id="rpt-cust-bills-list" class="rpt-cust-bills-list">
+      <div class="rpt-cust-loading"><div class="rpt-spinner"></div> Loading...</div>
+    </div>
     <div id="rpt-cust-bills-pagination" style="display:none">
       <button id="rpt-cust-load-more" class="btn btn-ghost">Load more</button>
     </div>`;
+
+  resultEl.querySelector('#rpt-cust-back').addEventListener('click', () => {
+    _custPhone = null; _custBills = []; _custLastDoc = null;
+    const q = container.querySelector('#rpt-cust-phone')?.value.trim() || '';
+    _renderCustomerList(_filterCustomers(q), resultEl, container);
+  });
+
+  await _loadCustomerBills(phone, true, resultEl);
 }
 
 async function _loadCustomerBills(phone, reset, resultEl) {
@@ -308,7 +350,7 @@ async function _loadCustomerBills(phone, reset, resultEl) {
   const listEl  = resultEl.querySelector('#rpt-cust-bills-list');
   const paginEl = resultEl.querySelector('#rpt-cust-bills-pagination');
 
-  const salesColl  = collection(db, 'shops', SHOP_ID, 'sales');
+  const salesColl   = collection(db, 'shops', SHOP_ID, 'sales');
   const constraints = [
     where('customer_phone', '==', phone),
     orderBy('timestamp', 'desc'),
@@ -317,9 +359,19 @@ async function _loadCustomerBills(phone, reset, resultEl) {
   if (!reset && _custLastDoc) constraints.push(startAfter(_custLastDoc));
 
   try {
-    const snap  = await getDocs(query(salesColl, ...constraints));
-    _custBills  = reset ? snap.docs : [..._custBills, ...snap.docs];
+    const snap   = await getDocs(query(salesColl, ...constraints));
+    _custBills   = reset ? snap.docs : [..._custBills, ...snap.docs];
     _custLastDoc = snap.docs.at(-1) ?? null;
+    const hasMore = snap.docs.length === 25;
+
+    // Update stats from loaded bills
+    const countEl = resultEl.querySelector('#rpt-cust-stat-count');
+    const totalEl = resultEl.querySelector('#rpt-cust-stat-total');
+    if (countEl || totalEl) {
+      const totalSpend = _custBills.reduce((s, d) => s + (d.data().total || 0), 0);
+      if (countEl) countEl.textContent = hasMore ? _custBills.length + '+' : String(_custBills.length);
+      if (totalEl) totalEl.textContent = _fmt(totalSpend) + (hasMore ? '+' : '');
+    }
 
     const rows = _custBills.map(d => {
       const data    = d.data();
@@ -350,12 +402,10 @@ async function _loadCustomerBills(phone, reset, resultEl) {
       }
     }
     if (paginEl) {
-      paginEl.style.display = snap.docs.length === 25 ? 'block' : 'none';
-      if (snap.docs.length === 25) {
+      paginEl.style.display = hasMore ? 'block' : 'none';
+      if (hasMore) {
         const moreBtn = paginEl.querySelector('#rpt-cust-load-more');
-        if (moreBtn) {
-          moreBtn.onclick = () => _loadCustomerBills(phone, false, resultEl);
-        }
+        if (moreBtn) moreBtn.onclick = () => _loadCustomerBills(phone, false, resultEl);
       }
     }
   } catch (err) {
@@ -381,7 +431,6 @@ function _openCustBillDetail(docId) {
 
   _injectEditZone(docSnap.data(), docSnap.id);
 }
-
 // ── Detail panel renderer ─────────────────────────────────────────────────────
 
 function _renderDetailPanel(data, docId) {
@@ -798,6 +847,8 @@ export async function render(container, routeParam = null) {
   _fromTime        = null;
   _toTime          = null;
   _activeTab       = 'sales';
+  _allCustomers    = [];
+  _custListLoaded  = false;
   _custPhone       = null;
   _custBills       = [];
   _custLastDoc     = null;
@@ -937,12 +988,13 @@ export async function render(container, routeParam = null) {
     btn.addEventListener('click', () => _switchTab(btn.dataset.tab, container));
   });
 
-  // Customer phone input — debounced search
+  // Customer phone/name input — filter loaded customers client-side
   container.querySelector('#rpt-cust-phone').addEventListener('input', e => {
-    if (_custSearchTimer) clearTimeout(_custSearchTimer);
-    _custSearchTimer = setTimeout(() => {
-      _loadCustomerSearch(e.target.value.trim(), container);
-    }, 300);
+    if (!_custListLoaded) return; // still loading
+    if (_custPhone) return;       // customer detail view open, don't re-render list
+    const q = e.target.value.trim();
+    const resultEl = container.querySelector('#rpt-cust-result');
+    if (resultEl) _renderCustomerList(_filterCustomers(q), resultEl, container);
   });
 
   // ── Initial load ──────────────────────────────────────────────────────────
@@ -952,7 +1004,18 @@ export async function render(container, routeParam = null) {
     _switchTab('customers', container);
     const inp = container.querySelector('#rpt-cust-phone');
     if (inp) { inp.value = phone; }
-    await _loadCustomerSearch(phone, container);
+    // Load all customers then open the specific one
+    const resultEl = container.querySelector('#rpt-cust-result');
+    if (resultEl) resultEl.innerHTML = '<div class="rpt-cust-loading"><div class="rpt-spinner"></div> Loading...</div>';
+    try {
+      const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'customers'));
+      _allCustomers   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _custListLoaded = true;
+      await _openCustomer(phone, resultEl, container);
+    } catch (err) {
+      console.error('Deep-link customer load failed', err);
+      if (resultEl) resultEl.innerHTML = '<p class="rpt-cust-empty rpt-cust-error">Failed to load customer.</p>';
+    }
   } else {
     await _loadSales(true);
   }
