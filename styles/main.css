@@ -1,4 +1,4 @@
-/* ================================================================
+﻿/* ================================================================
    VIKRETHA — Design System v2 (2026)
    Modern responsive: dark sidebar (>=1024px) + bottom nav (<1024px)
    Typography: Inter | Palette: Orange + Slate | No build step
@@ -386,7 +386,16 @@ select.form-input { cursor: pointer; }
 .dashboard-stats {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;
 }
-@media (max-width: 600px) { .dashboard-stats { grid-template-columns: 1fr; gap: 10px; } }
+@media (max-width: 600px) {
+  /* 2-col grid: Today spans full width (primary), Week+Month share a row */
+  .dashboard-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dashboard-stats .stat-card:first-child { grid-column: span 2; }
+  /* Tighter sizing for the two half-width secondary cards */
+  .dashboard-stats .stat-card:not(:first-child) { padding: 14px 14px; gap: 4px; }
+  .dashboard-stats .stat-card:not(:first-child) .stat-card-value { font-size: 1.125rem; }
+  .dashboard-stats .stat-card:not(:first-child) .stat-card-icon { width: 28px; height: 28px; margin-bottom: 2px; }
+  .dashboard-stats .stat-card:not(:first-child) .stat-card-icon svg { width: 14px; height: 14px; }
+}
 
 .new-sale-cta {
   background: var(--primary); border-radius: var(--radius-lg); padding: 18px 20px;
