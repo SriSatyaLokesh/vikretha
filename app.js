@@ -106,7 +106,7 @@ function _showSetupBanner(msg) {
 }
 
 // ── Config sanity checks ──────────────────────────────────────────────
-if (!SHOP_ID || SHOP_ID.trim() === '' || SHOP_ID === 'shop_001') {
+if (!SHOP_ID || SHOP_ID.trim() === '') {
   _showSetupBanner('SHOP_ID is not configured');
 } else if (!SHOP_NAME || SHOP_NAME.trim() === '' || SHOP_NAME === 'My Shop') {
   _showSetupBanner('SHOP_NAME is not configured');
