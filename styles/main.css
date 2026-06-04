@@ -1079,6 +1079,12 @@ select.form-input { cursor: pointer; }
   --primary-light: #f8fafc;
   --primary-ring:  rgba(71,85,105,0.25);
 }
+[data-theme="gold"] {
+  --primary:       #d4af37;
+  --primary-hover: #c19a2b;
+  --primary-light: #fffacd;
+  --primary-ring:  rgba(212,175,55,0.25);
+}
 
 /* ================================================================
    DARK MODE — data-dark="true" attribute overrides

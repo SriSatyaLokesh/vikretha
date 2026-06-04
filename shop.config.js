@@ -63,4 +63,5 @@ export const THEME_PALETTES = [
   { id: 'violet',  label: 'Violet',  primary: '#7c3aed' },
   { id: 'rose',    label: 'Rose',    primary: '#f43f5e' },
   { id: 'slate',   label: 'Slate',   primary: '#475569' },
+  { id: 'gold',    label: 'Gold',    primary: '#d4af37' },
 ];
