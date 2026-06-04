@@ -1000,9 +1000,12 @@ export async function render(container, routeParam = null) {
     if (e.target === e.currentTarget) _closeDetail();
   });
 
-  // Tab bar clicks
+  // Tab bar clicks -> update hash; router re-renders with correct routeParam
   container.querySelectorAll('.rpt-tab').forEach(btn => {
-    btn.addEventListener('click', () => _switchTab(btn.dataset.tab, container));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.tab === 'sales')     window.location.hash = '#/reports';
+      else if (btn.dataset.tab === 'customers') window.location.hash = '#/reports/customers';
+    });
   });
 
   // Customer phone/name input — filter loaded customers client-side
