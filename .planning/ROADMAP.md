@@ -144,8 +144,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 20-01-PLAN.md — Customers tab in reports: search, result panel, bill list
-- [ ] 20-02-PLAN.md — Receipt screen "Customer history" link + reports CSS
+- [ ] 20-01-PLAN.md — Customers tab in reports: search, result panel, bill list, CSS
+- [ ] 20-02-PLAN.md — Receipt screen "Customer history →" link
 - [ ] 20-03-PLAN.md — Human verification checkpoint
 
 ---
