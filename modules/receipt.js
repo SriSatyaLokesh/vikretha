@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/receipt.js — Receipt Page
  * Fetch sale from Firestore, draw Canvas 2D receipt, download PNG, WhatsApp share.
  */
@@ -403,6 +403,17 @@ export async function render(container, saleId) {
   const canvas  = await _drawReceipt(sale);
   const dataUrl = canvas.toDataURL('image/png');
   document.getElementById('receipt-img').src = dataUrl;
+
+  // Customer history link — only when sale has customer_phone
+  if (sale.customer_phone) {
+    const custHistBtn = document.getElementById('btn-cust-history');
+    if (custHistBtn) {
+      custHistBtn.addEventListener('click', e => {
+        e.preventDefault();
+        window.location.hash = '#/reports/customers/' + encodeURIComponent(sale.customer_phone);
+      });
+    }
+  }
 
   // Download button
   document.getElementById('btn-download').addEventListener('click', () => {

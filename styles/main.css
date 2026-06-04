@@ -1529,3 +1529,137 @@ select.form-input { cursor: pointer; }
 }
 /* Tighten card padding inside the row so charts don't feel oversized */
 .dash-charts-row .card { padding: 14px 12px 10px; }
+
+/* ── Reports: Customers Tab ──────────────────────────────────────────────── */
+.rpt-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 2px;
+  margin-bottom: 8px;
+}
+.rpt-tab {
+  padding: 8px 18px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: color 0.15s, background 0.15s;
+}
+.rpt-tab:hover  { color: var(--text-primary); background: var(--surface-hover); }
+.rpt-tab:active { background: var(--surface-press); }
+.rpt-tab--active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.rpt-customers-pane { display: flex; flex-direction: column; gap: 12px; padding: 0 0 24px; }
+
+.rpt-cust-search-wrap { display: flex; gap: 8px; }
+.rpt-cust-phone-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.rpt-cust-phone-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.rpt-cust-loading {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px; color: var(--text-secondary);
+}
+.rpt-cust-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.rpt-cust-error { color: var(--color-error, #ef4444); }
+
+.rpt-cust-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rpt-cust-card-header { display: flex; align-items: center; gap: 12px; }
+.rpt-cust-avatar   { font-size: 2rem; }
+.rpt-cust-name     { font-weight: 700; font-size: 1rem; color: var(--text-primary); }
+.rpt-cust-phone-display { color: var(--text-secondary); font-size: 0.85rem; }
+
+.rpt-cust-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.rpt-cust-stat {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-app);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+.rpt-cust-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rpt-cust-stat strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rpt-cust-bills-header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rpt-cust-bills-list { display: flex; flex-direction: column; gap: 2px; }
+
+.rpt-cust-bill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.rpt-cust-bill-row:hover  { background: var(--surface-hover); }
+.rpt-cust-bill-row:active { background: var(--surface-press); }
+.rpt-cust-bill-row:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.rpt-cust-bill-date  { font-size: 0.78rem; color: var(--text-muted); flex: 0 0 auto; }
+.rpt-cust-bill-id    { font-size: 0.8rem; color: var(--text-secondary); flex: 1; }
+.rpt-cust-bill-total { font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
+                       font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+
+#rpt-cust-bills-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
