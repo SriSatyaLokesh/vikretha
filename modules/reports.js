@@ -287,12 +287,12 @@ function _renderCustomerList(customers, resultEl, container) {
   // Attach delegated listener once
   resultEl.addEventListener('click', e => {
     const row = e.target.closest('[data-phone]');
-    if (row) _openCustomer(row.dataset.phone, resultEl, container);
+    if (row) window.location.hash = '#/reports/customers/' + encodeURIComponent(row.dataset.phone);
   });
   resultEl.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') {
       const row = e.target.closest('[data-phone]');
-      if (row) _openCustomer(row.dataset.phone, resultEl, container);
+      if (row) window.location.hash = '#/reports/customers/' + encodeURIComponent(row.dataset.phone);
     }
   });
 }
@@ -335,11 +335,18 @@ async function _openCustomer(phone, listEl, container) {
 
   resultEl.querySelector('#rpt-cust-back').addEventListener('click', () => {
     _custPhone = null; _custBills = []; _custLastDoc = null;
-    const q = container.querySelector('#rpt-cust-phone')?.value.trim() || '';
-    _renderCustomerList(_filterCustomers(q), resultEl, container);
+    window.location.hash = '#/reports/customers';
   });
 
   await _loadCustomerBills(phone, true, resultEl);
+  // If name unknown, pull from first bill's customer_name
+  if (!cust.name && _custBills.length > 0) {
+    const billName = _custBills[0].data().customer_name;
+    if (billName) {
+      const nameEl = resultEl.querySelector('.rpt-cust-name');
+      if (nameEl) nameEl.textContent = billName;
+    }
+  }
 }
 
 async function _loadCustomerBills(phone, reset, resultEl) {
@@ -1009,7 +1016,10 @@ export async function render(container, routeParam = null) {
 
   // ── Initial load ──────────────────────────────────────────────────────────
 
-  if (routeParam && routeParam.startsWith('customers/')) {
+  if (routeParam === 'customers') {
+    _switchTab('customers', container);
+    // load list — _switchTab calls _loadAllCustomers
+  } else if (routeParam && routeParam.startsWith('customers/')) {
     const phone = decodeURIComponent(routeParam.slice('customers/'.length));
     _switchTab('customers', container);
     const inp = container.querySelector('#rpt-cust-phone');
