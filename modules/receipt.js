@@ -2,15 +2,15 @@
  * modules/receipt.js — Receipt Page
  * Fetch sale from Firestore, draw Canvas 2D receipt, download PNG, WhatsApp share.
  */
-import { db, getShopConfig } from '../lib/firebase-init.js';
+import { db }          from '../lib/firebase-init.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
-  SHOP_NAME, SHOP_ID, CURRENCY, LOCALE, LOGO_URL, WHATSAPP_NUMBER
+  SHOP_NAME, SHOP_ID, CURRENCY, LOCALE, LOGO_URL, RECEIPT_FOOTER, THEME_COLOR, WHATSAPP_NUMBER
 } from '../shop.config.js';
 
 // ── Canvas receipt drawing ────────────────────────────────────────────────────
 
-async function _drawReceipt(sale, cfg = {}) {
+async function _drawReceipt(sale) {
   const DPR    = 2;
   const WIDTH  = 380;
   const PADX   = 22;
@@ -36,8 +36,7 @@ async function _drawReceipt(sale, cfg = {}) {
 
   const items    = sale.items || [];
   const hasDisc  = (sale.discount ?? 0) > 0;
-  const cfgLogoUrl = cfg.receiptLogoUrl?.trim() || LOGO_URL?.trim() || '';
-  const hasLogo    = !!cfgLogoUrl;
+  const hasLogo  = !!(LOGO_URL?.trim());
   const hasCustName  = !!sale.customer_name;
   const hasCustPhone = !!sale.customer_phone;
   const hasCustomer  = hasCustName || hasCustPhone;
@@ -72,7 +71,7 @@ async function _drawReceipt(sale, cfg = {}) {
 
   // ── Canvas height calculation ─────────────────────────────────────────────
   let bodyH = 22;
-  if (hasLogo) bodyH += 68;
+  bodyH += 68;                          // logo image OR script-font wordmark
   bodyH += 28;                           // shop name
   bodyH += 14;                           // gap + deco line 1
   bodyH += LH + 10;                      // deco RECEIPT + gap
@@ -147,13 +146,22 @@ async function _drawReceipt(sale, cfg = {}) {
   if (hasLogo) {
     await new Promise(res => {
       const img   = new Image();
-      const timer  = setTimeout(res, 2000);
+      const timer = setTimeout(res, 2000);
       img.onload  = () => { clearTimeout(timer); ctx.drawImage(img, (WIDTH - 56) / 2, y, 56, 56); res(); };
       img.onerror = () => { clearTimeout(timer); res(); };
-      img.src     = cfgLogoUrl;
+      img.src     = LOGO_URL;
     });
-    y += 64;
+  } else {
+    // No logo — draw shop name in Dancing Script as branded wordmark
+    await document.fonts.ready;
+    ctx.save();
+    ctx.font      = `700 30px 'Dancing Script', cursive`;
+    ctx.fillStyle = THEME_COLOR;
+    ctx.textAlign = 'center';
+    ctx.fillText(SHOP_NAME, WIDTH / 2, y + 44);
+    ctx.restore();
   }
+  y += 68;
 
   // ── Shop name ─────────────────────────────────────────────────────────────
   ctx.font      = `bold 20px ${FONT}`;
@@ -297,8 +305,8 @@ async function _drawReceipt(sale, cfg = {}) {
   ctx.font      = `bold 10.5px ${FONT}`;
   ctx.fillStyle = INK;
   ctx.textAlign = 'center';
-  const footerText = cfg.receiptFooter?.trim()
-    ? cfg.receiptFooter.trim().toUpperCase()
+  const footerText = RECEIPT_FOOTER?.trim()
+    ? RECEIPT_FOOTER.trim().toUpperCase()
     : '* THANK YOU FOR SHOPPING! *';
   ctx.fillText(footerText, WIDTH / 2, y);
   y += LH;
@@ -388,7 +396,6 @@ export async function render(container, saleId) {
   }
 
   const sale    = snap.data();
-  const shopCfg = await getShopConfig();
 
   // Build page structure
   container.innerHTML = `
@@ -406,7 +413,7 @@ export async function render(container, saleId) {
     </div>`;
 
   // Draw receipt canvas
-  const canvas  = await _drawReceipt(sale, shopCfg);
+  const canvas  = await _drawReceipt(sale);
   const dataUrl = canvas.toDataURL('image/png');
   document.getElementById('receipt-img').src = dataUrl;
 

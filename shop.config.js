@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // VIKRETHA — SHOP CONFIGURATION
 // Edit this file to configure your shop. All settings in one place.
 // See README.md for setup instructions.
@@ -40,7 +40,8 @@ export const WHATSAPP_NUMBER = "";          // Your shop's WhatsApp number with 
  * Branding
  */
 export const THEME_COLOR = "#2563eb";        // Primary color (hex) — used for header, buttons, charts
-export const LOGO_URL = "";                  // URL to shop logo image — shown on receipts (leave empty to hide)
+export const LOGO_URL = "";                  // URL to shop logo image — shown on receipts; leave empty to show shop name as wordmark
+export const RECEIPT_FOOTER = "";             // Custom footer text on receipts; leave empty for default 'THANK YOU FOR SHOPPING!'
 
 /**
  * Color Theme

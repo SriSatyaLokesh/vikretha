@@ -4,7 +4,7 @@
  */
 import { auth } from './lib/firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { SHOP_NAME } from './shop.config.js';
+import { SHOP_NAME, LOGO_URL } from './shop.config.js';
 
 // ----- App Shell -----
 // ── SVG icons for nav ───────────────────────────────────────────────────────
@@ -52,8 +52,9 @@ function mountAppShell() {
       <!-- Desktop sidebar -->
       <aside class="app-sidebar" id="app-sidebar">
         <div class="sidebar-brand">
-          <div class="sidebar-brand-icon">${SHOP_ICON_SVG}</div>
-          <span class="sidebar-brand-name">${SHOP_NAME}</span>
+          ${LOGO_URL?.trim()
+            ? `<img src="${LOGO_URL}" class="sidebar-brand-logo" alt="${SHOP_NAME}"><span class="sidebar-brand-name">${SHOP_NAME}</span>`
+            : `<span class="sidebar-brand-wordmark">${SHOP_NAME}</span>`}
         </div>
         <nav class="sidebar-nav" id="sidebar-nav-list">
           ${NAV_ITEMS.map(r => buildNavItem(r, true)).join('')}
