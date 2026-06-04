@@ -87,9 +87,10 @@ async function _fetchAndRenderStats(container) {
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const svgContainer = container.querySelector('#dash-svg-chart');
   if (svgContainer) {
-    const chartData = Object.entries(dayMap).map(([dateKey, { revenue }]) => ({
+    const chartData = Object.entries(dayMap).map(([dateKey, { revenue, count }]) => ({
       label: DAY_LABELS[new Date(dateKey + 'T00:00:00').getDay()],
       value: revenue,
+      count: count,
       isToday: dateKey === todayKey
     }));
     drawAreaChart(svgContainer, chartData, {

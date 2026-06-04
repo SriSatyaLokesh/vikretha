@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    VIKRETHA — Design System v2 (2026)
    Modern responsive: dark sidebar (>=1024px) + bottom nav (<1024px)
    Typography: Inter | Palette: Orange + Slate | No build step
@@ -1400,10 +1400,21 @@ select.form-input { cursor: pointer; }
 }
 
 /* == SVG Area Chart (Phase 19) == */
-.svg-chart-wrap { width: 100%; }
+.svg-chart-wrap { width: 100%; position: relative; }
 .svg-chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
 
 .svg-chart-grid line  { stroke: var(--border); stroke-width: 0.5; }
+
+/* Crosshair vertical indicator */
+.svg-chart-crosshair {
+  stroke: var(--primary);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+.svg-chart-crosshair.is-visible { opacity: 0.45; }
 
 .svg-chart-area { fill: url(#svg-chart-gradient); }
 .svg-chart-line {
@@ -1417,6 +1428,9 @@ select.form-input { cursor: pointer; }
 .svg-chart-dot {
   fill: var(--primary);
   opacity: 0.85;
+  transition: transform 150ms ease, opacity 150ms ease;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 .svg-chart-dot--today {
   fill: var(--primary);
@@ -1424,6 +1438,12 @@ select.form-input { cursor: pointer; }
   stroke-width: 2;
   opacity: 1;
 }
+.svg-chart-dot.is-hovered {
+  transform: scale(1.8);
+  opacity: 1;
+}
+
+.svg-chart-hit { cursor: crosshair; }
 
 .svg-chart-axis-label {
   fill: var(--text-muted);
@@ -1433,4 +1453,44 @@ select.form-input { cursor: pointer; }
 .svg-chart-axis-label--today {
   fill: var(--primary);
   font-weight: 700;
+}
+
+/* Hover tooltip */
+.svg-chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  background: var(--text-primary);
+  color: var(--bg-surface);
+  border-radius: 8px;
+  padding: 8px 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+.svg-chart-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.svg-chart-tooltip-label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+.svg-chart-tooltip-value {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.svg-chart-tooltip-count {
+  font-size: 10.5px;
+  opacity: 0.6;
 }
