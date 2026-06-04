@@ -37,6 +37,22 @@ Vikretha (Hindi for "seller/merchant") is a progressive web app that gives indep
 
 Follow these steps to go from fork to a working shop in under 30 minutes.
 
+
+> **⚡ Quick Setup** — Already know Firebase? Here are the 3 commands:
+> ```bash
+> # 1. Copy the template and fill in your credentials
+> cp shop.config.js.template shop.config.js   # then edit shop.config.js
+>
+> # 2. Deploy Firestore security rules (requires Firebase CLI)
+> npm install -g firebase-tools
+> firebase login
+> node scripts/deploy-rules.js
+>
+> # 3. Push to GitHub Pages
+> git add . && git commit -m "Configure shop" && git push
+> ```
+> Then visit your GitHub Pages URL and create your owner account. Full steps below.
+
 ### Step 1 — Fork this repository
 
 1. Click the **Fork** button at the top-right of this page
@@ -141,7 +157,9 @@ Every field in `shop.config.js`:
 | `LOCALE` | string | `"en-IN"` | BCP 47 locale for date/number formatting (e.g., `"en-US"`, `"en-IN"`) |
 | `WHATSAPP_NUMBER` | string | `"+919876543210"` | Shop's WhatsApp number with country code — used as fallback recipient for receipt sharing. Leave `""` to skip. |
 | `THEME_COLOR` | string | `"#2563eb"` | Primary colour (hex) — used for header, buttons, and bar charts |
-| `LOGO_URL` | string | `"https://..."` | URL to shop logo image shown on receipts. Leave `""` to hide. |
+| `LOGO_URL` | string | `"https://..."` | URL to shop logo image shown on receipts. Leave `""` to display SHOP_NAME as a Dancing Script wordmark. |
+| `RECEIPT_FOOTER` | string | `"No exchange after 7 days."` | Custom footer text printed at the bottom of every receipt. Leave `""` for the default "THANK YOU FOR SHOPPING!". |
+| `COLOR_THEME` | string | `"gold"` | App-wide color palette id. One of: `orange`, `emerald`, `sky`, `violet`, `rose`, `slate`, `gold`. |
 
 ---
 

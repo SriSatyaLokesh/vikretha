@@ -1,60 +1,84 @@
 // ================================================================
 // VIKRETHA — SHOP CONFIGURATION TEMPLATE
 // Copy this file to shop.config.js and fill in your values.
-// See README.md for detailed setup instructions.
-// NEVER commit shop.config.js with real Firebase credentials to a
-// public repository — treat apiKey as a secret.
+// See README.md for step-by-step setup instructions.
+//
+// WARNING:  NEVER commit shop.config.js with real credentials to a
+//     public repository. The .gitignore already excludes it.
 // ================================================================
 
 /**
  * Firebase Configuration
- * Get these values from: Firebase Console → Project Settings → Your apps → Config
+ * Get these values from: Firebase Console -> Project Settings -> Your apps -> (Web) Config
  */
 export const FIREBASE_CONFIG = {
-  apiKey: "AIzaSy-YOUR-API-KEY-HERE",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.firebasestorage.app",
-  messagingSenderId: "YOUR-MESSAGING-SENDER-ID",
-  appId: "1:YOUR-SENDER-ID:web:YOUR-APP-ID"
+  apiKey:            "AIzaSy-YOUR-API-KEY-HERE",             // From Firebase Console -> Project Settings
+  authDomain:        "your-project-id.firebaseapp.com",      // {projectId}.firebaseapp.com
+  projectId:         "your-project-id",                      // e.g. "my-kirana-store-123"
+  storageBucket:     "your-project-id.firebasestorage.app",  // {projectId}.firebasestorage.app
+  messagingSenderId: "YOUR-MESSAGING-SENDER-ID",             // 12-digit number from Project Settings
+  appId:             "1:YOUR-SENDER-ID:web:YOUR-APP-ID",     // From Firebase Console -> Your apps
 };
 
 /**
  * Shop Identity
+ * SHOP_ID is used as the Firestore root path: /shops/{SHOP_ID}/
+ * Use a URL-safe string -- lowercase letters, digits, underscores only, no spaces.
+ *
+ * IMPORTANT: Never change SHOP_ID after first use -- all your data is stored under this path.
  */
-export const SHOP_NAME = "My Kirana Store";  // Displayed in header and receipts
-export const SHOP_ID = "my_kirana_store";    // Unique ID for Firestore path: /shops/{SHOP_ID}/
-                                              // Use a URL-safe string (no spaces, use underscores)
+export const SHOP_NAME = "My Kirana Store";   // Displayed in header, sidebar, and on receipts
+export const SHOP_ID   = "my_kirana_store";   // e.g. "sunrise_textiles", "raj_kirana_mall_2"
 
 /**
  * Localization
  */
-export const CURRENCY = "₹";               // Currency symbol shown on receipts and reports
-export const LOCALE = "en-IN";             // Locale for date/number formatting (e.g., "en-IN", "en-US")
+export const CURRENCY = "Rs.";      // Currency symbol on receipts and reports -- e.g. "$", "EUR", "Rs."
+export const LOCALE   = "en-IN";    // BCP 47 locale for dates/numbers -- e.g. "en-US", "en-IN", "fr-FR"
 
 /**
- * WhatsApp
+ * WhatsApp Integration
+ * Leave empty ("") to disable WhatsApp receipt sharing.
  */
-export const WHATSAPP_NUMBER = "";         // Your shop's WhatsApp number with country code
-                                            // e.g., "+919876543210" — used for receipt sharing
+export const WHATSAPP_NUMBER = "";   // Your shop WhatsApp with country code -- e.g. "+919876543210"
 
 /**
  * Branding
+ *
+ * LOGO_URL:       Direct image URL for your shop logo (PNG/JPG/WebP, ideally square <= 512 px).
+ *                 Leave empty ("") to display SHOP_NAME in Dancing Script font as a wordmark
+ *                 -- this works without any image and looks great for most shops.
+ *
+ * THEME_COLOR:    Hex color used for the wordmark text on the receipt canvas.
+ *                 This is separate from COLOR_THEME below (which controls the full app palette).
+ *
+ * RECEIPT_FOOTER: Text printed at the bottom of every receipt.
+ *                 Leave empty ("") for the default "* THANK YOU FOR SHOPPING! *".
  */
-export const THEME_COLOR = "#2563eb";       // Primary color (hex) — used for header, buttons, charts
-export const LOGO_URL = "";                 // URL to shop logo image — shown on receipts (leave empty to hide)
+export const LOGO_URL        = "";           // e.g. "https://i.imgur.com/yourlogo.png"
+export const THEME_COLOR     = "#f97316";    // Hex color -- used for wordmark text on receipts
+export const RECEIPT_FOOTER  = "";           // e.g. "Wash care: cold water only | No exchange after 7 days"
+
+/**
+ * Color Theme
+ * Controls the app-wide color palette (sidebar, buttons, charts, highlights).
+ * Choose one id from THEME_PALETTES below. The default is 'orange'.
+ * Changing this value applies instantly on next page load.
+ */
+export const COLOR_THEME = 'orange';   // One of: 'orange' | 'emerald' | 'sky' | 'violet' | 'rose' | 'slate' | 'gold'
 
 /**
  * Theme Palettes
- * Six built-in color themes available in Settings.
- * The 'id' value matches the data-theme HTML attribute.
- * 'orange' is the default — no attribute is set on <html> for orange.
+ * Available palettes for COLOR_THEME above.
+ * CSS for each is defined in styles/main.css via [data-theme="{id}"] selectors.
+ * Add custom palettes here and in main.css if needed.
  */
 export const THEME_PALETTES = [
-  { id: 'orange',  label: 'Orange',  primary: '#f97316' },
-  { id: 'emerald', label: 'Emerald', primary: '#10b981' },
-  { id: 'sky',     label: 'Sky',     primary: '#0ea5e9' },
-  { id: 'violet',  label: 'Violet',  primary: '#7c3aed' },
-  { id: 'rose',    label: 'Rose',    primary: '#f43f5e' },
-  { id: 'slate',   label: 'Slate',   primary: '#475569' },
+  { id: 'orange',  label: 'Orange',  primary: '#f97316' },   // default -- warm orange
+  { id: 'emerald', label: 'Emerald', primary: '#10b981' },   // green
+  { id: 'sky',     label: 'Sky',     primary: '#0ea5e9' },   // blue
+  { id: 'violet',  label: 'Violet',  primary: '#7c3aed' },   // purple
+  { id: 'rose',    label: 'Rose',    primary: '#f43f5e' },   // pink/red
+  { id: 'slate',   label: 'Slate',   primary: '#475569' },   // neutral grey
+  { id: 'gold',    label: 'Gold',    primary: '#d4af37' },   // gold / black / white theme
 ];
