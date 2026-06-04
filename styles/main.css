@@ -1705,3 +1705,35 @@ a.rpt-customer-row--link:focus-visible { outline: 2px solid var(--primary); outl
   opacity: 0.8;
 }
 a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
+
+/* ── Phase 21: Receipt Branding form fields ─────────────────────────────── */
+.settings-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.settings-field-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.settings-text-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.settings-textarea {
+  resize: vertical;
+  min-height: 56px;
+  font-family: inherit;
+}
+.settings-branding-save {
+  margin-top: 4px;
+  width: 100%;
+}

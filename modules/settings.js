@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/settings.js — Settings Screen
  * Phase 8: Full staff email management with roles (admin / member).
  */
@@ -68,6 +68,26 @@ export function render(container) {
           <button type="submit" class="settings-add-btn">Add</button>
         </form>
         <p id="add-email-error" class="settings-error" style="display:none;"></p>
+      </div>
+
+
+      <!-- Receipt Branding -->
+      <div class="card settings-card" id="settings-branding-card">
+        <p class="settings-section-label">Receipt Branding</p>
+        <p class="settings-section-hint">Logo and footer text appear on every receipt.</p>
+        <div class="settings-field-row">
+          <label class="settings-field-label" for="branding-logo-url">Logo URL</label>
+          <input id="branding-logo-url" type="url" class="settings-text-input"
+                 placeholder="https://example.com/logo.png" autocomplete="off" />
+        </div>
+        <div class="settings-field-row">
+          <label class="settings-field-label" for="branding-footer">Footer text</label>
+          <textarea id="branding-footer" class="settings-text-input settings-textarea"
+                    rows="2" maxlength="120"
+                    placeholder="Thank you for shopping with us!"></textarea>
+        </div>
+        <button id="branding-save-btn" class="btn btn-primary settings-branding-save">Save Branding</button>
+        <p id="branding-status" class="settings-section-hint" style="display:none;"></p>
       </div>
 
       <!-- Sign out -->
@@ -207,6 +227,43 @@ export function render(container) {
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add';
+    }
+  });
+
+
+  // ── Receipt Branding ─────────────────────────────────────────
+  (async () => {
+    const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+    try {
+      const snap = await getDoc(configRef);
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.receiptLogoUrl)
+          container.querySelector('#branding-logo-url').value = d.receiptLogoUrl;
+        if (d.receiptFooter)
+          container.querySelector('#branding-footer').value = d.receiptFooter;
+      }
+    } catch (_) { /* non-fatal */ }
+  })();
+
+  container.querySelector('#branding-save-btn').addEventListener('click', async () => {
+    const logoUrl  = container.querySelector('#branding-logo-url').value.trim();
+    const footer   = container.querySelector('#branding-footer').value.trim();
+    const statusEl = container.querySelector('#branding-status');
+    const saveBtn  = container.querySelector('#branding-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving\u2026';
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { receiptLogoUrl: logoUrl, receiptFooter: footer }, { merge: true });
+      toast.success('Receipt branding saved');
+      statusEl.style.display = 'none';
+    } catch (err) {
+      toast.error('Could not save branding');
+      console.error('[Vikretha] Branding save failed:', err);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Branding';
     }
   });
 

@@ -2,7 +2,7 @@
  * modules/receipt.js — Receipt Page
  * Fetch sale from Firestore, draw Canvas 2D receipt, download PNG, WhatsApp share.
  */
-import { db }          from '../lib/firebase-init.js';
+import { db, getShopConfig } from '../lib/firebase-init.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
   SHOP_NAME, SHOP_ID, CURRENCY, LOCALE, LOGO_URL, WHATSAPP_NUMBER
@@ -10,7 +10,7 @@ import {
 
 // ── Canvas receipt drawing ────────────────────────────────────────────────────
 
-async function _drawReceipt(sale) {
+async function _drawReceipt(sale, cfg = {}) {
   const DPR    = 2;
   const WIDTH  = 380;
   const PADX   = 22;
@@ -36,7 +36,8 @@ async function _drawReceipt(sale) {
 
   const items    = sale.items || [];
   const hasDisc  = (sale.discount ?? 0) > 0;
-  const hasLogo  = !!(LOGO_URL?.trim());
+  const cfgLogoUrl = cfg.receiptLogoUrl?.trim() || LOGO_URL?.trim() || '';
+  const hasLogo    = !!cfgLogoUrl;
   const hasCustName  = !!sale.customer_name;
   const hasCustPhone = !!sale.customer_phone;
   const hasCustomer  = hasCustName || hasCustPhone;
@@ -146,9 +147,10 @@ async function _drawReceipt(sale) {
   if (hasLogo) {
     await new Promise(res => {
       const img   = new Image();
-      img.onload  = () => { ctx.drawImage(img, (WIDTH - 56) / 2, y, 56, 56); res(); };
-      img.onerror = res;
-      img.src     = LOGO_URL;
+      const timer  = setTimeout(res, 2000);
+      img.onload  = () => { clearTimeout(timer); ctx.drawImage(img, (WIDTH - 56) / 2, y, 56, 56); res(); };
+      img.onerror = () => { clearTimeout(timer); res(); };
+      img.src     = cfgLogoUrl;
     });
     y += 64;
   }
@@ -295,7 +297,10 @@ async function _drawReceipt(sale) {
   ctx.font      = `bold 10.5px ${FONT}`;
   ctx.fillStyle = INK;
   ctx.textAlign = 'center';
-  ctx.fillText('* THANK YOU FOR SHOPPING! *', WIDTH / 2, y);
+  const footerText = cfg.receiptFooter?.trim()
+    ? cfg.receiptFooter.trim().toUpperCase()
+    : '* THANK YOU FOR SHOPPING! *';
+  ctx.fillText(footerText, WIDTH / 2, y);
   y += LH;
   ctx.font      = `10px ${FONT}`;
   ctx.fillStyle = MUTED;
@@ -382,7 +387,8 @@ export async function render(container, saleId) {
     return;
   }
 
-  const sale = snap.data();
+  const sale    = snap.data();
+  const shopCfg = await getShopConfig();
 
   // Build page structure
   container.innerHTML = `
@@ -400,7 +406,7 @@ export async function render(container, saleId) {
     </div>`;
 
   // Draw receipt canvas
-  const canvas  = await _drawReceipt(sale);
+  const canvas  = await _drawReceipt(sale, shopCfg);
   const dataUrl = canvas.toDataURL('image/png');
   document.getElementById('receipt-img').src = dataUrl;
 
