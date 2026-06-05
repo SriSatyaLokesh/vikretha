@@ -307,10 +307,10 @@ export function render(container) {
       const ts = snap.data()?.last_updated;
       if (ts && ts.toDate) {
         const d = ts.toDate();
-        syncBadge.textContent = (fromCache ? 'loading ' : 'synced ') +
+        syncBadge.textContent = (fromCache ? 'cached ' : 'synced ') +
           d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
       } else {
-        syncBadge.textContent = fromCache ? 'loading...' : 'synced';
+        syncBadge.textContent = fromCache ? 'cached...' : 'synced';
       }
       syncBadge.className = 'sync-badge ' + (fromCache ? 'sync-badge--pending' : 'sync-badge--synced');
     }
