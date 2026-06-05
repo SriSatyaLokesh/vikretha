@@ -1879,7 +1879,7 @@ a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
 
 /* Phase 21 pivot: nav brand logo / wordmark */
 .sidebar-brand-logo { width: 34px; height: 34px; border-radius: var(--radius-sm); object-fit: contain; flex-shrink: 0; }
-.sidebar-brand-wordmark { font-family: 'Dancing Script', cursive; font-size: 1.5rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; padding: 4px 0; }
+.sidebar-brand-wordmark { font-family: 'Kaushan Script', cursive; font-size: 1.5rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; padding: 4px 0; }
 
 /* ================================================================
    THEME SWATCH PICKER — Settings Appearance section
