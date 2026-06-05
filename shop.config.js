@@ -49,7 +49,7 @@ export const RECEIPT_FOOTER = "";             // Custom footer text on receipts;
  * Available values: 'orange' | 'emerald' | 'sky' | 'violet' | 'rose' | 'slate'
  * The id matches the data-theme HTML attribute defined in styles/main.css.
  */
-export const COLOR_THEME = 'orange';
+export const COLOR_THEME = 'gold';
 
 /**
  * Theme Palette Reference (CSS only — not exposed in the app UI)
@@ -57,11 +57,15 @@ export const COLOR_THEME = 'orange';
  * Change COLOR_THEME above to switch the active palette.
  */
 export const THEME_PALETTES = [
-  { id: 'orange',  label: 'Orange',  primary: '#f97316' },
-  { id: 'emerald', label: 'Emerald', primary: '#10b981' },
-  { id: 'sky',     label: 'Sky',     primary: '#0ea5e9' },
-  { id: 'violet',  label: 'Violet',  primary: '#7c3aed' },
-  { id: 'rose',    label: 'Rose',    primary: '#f43f5e' },
-  { id: 'slate',   label: 'Slate',   primary: '#475569' },
-  { id: 'gold',    label: 'Gold',    primary: '#d4af37' },
+  { id: 'orange',    label: 'Orange',     primary: '#f97316', lightBg: '#f8fafc', darkBg: '#0f172a' },
+  { id: 'emerald',   label: 'Emerald',    primary: '#10b981', lightBg: '#f0fdf4', darkBg: '#052e16' },
+  { id: 'sky',       label: 'Sky',        primary: '#0ea5e9', lightBg: '#f0f9ff', darkBg: '#082f49' },
+  { id: 'violet',    label: 'Violet',     primary: '#7c3aed', lightBg: '#f5f3ff', darkBg: '#1e1b4b' },
+  { id: 'rose',      label: 'Rose',       primary: '#f43f5e', lightBg: '#fff1f2', darkBg: '#4c0519' },
+  { id: 'slate',     label: 'Slate',      primary: '#475569', lightBg: '#f8fafc', darkBg: '#0f172a' },
+  { id: 'gold',      label: 'Gold',       primary: '#d4af37', lightBg: '#fffdf0', darkBg: '#0f0c00' },
+  { id: 'trueblack', label: 'True Black', primary: '#f97316', lightBg: '#f8fafc', darkBg: '#000000' },
+  { id: 'warm',      label: 'Warm',       primary: '#f97316', lightBg: '#fffdf7', darkBg: '#1a1208' },
+  { id: 'nord',      label: 'Nord',       primary: '#81a1c1', lightBg: '#eceff4', darkBg: '#2e3440' },
+  { id: 'sepia',     label: 'Sepia',      primary: '#c0882a', lightBg: '#f5f0e8', darkBg: '#1a0f07' },
 ];
