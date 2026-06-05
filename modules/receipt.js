@@ -30,7 +30,7 @@ async function _drawReceipt(sale, cfg = {}) {
   // ── Column grid (all right-aligned except item name) ─────────────────────
   const C_AMT   = WIDTH - PADX;        // line total right edge
   const C_RATE  = C_AMT  - 80;         // unit rate right edge
-  const C_QTY   = C_RATE - 48;         // qty right edge
+  const C_QTY   = C_RATE - 76;         // qty right edge (76px gap fits ₹9999.99 @12px Courier)
   const NAME_W  = C_QTY  - PADX - 10;  // max width for item name column
 
   const LH      = 20;   // line height
