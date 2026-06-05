@@ -170,6 +170,27 @@ function _initHeaderControls() {
   }
 }
 
+
+// ── Update sidebar brand from Firestore (shopName + receiptLogoUrl) ──────────
+async function _updateSidebarBrand() {
+  try {
+    const { getShopConfig } = await import('./lib/firebase-init.js');
+    const cfg = await getShopConfig();
+    const logoUrl  = (cfg.receiptLogoUrl || '').trim();
+    const shopName = (cfg.shopName || '').trim();
+    const brandEl  = document.querySelector('.sidebar-brand');
+    if (!brandEl) return;
+    if (logoUrl) {
+      brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${shopName || 'Shop logo'}">`;
+    } else if (shopName) {
+      brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${shopName}</span>`;
+    }
+    // if neither set, keep the static default rendered by mountAppShell
+  } catch (err) {
+    console.warn('[Vikretha] Could not update sidebar brand:', err);
+  }
+}
+
 // ── Role-based Settings nav injection (owner + admin only) ──────────────────
 async function _injectRoleNav(userEmail) {
   try {
@@ -223,6 +244,7 @@ onAuthStateChanged(auth, (user) => {
     // Authenticated — mount shell, then route
     mountAppShell();
     _initHeaderControls();
+    _updateSidebarBrand();
     if (user.email) _injectRoleNav(user.email);
     const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
     if (!route || route === 'login') {
@@ -267,7 +289,7 @@ async function handleRoute() {
   // Update page title
   const titleEl = document.getElementById('page-title');
   if (titleEl) {
-    const titles = { dashboard: SHOP_NAME, billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
+    const titles = { dashboard: 'Dashboard', billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
     titleEl.textContent = titles[route] || SHOP_NAME;
   }
 

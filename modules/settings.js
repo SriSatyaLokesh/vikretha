@@ -216,6 +216,20 @@ function _bindOwnerHandlers(container, currentEmail) {
     try {
       const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
       await setDoc(configRef, { receiptLogoUrl: logoUrl, receiptFooter: footer }, { merge: true });
+      // Live-update sidebar brand logo
+      const brandEl = document.querySelector('.sidebar-brand');
+      if (brandEl) {
+        if (logoUrl) {
+          const shopNameEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
+          const shopName = shopNameEl ? shopNameEl.textContent : '';
+          brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${shopName || 'Shop logo'}">`;
+        } else {
+          // logo removed — revert to wordmark
+          const shopNameEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
+          const shopName = shopNameEl ? shopNameEl.textContent : '';
+          brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${shopName || document.title}</span>`;
+        }
+      }
       toast.success('Receipt branding saved');
     } catch (err) {
       toast.error('Could not save: ' + err.message);
