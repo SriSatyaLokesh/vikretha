@@ -654,6 +654,10 @@ select.form-input { cursor: pointer; }
 .sync-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 500; padding: 3px 9px; border-radius: var(--radius-full); color: var(--text-muted); background: var(--surface-hover); }
 .sync-badge--online  { color: var(--success-text); background: var(--success-bg); }
 .sync-badge--pending { color: var(--warning-text); background: var(--warning-bg); }
+.sync-badge--synced  { color: var(--success-text); background: var(--success-bg); }
+button.sync-badge { border: none; cursor: pointer; transition: opacity 0.15s; }
+button.sync-badge:hover { opacity: 0.8; }
+button.sync-badge:disabled { cursor: default; opacity: 0.6; }
 
 /* == 25. Accessibility == */
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }

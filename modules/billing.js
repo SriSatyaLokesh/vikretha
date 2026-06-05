@@ -152,7 +152,7 @@ export function render(container) {
 
           <div id="submit-err" class="alert alert-error" style="display:none;margin-bottom:10px;"></div>
           <button id="submit-btn" class="btn btn-primary btn-full" style="height:52px;font-size:1rem;">
-            Submit Sale — <span id="btn-total" style="font-variant-numeric:tabular-nums;">${CURRENCY}0</span>
+            Submit Sale
           </button>
         </div>
       </div>
@@ -448,7 +448,6 @@ function _updateTotals() {
 
   if ($('subtotal-val')) $('subtotal-val').textContent = fmt(subtotal);
   if ($('total-val'))    $('total-val').textContent    = fmt(total);
-  if ($('btn-total'))    $('btn-total').textContent    = fmt(total);
   const dl = $('disc-line');
   if (dl) {
     dl.style.display = disc > 0 ? 'flex' : 'none';
@@ -874,9 +873,7 @@ async function _handleSubmit(container) {
   } catch (err) {
     console.error('[Billing] submit error', err);
     btn.disabled = false;
-    btn.innerHTML = `Submit Sale —
-      <span id="btn-total" style="font-variant-numeric:tabular-nums;">${CURRENCY}0</span>`;
-    _updateTotals(); // restore total in button
+    btn.textContent = 'Submit Sale';
     errEl.textContent = 'Failed to save sale. Check your connection and try again.';
     errEl.style.display = 'block';
     toast.error('Failed to save sale. Check your connection and try again.');

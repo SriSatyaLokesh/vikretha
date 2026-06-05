@@ -330,6 +330,16 @@ export function render(container) {
     _fetchAndRenderStats(container);
   }, { includeMetadataChanges: true });
 
+  // Sync badge manual refresh
+  const syncBtn = container.querySelector('#dash-sync-badge');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', () => {
+      syncBtn.textContent = 'syncing…';
+      syncBtn.disabled = true;
+      _fetchAndRenderStats(container).finally(() => { syncBtn.disabled = false; });
+    });
+  }
+
   // Wire export menu (Phase 7)
   attachExportMenu(container);
 }
