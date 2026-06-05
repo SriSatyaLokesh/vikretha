@@ -303,16 +303,17 @@ export function render(container) {
   _unsubSummary = onSnapshot(dailyRef, snap => {
     const syncBadge = container.querySelector('#dash-sync-badge');
     if (syncBadge) {
-      const fromCache = snap.metadata.fromCache;
+      // hasPendingWrites = unsaved local changes; fromCache alone is just IndexedDB speed
+      const pending = snap.metadata.hasPendingWrites;
       const ts = snap.data()?.last_updated;
       if (ts && ts.toDate) {
         const d = ts.toDate();
-        syncBadge.textContent = (fromCache ? 'cached ' : 'synced ') +
+        syncBadge.textContent = (pending ? 'saving ' : 'synced ') +
           d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
       } else {
-        syncBadge.textContent = fromCache ? 'cached...' : 'synced';
+        syncBadge.textContent = pending ? 'saving...' : 'synced';
       }
-      syncBadge.className = 'sync-badge ' + (fromCache ? 'sync-badge--pending' : 'sync-badge--synced');
+      syncBadge.className = 'sync-badge ' + (pending ? 'sync-badge--pending' : 'sync-badge--synced');
     }
 
     // -- Live today counter fast-path (Phase 19) --
