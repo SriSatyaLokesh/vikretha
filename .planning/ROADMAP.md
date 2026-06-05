@@ -251,8 +251,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 23-01-PLAN.md — CSS full-spectrum token blocks (4 new themes + dark variants for existing) + THEME_PALETTES metadata
-- [ ] 23-02-PLAN.md — Settings theme picker swatch grid + Firestore persist + loadThemeFromFirestore update + UAT checkpoint
+- [x] 23-01-PLAN.md — CSS full-spectrum token blocks (4 new themes + dark variants for existing) + THEME_PALETTES metadata
+- [x] 23-02-PLAN.md — Settings theme picker swatch grid + Firestore persist + loadThemeFromFirestore update + UAT checkpoint
 
 ---
 
