@@ -380,6 +380,10 @@ select.form-input { cursor: pointer; }
   .auth-brand-features { display: flex; flex-direction: column; gap: 12px; }
   .auth-brand-feature { display: flex; align-items: center; gap: 10px; font-size: 0.9375rem; color: var(--slate-300); }
   .auth-brand-feature-dot { width: 7px; height: 7px; border-radius: var(--radius-full); background: var(--primary); flex-shrink: 0; }
+  .auth-brand-logo { width: 52px; height: 52px; object-fit: contain; border-radius: var(--radius-sm); margin-bottom: 24px; }
+  .auth-brand-powered { margin-top: auto; padding-top: 32px; font-size: 0.78rem; color: var(--slate-600); }
+  .auth-brand-powered-link { color: var(--slate-400); text-decoration: none; }
+  .auth-brand-powered-link:hover { color: var(--primary); }
 }
 
 /* == 17. Dashboard == */

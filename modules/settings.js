@@ -57,9 +57,12 @@ export async function render(container) {
 
 // ── Owner: full config + staff ────────────────────────────────────────────────
 function _renderOwnerSettings(container, cfg, currentEmail) {
-  const currentShopName = cfg.shopName       || SHOP_NAME;
-  const currentLogoUrl  = cfg.receiptLogoUrl || LOGO_URL        || '';
-  const currentFooter   = cfg.receiptFooter  || RECEIPT_FOOTER  || '';
+  const currentShopName    = cfg.shopName        || SHOP_NAME;
+  const currentLogoUrl     = cfg.receiptLogoUrl  || LOGO_URL        || '';
+  const currentFooter      = cfg.receiptFooter   || RECEIPT_FOOTER  || '';
+  const currentTagline     = cfg.loginTagline    || '';
+  const currentLoginDesc   = cfg.loginDesc       || '';
+  const currentLoginFeats  = cfg.loginFeatures   || '';
 
   container.innerHTML = `
     <div class="admin-settings-wrap">
@@ -95,6 +98,32 @@ function _renderOwnerSettings(container, cfg, currentEmail) {
           <p class="admin-field-hint">Leave empty for the default "THANK YOU FOR SHOPPING!"</p>
         </div>
         <button id="save-receipt-branding" class="btn btn-primary admin-save-btn">Save</button>
+      </div>
+
+      <!-- Login Screen -->
+      <div class="card settings-card">
+        <p class="settings-section-label">Login Screen</p>
+        <p class="settings-section-hint">Customise what users see on the sign-in page. Leave fields empty to use the defaults.</p>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-login-tagline">Tagline</label>
+          <input id="admin-login-tagline" type="text" class="admin-input"
+                 value="${escapeHtml(currentTagline)}"
+                 placeholder="Run your shop for free." maxlength="80" autocomplete="off" />
+          <p class="admin-field-hint">Bold headline shown on the left panel.</p>
+        </div>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-login-desc">Description</label>
+          <textarea id="admin-login-desc" class="admin-textarea" rows="2"
+                    placeholder="Everything your shop needs…" maxlength="200">${escapeHtml(currentLoginDesc)}</textarea>
+          <p class="admin-field-hint">Short description below the tagline.</p>
+        </div>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-login-features">Feature Bullets</label>
+          <textarea id="admin-login-features" class="admin-textarea" rows="4"
+                    placeholder="Instant billing&#10;Inventory tracking&#10;Sales reports" maxlength="400">${escapeHtml(currentLoginFeats)}</textarea>
+          <p class="admin-field-hint">One bullet point per line. Leave empty for defaults.</p>
+        </div>
+        <button id="save-login-branding" class="btn btn-primary admin-save-btn">Save</button>
       </div>
 
       <!-- Theme -->
@@ -231,6 +260,24 @@ function _bindOwnerHandlers(container, currentEmail) {
         }
       }
       toast.success('Receipt branding saved');
+    } catch (err) {
+      toast.error('Could not save: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+
+  // Login Screen branding save
+  container.querySelector('#save-login-branding').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const tagline  = container.querySelector('#admin-login-tagline').value.trim();
+    const desc     = container.querySelector('#admin-login-desc').value.trim();
+    const features = container.querySelector('#admin-login-features').value.trim();
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { loginTagline: tagline, loginDesc: desc, loginFeatures: features }, { merge: true });
+      toast.success('Login screen saved');
     } catch (err) {
       toast.error('Could not save: ' + err.message);
     } finally {

@@ -17,24 +17,53 @@ import { SHOP_NAME, SHOP_ID, WHATSAPP_NUMBER } from '../shop.config.js';
 const SHOP_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
 
 // ----- Entry Point -----
-export function render(container) {
-  showSignInStep(container);
+export async function render(container) {
+  // Load login branding config from Firestore (non-blocking — fallback to defaults)
+  let loginCfg = {};
+  try {
+    const snap = await getDoc(doc(db, 'shops', SHOP_ID, 'config', 'main'));
+    if (snap.exists()) loginCfg = snap.data();
+  } catch (_) {}
+  showSignInStep(container, '', loginCfg);
+}
+
+// ----- Brand panel (shared by sign-in + create-account steps) -----
+function _buildBrandPanel(cfg = {}) {
+  const tagline  = cfg.loginTagline    || 'Run your shop<br><span>for free.</span>';
+  const desc     = cfg.loginDesc       || 'Everything your shop needs — billing, inventory, receipts, and reports — in one simple app.';
+  const rawFeatures = cfg.loginFeatures
+    ? cfg.loginFeatures.split('\n').map(f => f.trim()).filter(Boolean)
+    : [
+        'Instant billing &amp; WhatsApp receipts',
+        'Inventory with low-stock alerts',
+        'Daily &amp; monthly sales reports',
+        'Multi-staff access management',
+      ];
+  const featuresHTML = rawFeatures
+    .map(f => `<div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>${escHtml(f)}</div>`)
+    .join('');
+  const logoHtml = cfg.receiptLogoUrl
+    ? `<img src="${escHtml(cfg.receiptLogoUrl)}" class="auth-brand-logo" alt="${escHtml(cfg.shopName || 'Logo')}">`
+    : '';
+  return `
+    <div class="auth-brand-panel">
+      ${logoHtml}
+      <div class="auth-brand-tagline">${tagline}</div>
+      <p class="auth-brand-desc">${escHtml(desc)}</p>
+      <div class="auth-brand-features">${featuresHTML}</div>
+      <p class="auth-brand-powered">Powered by <a class="auth-brand-powered-link" href="https://github.com/SriSatyaLokesh/vikretha" target="_blank" rel="noopener">Vikretha</a></p>
+    </div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ----- Step 1: Sign In -----
-function showSignInStep(container, prefillEmail = '') {
+function showSignInStep(container, prefillEmail = '', loginCfg = {}) {
   container.innerHTML = `
     <div class="auth-screen">
-      <div class="auth-brand-panel">
-        <div class="auth-brand-tagline">Run your shop<br><span>for free.</span></div>
-        <p class="auth-brand-desc">Everything your shop needs — billing, inventory, receipts, and reports — in one simple app.</p>
-        <div class="auth-brand-features">
-          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Instant billing &amp; WhatsApp receipts</div>
-          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Inventory with low-stock alerts</div>
-          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Daily &amp; monthly sales reports</div>
-          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Multi-staff access management</div>
-        </div>
-      </div>
+      ${_buildBrandPanel(loginCfg)}
       <div class="auth-form-panel">
         <div class="auth-card">
           <div class="auth-logo">${SHOP_ICON_SVG}</div>
@@ -74,7 +103,7 @@ function showSignInStep(container, prefillEmail = '') {
     showForgotPasswordStep(container, email);
   });
   document.getElementById('create-account-btn').addEventListener('click', () => {
-    showCreateAccountStep(container);
+    showCreateAccountStep(container, loginCfg);
   });
 
   // Submit on Enter in password field
@@ -118,9 +147,7 @@ function showCreateAccountStep(container) {
         <div class="auth-brand-features">
           <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Free forever — no credit card needed</div>
           <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>All data stored securely in the cloud</div>
-          <div class="auth-brand-feature"><div class="auth-brand-feature-dot"></div>Works offline on any device</div>
-        </div>
-      </div>
+
       <div class="auth-form-panel">
         <div class="auth-card">
           <div class="auth-logo">${SHOP_ICON_SVG}</div>
@@ -156,7 +183,7 @@ function showCreateAccountStep(container) {
     </div>
   `;
 
-  document.getElementById('back-btn').addEventListener('click', () => showSignInStep(container));
+  document.getElementById('back-btn').addEventListener('click', () => showSignInStep(container, '', loginCfg));
   document.getElementById('create-btn').addEventListener('click', () => handleCreateAccount(container));
   document.getElementById('confirm-password-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('create-btn').click();
