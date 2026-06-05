@@ -248,12 +248,11 @@ Plans:
 - [ ] All 8 themes × light+dark combinations render all screens without contrast failures
 - [ ] Theme + dark mode preference persists across reload (Firestore sync unchanged)
 
-**Plans:** To be planned
+**Plans:** 2 plans
 
 Plans:
-- [ ] 23-01-PLAN.md — CSS token expansion for all themes (light + dark variants per palette)
-- [ ] 23-02-PLAN.md — Settings swatch redesign + shop.config.js THEME_PALETTES metadata update
-- [ ] 23-03-PLAN.md — Human verification checkpoint
+- [ ] 23-01-PLAN.md — CSS full-spectrum token blocks (4 new themes + dark variants for existing) + THEME_PALETTES metadata
+- [ ] 23-02-PLAN.md — Settings theme picker swatch grid + Firestore persist + loadThemeFromFirestore update + UAT checkpoint
 
 ---
 
