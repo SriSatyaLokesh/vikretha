@@ -256,6 +256,71 @@ Plans:
 
 ---
 
+### Phase 24 — Admin Settings Panel (/adminSettings)
+
+**Goal:** Move all owner-level configuration out of the general Settings screen into a dedicated `/adminSettings` route. Only users with `staff_roles[email] == 'owner'` can access it. Dark mode / light mode toggle moves to the nav bar and remains client-side only (localStorage, no Firestore).
+
+**Delivers:** Clean separation of concerns — general settings (dark mode, sign out) accessible by all staff; shop configuration (name, branding, theme, receipt fields) owner-only and Firestore-persisted. Foundation for future admin capabilities.
+
+**Requirements covered:** FR-14.1–FR-14.8
+
+**Depends on:** Phase 8 (staff roles model), Phase 17 (theme system), Phase 21 (receipt branding), Phase 23 (theme picker)
+
+**Data model changes:**
+- `config/main.shopName` (string) — overrides SHOP_NAME from shop.config.js when set
+- `config/main.receiptLogoUrl` (string) — overrides LOGO_URL from shop.config.js
+- `config/main.receiptFooter` (string) — overrides RECEIPT_FOOTER from shop.config.js
+- `config/main.theme` (string) — already used by Phase 23 theme picker (just moving the UI)
+- Dark mode: **removed from Firestore** — becomes `localStorage['vk_dark']` only (already partly the case)
+
+**Key tasks:**
+
+`modules/adminSettings.js` — new module, export `render(container)`:
+- Guard: read `config/main`, check `staff_roles[currentEmail] == 'owner'`; if not owner → show "Access denied" panel
+- **Shop Identity section:** editable `shopName` field (saved to `config/main.shopName`); shown in header/sidebar live after save via DOM update
+- **Receipt Branding section:** Logo URL input + Receipt Footer textarea (moved from settings.js); saves to `config/main.receiptLogoUrl` + `config/main.receiptFooter`; preview of current values
+- **Theme section:** move the 11-swatch theme picker grid from `settings.js` to here; save to `config/main.theme` as before
+- Save button per section (not per field); toast on success/error
+
+`modules/settings.js` — remove Theme section (swatch grid + `_renderThemePicker`); keep: Dark mode toggle, Staff Access, Sign Out
+
+`app.js` — add `/adminSettings` to hash router:
+- Add nav item "Admin" visible only if owner role (checked after auth)
+- Show in sidebar nav + mobile bottom nav only for owners
+- Lazy-load `modules/adminSettings.js`
+
+`lib/firebase-init.js` — dark mode changes:
+- `loadThemeFromFirestore()` — still loads theme palette from Firestore `config/main.theme`, but dark mode preference read from `localStorage['vk_dark']` only (no Firestore read/write for dark mode)
+- Remove `darkMode` field write from all call sites
+
+`app.js` — dark mode toggle moves to the app header (top-right):
+- Add a sun/moon icon button `#dark-mode-toggle` in `.app-header` (right side, inside `#header-actions`)
+- Clicking it reads/writes `localStorage['vk_dark']`, calls `applyTheme(currentTheme, newDark)`
+- No Firestore call
+
+`styles/main.css` — header dark mode toggle button styles; admin settings page layout
+
+`firestore.rules` — no changes needed (config/main writes already guarded by `isOwnerOrAdmin`)
+
+**UAT:**
+- [ ] Logged in as owner: nav shows "Admin" link; `/adminSettings` loads with all config sections
+- [ ] Logged in as member/admin: `/adminSettings` shows "Access denied" (not a blank screen or crash)
+- [ ] Saving Shop Name in Admin Settings → header and sidebar update live without page reload
+- [ ] Saving theme in Admin Settings → app palette changes immediately (same as before)
+- [ ] Saving Receipt Footer → next receipt uses the new footer text
+- [ ] Dark mode toggle in nav bar works for all users (owner AND member) without Firestore call
+- [ ] Dark mode preference persists across reload via localStorage (not Firestore)
+- [ ] Settings screen no longer contains theme picker or receipt fields
+
+**Plans:** To be planned
+
+Plans:
+- [ ] 24-01-PLAN.md — modules/adminSettings.js (owner guard + shop identity + receipt branding + theme picker)
+- [ ] 24-02-PLAN.md — app.js router + nav dark mode toggle + settings.js cleanup + firebase-init.js dark mode decoupling
+- [ ] 24-03-PLAN.md — Human verification checkpoint
+
+---
+
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
 > All 16 phases complete. See `.planning/reports/MILESTONE_SUMMARY-v1.md`.
