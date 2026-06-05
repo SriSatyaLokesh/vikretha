@@ -172,7 +172,7 @@ ul, ol { list-style: none; }
   }
   .sidebar-brand {
     display: flex; align-items: center; gap: 10px;
-    padding: 20px 20px 16px; border-bottom: 1px solid var(--slate-800);
+    height: var(--header-height); padding: 0 20px; border-bottom: 1px solid var(--slate-800); flex-shrink: 0;
   }
   .sidebar-brand-icon {
     width: 34px; height: 34px; background: var(--primary);
