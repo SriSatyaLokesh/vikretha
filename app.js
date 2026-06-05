@@ -53,7 +53,7 @@ function mountAppShell() {
       <aside class="app-sidebar" id="app-sidebar">
         <div class="sidebar-brand">
           ${LOGO_URL?.trim()
-            ? `<img src="${LOGO_URL}" class="sidebar-brand-logo" alt="${SHOP_NAME}"><span class="sidebar-brand-name">${SHOP_NAME}</span>`
+            ? `<img src="${LOGO_URL}" class="sidebar-brand-logo" alt="${SHOP_NAME}">`
             : `<span class="sidebar-brand-wordmark">${SHOP_NAME}</span>`}
         </div>
         <nav class="sidebar-nav" id="sidebar-nav-list">
