@@ -312,7 +312,7 @@ Plans:
 - [ ] Dark mode preference persists across reload via localStorage (not Firestore)
 - [ ] Settings screen no longer contains theme picker or receipt fields
 
-**Plans:** To be planned
+**Plans:** 2 plans
 
 Plans:
 - [ ] 24-01-PLAN.md — modules/adminSettings.js (owner guard + shop identity + receipt branding + theme picker)
