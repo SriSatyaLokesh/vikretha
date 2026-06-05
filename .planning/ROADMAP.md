@@ -214,6 +214,49 @@ Plans:
 
 ---
 
+### Phase 23 — Full-Spectrum Theme Palettes
+
+**Goal:** Expand each theme palette from accent-only (4 tokens) to full light+dark color sets — background, surface, sidebar, foreground, and border tokens — giving shop owners predefined curated complete themes rather than just accent color swaps.
+
+**Delivers:** Theme picker in Settings shows visually distinct full-palette previews. Dark mode respects the chosen theme's dark variant (e.g. true-black vs slate-grey). Each palette feels like a distinct visual identity, not just a color tint.
+
+**Requirements covered:** FR-08.7, FR-08.8
+
+**Depends on:** Phase 17 (data-theme/data-dark CSS architecture), Phase 22 (shop.config.js THEME_PALETTES structure)
+
+**Background:** Currently `[data-theme="X"]` only overrides `--primary`, `--primary-hover`, `--primary-light`, `--primary-ring` (accent color). The dark mode is one shared layer (`[data-dark="true"]`) with slate-based backgrounds for all themes. This means gold+dark and violet+dark look identical in their dark backgrounds — only the accent differs.
+
+**Key tasks:**
+- Design token expansion: define `--bg-app`, `--bg-surface`, `--bg-elevated`, `--bg-sidebar`, `--text-primary`, `--text-secondary`, `--border` for both light and dark variants of each theme
+- CSS: add `[data-theme="X"]` light overrides and `[data-theme="X"][data-dark="true"]` dark overrides per palette
+- Curated palette set (8 themes × 2 modes):
+  - **Slate** (default dark): slate-900 sidebar, slate-50 bg — current behavior, baseline
+  - **True Black**: `#000000` bg-app, `#0a0a0a` surface, pure white text — OLED-friendly
+  - **Warm**: cream white bg (`#fffdf7`), warm-grey sidebar (`#2d2416`), amber sidebar active
+  - **Nord**: cool blue-grey dark (`#2e3440`), frost white light (`#eceff4`) — Nordic feel
+  - **Sepia**: parchment bg (`#f5f0e8`), dark brown sidebar (`#2c1a0e`) — document/print feel
+  - Plus existing orange/emerald/sky/violet/rose/gold — enhanced with proper dark backgrounds
+- `shop.config.js` + template: update THEME_PALETTES entries with `darkBg` and `lightBg` preview hex for the swatch renderer
+- Settings theme picker: update swatch component to show a mini light+dark preview chip (not just primary color dot)
+- `lib/firebase-init.js` — `applyTheme()` already handles `data-theme` + `data-dark` — no change needed
+
+**UAT:**
+- [ ] Switching to "True Black" theme + dark mode → page background is `#000000`, not slate-900
+- [ ] Switching to "Warm" theme + light mode → page background is cream, sidebar is warm-brown
+- [ ] Each theme swatch in Settings shows a small light/dark preview (not just a color circle)
+- [ ] Switching themes in light mode changes backgrounds visibly (not just the accent color)
+- [ ] All 8 themes × light+dark combinations render all screens without contrast failures
+- [ ] Theme + dark mode preference persists across reload (Firestore sync unchanged)
+
+**Plans:** To be planned
+
+Plans:
+- [ ] 23-01-PLAN.md — CSS token expansion for all themes (light + dark variants per palette)
+- [ ] 23-02-PLAN.md — Settings swatch redesign + shop.config.js THEME_PALETTES metadata update
+- [ ] 23-03-PLAN.md — Human verification checkpoint
+
+---
+
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
 > All 16 phases complete. See `.planning/reports/MILESTONE_SUMMARY-v1.md`.
