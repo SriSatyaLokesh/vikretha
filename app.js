@@ -245,6 +245,8 @@ onAuthStateChanged(auth, (user) => {
     mountAppShell();
     _initHeaderControls();
     _updateSidebarBrand();
+    // Load theme from Firestore (overrides static COLOR_THEME default)
+    import('./lib/firebase-init.js').then(({ loadThemeFromFirestore }) => loadThemeFromFirestore()).catch(() => {});
     if (user.email) _injectRoleNav(user.email);
     const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
     if (!route || route === 'login') {
