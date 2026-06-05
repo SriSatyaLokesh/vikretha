@@ -204,7 +204,12 @@ async function _openDetail(docId) {
   if (!docSnap) return;
 
   const overlay = document.getElementById('rpt-detail-overlay');
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay) {
+    overlay.classList.remove('rpt-panel-open');
+    overlay.style.display = 'flex';
+    // Trigger slide-in on next paint (double-rAF ensures transition fires)
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('rpt-panel-open')));
+  }
 
   _renderDetailPanel(docSnap.data(), docSnap.id);
 
@@ -219,7 +224,13 @@ async function _openDetail(docId) {
 
 function _closeDetail() {
   const overlay = document.getElementById('rpt-detail-overlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) {
+    overlay.classList.remove('rpt-panel-open');
+    // Hide after slide-out completes (250ms); fallback timeout in case transitionend misfires
+    const hide = () => { overlay.style.display = 'none'; };
+    overlay.addEventListener('transitionend', hide, { once: true });
+    setTimeout(hide, 350); // safety fallback
+  }
   if (_escKeyHandler) {
     document.removeEventListener('keydown', _escKeyHandler);
     _escKeyHandler = null;
