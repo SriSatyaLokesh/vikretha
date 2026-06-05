@@ -1939,3 +1939,130 @@ a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
   text-overflow: ellipsis;
   max-width: 64px;
 }
+
+/* ================================================================
+   ADMIN SETTINGS — /adminSettings page layout
+   ================================================================ */
+
+.admin-settings-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px var(--content-padding) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 12px;
+}
+
+.admin-denied-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.admin-denied h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-denied p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.admin-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.admin-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.admin-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  resize: vertical;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.admin-field-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.admin-save-btn {
+  margin-top: 4px;
+}
+
+/* ================================================================
+   HEADER DARK MODE TOGGLE BUTTON
+   ================================================================ */
+
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.header-icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.header-icon-btn:active {
+  background: var(--surface-press);
+}

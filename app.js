@@ -21,6 +21,7 @@ const NAV_ICONS = {
   settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="3"/>
     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  adminSettings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
 };
 
 const NAV_ITEMS = [
@@ -71,7 +72,13 @@ function mountAppShell() {
       <div class="app-main">
         <header class="app-header">
           <h1 class="page-title" id="page-title">${SHOP_NAME}</h1>
-          <div id="header-actions"></div>
+          <div id="header-actions">
+          <button id="dark-mode-header-btn" class="header-icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <svg id="dark-mode-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
         </header>
         <main class="app-content" id="app-content"></main>
       </div>
@@ -112,6 +119,73 @@ if (!SHOP_ID || SHOP_ID.trim() === '') {
   _showSetupBanner('SHOP_NAME is not configured');
 }
 
+
+// ── Header dark mode toggle ──────────────────────────────────────────────────
+function _initHeaderControls() {
+  const darkBtn = document.getElementById('dark-mode-header-btn');
+  if (!darkBtn) return;
+
+  function _updateDarkIcon() {
+    const isDark = document.documentElement.dataset.dark === 'true';
+    const icon = document.getElementById('dark-mode-icon');
+    if (!icon) return;
+    icon.innerHTML = isDark
+      ? `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`
+      : `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+  }
+
+  _updateDarkIcon();
+
+  darkBtn.addEventListener('click', () => {
+    const isDark  = document.documentElement.dataset.dark === 'true';
+    const newDark = !isDark;
+    const theme   = document.documentElement.dataset.theme || 'orange';
+    import('./lib/firebase-init.js').then(({ applyTheme }) => {
+      applyTheme(theme, newDark);
+      localStorage.setItem('vk_dark', String(newDark));
+      _updateDarkIcon();
+    });
+  });
+}
+
+// ── Owner-only Admin nav injection ───────────────────────────────────────────
+async function _injectAdminNav(userEmail) {
+  try {
+    const { db } = await import('./lib/firebase-init.js');
+    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { SHOP_ID } = await import('./shop.config.js');
+    const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+    const snap = await getDoc(configRef);
+    const role = snap.exists() ? snap.data().staff_roles?.[userEmail] : null;
+    if (role !== 'owner') return;
+
+    const adminSvg = NAV_ICONS.adminSettings || '';
+
+    const sidebarNav = document.getElementById('sidebar-nav-list');
+    if (sidebarNav && !sidebarNav.querySelector('[data-route="adminSettings"]')) {
+      const a = document.createElement('a');
+      a.href = '#/adminSettings';
+      a.dataset.route = 'adminSettings';
+      a.className = 'sidebar-nav-item';
+      a.setAttribute('aria-label', 'Admin');
+      a.innerHTML = adminSvg + 'Admin';
+      sidebarNav.appendChild(a);
+    }
+
+    const mobileNav = document.getElementById('app-nav');
+    if (mobileNav && !mobileNav.querySelector('[data-route="adminSettings"]')) {
+      const a = document.createElement('a');
+      a.href = '#/adminSettings';
+      a.dataset.route = 'adminSettings';
+      a.setAttribute('aria-label', 'Admin');
+      a.innerHTML = adminSvg + 'Admin';
+      mobileNav.appendChild(a);
+    }
+  } catch (err) {
+    console.warn('[Vikretha] Could not check owner role for Admin nav:', err);
+  }
+}
+
 // ----- Auth Guard + Router -----
 let currentUser = null;
 
@@ -125,6 +199,8 @@ onAuthStateChanged(auth, (user) => {
   } else {
     // Authenticated — mount shell, then route
     mountAppShell();
+    _initHeaderControls();
+    if (user.email) _injectAdminNav(user.email);
     const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
     if (!route || route === 'login') {
       // Root or login page → send to dashboard (triggers hashchange → handleRoute)
@@ -136,7 +212,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ----- Route Handler -----
-const PROTECTED_ROUTES = ['dashboard', 'billing', 'inventory', 'reports', 'settings', 'receipt'];
+const PROTECTED_ROUTES = ['dashboard', 'billing', 'inventory', 'reports', 'settings', 'receipt', 'adminSettings'];
 
 async function handleRoute() {
   const hash = window.location.hash;
@@ -168,7 +244,7 @@ async function handleRoute() {
   // Update page title
   const titleEl = document.getElementById('page-title');
   if (titleEl) {
-    const titles = { dashboard: SHOP_NAME, billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt' };
+    const titles = { dashboard: SHOP_NAME, billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
     titleEl.textContent = titles[route] || SHOP_NAME;
   }
 
