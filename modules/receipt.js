@@ -150,6 +150,7 @@ async function _drawReceipt(sale, cfg = {}) {
     await new Promise(res => {
       const img   = new Image();
       const timer = setTimeout(res, 2000);
+      img.crossOrigin = 'anonymous';  // required to keep canvas untainted for toDataURL
       img.onload  = () => {
         clearTimeout(timer);
         // Fit logo inside 240×52 bounding box, preserving aspect ratio
@@ -160,8 +161,8 @@ async function _drawReceipt(sale, cfg = {}) {
         ctx.drawImage(img, (WIDTH - dw) / 2, y + (MAX_H - dh) / 2, dw, dh);
         res();
       };
-      img.onerror = () => { clearTimeout(timer); res(); };
-      img.src     = _logoUrl;
+      img.onerror = () => { clearTimeout(timer); res(); };  // fall through to wordmark
+      img.src     = _logoUrl;  // MUST be set after crossOrigin
     });
   } else {
     // No logo — draw shop name in Dancing Script as branded wordmark
