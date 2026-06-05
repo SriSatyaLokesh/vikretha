@@ -29,7 +29,6 @@ const NAV_ITEMS = [
   { route: 'billing',   label: 'Sale' },
   { route: 'inventory', label: 'Inventory' },
   { route: 'reports',   label: 'Reports' },
-  { route: 'settings',  label: 'Settings' },
 ];
 
 const SHOP_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -76,6 +75,13 @@ function mountAppShell() {
           <button id="dark-mode-header-btn" class="header-icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
             <svg id="dark-mode-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <button id="sign-out-header-btn" class="header-icon-btn" aria-label="Sign out" title="Sign out">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
           </button>
         </div>
@@ -146,10 +152,26 @@ function _initHeaderControls() {
       _updateDarkIcon();
     });
   });
+
+  const signOutBtn = document.getElementById('sign-out-header-btn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async () => {
+      signOutBtn.disabled = true;
+      try {
+        const { auth } = await import('./lib/firebase-init.js');
+        const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        await signOut(auth);
+        window.location.hash = '';
+      } catch (err) {
+        console.error('[Vikretha] Sign out failed:', err);
+        signOutBtn.disabled = false;
+      }
+    });
+  }
 }
 
-// ── Owner-only Admin nav injection ───────────────────────────────────────────
-async function _injectAdminNav(userEmail) {
+// ── Role-based Settings nav injection (owner + admin only) ──────────────────
+async function _injectRoleNav(userEmail) {
   try {
     const { db } = await import('./lib/firebase-init.js');
     const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -157,32 +179,33 @@ async function _injectAdminNav(userEmail) {
     const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
     const snap = await getDoc(configRef);
     const role = snap.exists() ? snap.data().staff_roles?.[userEmail] : null;
-    if (role !== 'owner') return;
+    // Only owner and admin get a Settings nav item
+    if (role !== 'owner' && role !== 'admin') return;
 
-    const adminSvg = NAV_ICONS.adminSettings || '';
+    const settingsSvg = NAV_ICONS.settings || '';
 
     const sidebarNav = document.getElementById('sidebar-nav-list');
-    if (sidebarNav && !sidebarNav.querySelector('[data-route="adminSettings"]')) {
+    if (sidebarNav && !sidebarNav.querySelector('[data-route="settings"]')) {
       const a = document.createElement('a');
-      a.href = '#/adminSettings';
-      a.dataset.route = 'adminSettings';
+      a.href = '#/settings';
+      a.dataset.route = 'settings';
       a.className = 'sidebar-nav-item';
-      a.setAttribute('aria-label', 'Admin');
-      a.innerHTML = adminSvg + 'Admin';
+      a.setAttribute('aria-label', 'Settings');
+      a.innerHTML = settingsSvg + 'Settings';
       sidebarNav.appendChild(a);
     }
 
     const mobileNav = document.getElementById('app-nav');
-    if (mobileNav && !mobileNav.querySelector('[data-route="adminSettings"]')) {
+    if (mobileNav && !mobileNav.querySelector('[data-route="settings"]')) {
       const a = document.createElement('a');
-      a.href = '#/adminSettings';
-      a.dataset.route = 'adminSettings';
-      a.setAttribute('aria-label', 'Admin');
-      a.innerHTML = adminSvg + 'Admin';
+      a.href = '#/settings';
+      a.dataset.route = 'settings';
+      a.setAttribute('aria-label', 'Settings');
+      a.innerHTML = settingsSvg + 'Settings';
       mobileNav.appendChild(a);
     }
   } catch (err) {
-    console.warn('[Vikretha] Could not check owner role for Admin nav:', err);
+    console.warn('[Vikretha] Could not check role for Settings nav:', err);
   }
 }
 
@@ -200,7 +223,7 @@ onAuthStateChanged(auth, (user) => {
     // Authenticated — mount shell, then route
     mountAppShell();
     _initHeaderControls();
-    if (user.email) _injectAdminNav(user.email);
+    if (user.email) _injectRoleNav(user.email);
     const route = (window.location.hash.replace('#/', '') || '').split('/')[0];
     if (!route || route === 'login') {
       // Root or login page → send to dashboard (triggers hashchange → handleRoute)

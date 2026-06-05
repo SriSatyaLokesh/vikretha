@@ -64,8 +64,8 @@ export const THEME_PALETTES = [
   { id: 'rose',      label: 'Rose',       primary: '#f43f5e', lightBg: '#fff1f2', darkBg: '#4c0519' },
   { id: 'slate',     label: 'Slate',      primary: '#475569', lightBg: '#f8fafc', darkBg: '#0f172a' },
   { id: 'gold',      label: 'Gold',       primary: '#d4af37', lightBg: '#fffdf0', darkBg: '#0f0c00' },
-  { id: 'trueblack', label: 'True Black', primary: '#f97316', lightBg: '#f8fafc', darkBg: '#000000' },
-  { id: 'warm',      label: 'Warm',       primary: '#f97316', lightBg: '#fffdf7', darkBg: '#1a1208' },
+  { id: 'trueblack', label: 'True Black', primary: '#d1d5db', lightBg: '#f8fafc', darkBg: '#000000' },
+  { id: 'warm',      label: 'Warm',       primary: '#e07b39', lightBg: '#fffdf7', darkBg: '#1a1208' },
   { id: 'nord',      label: 'Nord',       primary: '#81a1c1', lightBg: '#eceff4', darkBg: '#2e3440' },
   { id: 'sepia',     label: 'Sepia',      primary: '#c0882a', lightBg: '#f5f0e8', darkBg: '#1a0f07' },
 ];

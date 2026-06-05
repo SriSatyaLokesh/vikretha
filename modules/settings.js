@@ -1,15 +1,17 @@
 ﻿/**
- * modules/settings.js — Settings Screen
- * Phase 8: Full staff email management with roles (admin / member).
+ * modules/settings.js — Combined Settings Screen (Phase 24 revised)
+ *
+ * Role-aware rendering:
+ *   owner  → Shop Identity + Receipt Branding + Theme + Staff Access
+ *   admin  → Staff Access only
+ *   member → redirect to dashboard (nothing to configure)
  */
-import { auth, db } from '../lib/firebase-init.js';
-import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { auth, db, applyTheme } from '../lib/firebase-init.js';
 import {
   doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
   FieldPath, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { SHOP_ID, COLOR_THEME } from '../shop.config.js';
-import { applyTheme } from '../lib/firebase-init.js';
+import { SHOP_ID, SHOP_NAME, LOGO_URL, RECEIPT_FOOTER, COLOR_THEME, THEME_PALETTES } from '../shop.config.js';
 import { toast } from '../lib/toast.js';
 
 function escapeHtml(str) {
@@ -23,64 +25,208 @@ function _isValidEmail(email) {
   return Boolean(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
 }
 
-export function render(container) {
+// ── Entry point ───────────────────────────────────────────────────────────────
+export async function render(container) {
   const user = auth.currentUser;
-  const currentEmail = user?.email || '';
+  if (!user?.email) return;
+
+  const currentEmail = user.email;
+  container.innerHTML = `<div style="padding:32px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+
+  let cfg = {};
+  try {
+    const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+    const snap = await getDoc(configRef);
+    cfg = snap.exists() ? snap.data() : {};
+  } catch (err) {
+    container.innerHTML = `<div class="admin-denied"><p>Could not load settings: ${escapeHtml(err.message)}</p></div>`;
+    return;
+  }
+
+  const role = cfg.staff_roles?.[currentEmail];
+
+  if (role === 'owner') {
+    _renderOwnerSettings(container, cfg, currentEmail);
+  } else if (role === 'admin') {
+    _renderAdminSettings(container, currentEmail);
+  } else {
+    // Members have no settings — redirect to dashboard
+    window.location.hash = '#/dashboard';
+  }
+}
+
+// ── Owner: full config + staff ────────────────────────────────────────────────
+function _renderOwnerSettings(container, cfg, currentEmail) {
+  const currentShopName = cfg.shopName       || SHOP_NAME;
+  const currentLogoUrl  = cfg.receiptLogoUrl || LOGO_URL        || '';
+  const currentFooter   = cfg.receiptFooter  || RECEIPT_FOOTER  || '';
 
   container.innerHTML = `
-    <div class="settings-wrap">
+    <div class="admin-settings-wrap">
 
-      <!-- Appearance -->
-      <div class="card settings-card" id="settings-appearance-card">
-        <p class="settings-section-label">Appearance</p>
-        <div class="settings-toggle-row">
-          <span class="settings-toggle-label">Dark mode</span>
-          <button id="dark-mode-toggle" class="toggle-btn" role="switch" aria-checked="false"
-                  aria-label="Toggle dark mode">
-            <span class="toggle-thumb"></span>
-          </button>
+      <!-- Shop Identity -->
+      <div class="card settings-card">
+        <p class="settings-section-label">Shop Identity</p>
+        <p class="settings-section-hint">Displayed in the sidebar, header, and on receipts.</p>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-shop-name">Shop Name</label>
+          <input id="admin-shop-name" type="text" class="admin-input"
+                 value="${escapeHtml(currentShopName)}"
+                 placeholder="My Kirana Store" maxlength="60" autocomplete="off" />
         </div>
+        <button id="save-shop-identity" class="btn btn-primary admin-save-btn">Save</button>
       </div>
 
-      <!-- Signed in as -->
+      <!-- Receipt Branding -->
       <div class="card settings-card">
-        <p class="settings-section-label">Signed in as</p>
-        <p class="settings-email-display">${escapeHtml(currentEmail || '—')}</p>
+        <p class="settings-section-label">Receipt Branding</p>
+        <p class="settings-section-hint">Logo and footer text printed on every receipt.</p>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-logo-url">Logo URL</label>
+          <input id="admin-logo-url" type="url" class="admin-input"
+                 value="${escapeHtml(currentLogoUrl)}"
+                 placeholder="https://example.com/logo.png" autocomplete="off" />
+          <p class="admin-field-hint">Leave empty to use shop name as wordmark on receipts.</p>
+        </div>
+        <div class="admin-field-group">
+          <label class="admin-field-label" for="admin-receipt-footer">Receipt Footer</label>
+          <textarea id="admin-receipt-footer" class="admin-textarea" rows="2"
+                    placeholder="Thank you for shopping with us!" maxlength="120">${escapeHtml(currentFooter)}</textarea>
+          <p class="admin-field-hint">Leave empty for the default "THANK YOU FOR SHOPPING!"</p>
+        </div>
+        <button id="save-receipt-branding" class="btn btn-primary admin-save-btn">Save</button>
+      </div>
+
+      <!-- Theme -->
+      <div class="card settings-card">
+        <p class="settings-section-label">Theme</p>
+        <p class="settings-section-hint">Changes app-wide colour palette for all users.</p>
+        <div class="theme-swatch-grid" id="settings-theme-grid" role="radiogroup" aria-label="Color theme">
+          ${THEME_PALETTES.map(p => `
+            <button class="theme-swatch" data-theme-id="${p.id}" role="radio"
+                    aria-label="${p.label}" title="${p.label}"
+                    style="--swatch-light:${p.lightBg};--swatch-dark:${p.darkBg};--swatch-accent:${p.primary}">
+              <span class="theme-swatch-chip">
+                <span class="theme-swatch-half theme-swatch-light"></span>
+                <span class="theme-swatch-half theme-swatch-dark"></span>
+                <span class="theme-swatch-accent-dot"></span>
+              </span>
+              <span class="theme-swatch-label">${p.label}</span>
+            </button>
+          `).join('')}
+        </div>
       </div>
 
       <!-- Staff Access -->
-      <div class="card settings-card" id="settings-staff-card">
-        <p class="settings-section-label">Staff Access</p>
-        <p class="settings-section-hint">
-          These email addresses can log in and access this shop's data.
-        </p>
-        <div id="staff-list" class="staff-email-list">
-          <p class="settings-loading">Loading…</p>
-        </div>
-        <form id="add-email-form" class="settings-add-form" novalidate>
-          <input id="add-email-input" type="email" class="settings-add-input"
-                 aria-label="Staff email address"
-                 placeholder="staff@example.com" autocomplete="off" />
-          <select id="add-role-select" class="settings-role-select" aria-label="Staff role">
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="submit" class="settings-add-btn">Add</button>
-        </form>
-        <p id="add-email-error" class="settings-error" style="display:none;"></p>
-      </div>
-
-      <!-- Sign out -->
-      <div class="card settings-card">
-        <button id="sign-out-btn" class="btn btn-full settings-signout-btn">
-          Sign Out
-        </button>
-      </div>
+      ${_staffSectionHTML()}
 
     </div>
   `;
 
-  // ── Load staff list ──────────────────────────────────────────
+  _bindOwnerHandlers(container, currentEmail);
+  _bindStaffHandlers(container, currentEmail);
+}
+
+// ── Admin: staff management only ─────────────────────────────────────────────
+function _renderAdminSettings(container, currentEmail) {
+  container.innerHTML = `
+    <div class="admin-settings-wrap">
+      ${_staffSectionHTML()}
+    </div>
+  `;
+  _bindStaffHandlers(container, currentEmail);
+}
+
+// ── Shared staff section HTML ─────────────────────────────────────────────────
+function _staffSectionHTML() {
+  return `
+    <div class="card settings-card" id="settings-staff-card">
+      <p class="settings-section-label">Staff Access</p>
+      <p class="settings-section-hint">Email addresses that can log in and access this shop's data.</p>
+      <div id="staff-list" class="staff-email-list">
+        <p class="settings-loading">Loading…</p>
+      </div>
+      <form id="add-email-form" class="settings-add-form" novalidate>
+        <input id="add-email-input" type="email" class="settings-add-input"
+               aria-label="Staff email address"
+               placeholder="staff@example.com" autocomplete="off" />
+        <select id="add-role-select" class="settings-role-select" aria-label="Staff role">
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit" class="settings-add-btn">Add</button>
+      </form>
+      <p id="add-email-error" class="settings-error" style="display:none;"></p>
+    </div>`;
+}
+
+// ── Owner-only: config section handlers ───────────────────────────────────────
+function _bindOwnerHandlers(container, currentEmail) {
+  // Theme picker active state
+  function _renderThemePicker() {
+    const active = document.documentElement.dataset.theme || 'orange';
+    container.querySelectorAll('.theme-swatch').forEach(btn => {
+      const isActive = btn.dataset.themeId === active;
+      btn.classList.toggle('theme-swatch--active', isActive);
+      btn.setAttribute('aria-checked', String(isActive));
+    });
+  }
+  _renderThemePicker();
+
+  container.querySelector('#settings-theme-grid').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.theme-swatch');
+    if (!btn) return;
+    const themeId = btn.dataset.themeId;
+    const isDark  = document.documentElement.dataset.dark === 'true';
+    applyTheme(themeId, isDark);
+    _renderThemePicker();
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { theme: themeId }, { merge: true });
+    } catch (err) {
+      console.error('[Vikretha] Could not save theme:', err);
+    }
+  });
+
+  // Shop Identity save
+  container.querySelector('#save-shop-identity').addEventListener('click', async (e) => {
+    const btn     = e.currentTarget;
+    const nameVal = container.querySelector('#admin-shop-name').value.trim();
+    if (!nameVal) { toast.error('Shop name cannot be empty'); return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { shopName: nameVal }, { merge: true });
+      const brandEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
+      if (brandEl) brandEl.textContent = nameVal;
+      toast.success('Shop name saved');
+    } catch (err) {
+      toast.error('Could not save: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+
+  // Receipt Branding save
+  container.querySelector('#save-receipt-branding').addEventListener('click', async (e) => {
+    const btn     = e.currentTarget;
+    const logoUrl = container.querySelector('#admin-logo-url').value.trim();
+    const footer  = container.querySelector('#admin-receipt-footer').value.trim();
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { receiptLogoUrl: logoUrl, receiptFooter: footer }, { merge: true });
+      toast.success('Receipt branding saved');
+    } catch (err) {
+      toast.error('Could not save: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+}
+
+// ── Shared: staff section handlers ───────────────────────────────────────────
+function _bindStaffHandlers(container, currentEmail) {
   async function _loadStaff() {
     const staffList = container.querySelector('#staff-list');
     staffList.innerHTML = '<p class="settings-loading">Loading…</p>';
@@ -96,7 +242,7 @@ export function render(container) {
       }
 
       staffList.innerHTML = emails.map(email => {
-        const role = roles[email] || 'member';
+        const role   = roles[email] || 'member';
         const isSelf = email === currentEmail;
         return `
           <div class="staff-email-item">
@@ -121,32 +267,10 @@ export function render(container) {
 
   _loadStaff();
 
-  // ── Appearance: dark mode toggle ───────────────────────────────────────
-  function _renderAppearance() {
-    const darkToggleBtn = container.querySelector('#dark-mode-toggle');
-    if (!darkToggleBtn) return;
-    const isDark = document.documentElement.dataset.dark === 'true';
-    darkToggleBtn.setAttribute('aria-checked', String(isDark));
-  }
-
-  _renderAppearance();
-
-  // Dark mode toggle
-  container.querySelector('#dark-mode-toggle').addEventListener('click', () => {
-    const isDark  = document.documentElement.dataset.dark === 'true';
-    const newDark = !isDark;
-    const activeTheme = document.documentElement.dataset.theme || COLOR_THEME;
-    applyTheme(activeTheme, newDark);
-    localStorage.setItem('vk_dark', String(newDark));
-    _renderAppearance();
-  });
-
-
-    // ── Remove email (delegated) ─────────────────────────────────
+  // Remove email
   container.querySelector('#staff-list').addEventListener('click', async (e) => {
     const btn = e.target.closest('.staff-remove-btn');
     if (!btn || btn.disabled) return;
-
     const emailToRemove = btn.dataset.email;
     toast.confirm('Remove access for ' + emailToRemove + '?', async () => {
       btn.disabled = true;
@@ -167,15 +291,15 @@ export function render(container) {
     });
   });
 
-  // ── Add email ────────────────────────────────────────────────
+  // Add email
   container.querySelector('#add-email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input     = container.querySelector('#add-email-input');
+    const input      = container.querySelector('#add-email-input');
     const roleSelect = container.querySelector('#add-role-select');
-    const errorEl   = container.querySelector('#add-email-error');
-    const submitBtn = container.querySelector('.settings-add-btn');
-    const email = input.value.trim().toLowerCase();
-    const role  = roleSelect.value;
+    const errorEl    = container.querySelector('#add-email-error');
+    const submitBtn  = container.querySelector('.settings-add-btn');
+    const email      = input.value.trim().toLowerCase();
+    const role       = roleSelect.value;
 
     errorEl.style.display = 'none';
 
@@ -189,9 +313,7 @@ export function render(container) {
     submitBtn.textContent = 'Adding...';
     try {
       const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
-      // setDoc+merge ensures doc is created if it doesn't exist yet
       await setDoc(configRef, { authorized_emails: arrayUnion(email) }, { merge: true });
-      // Write role into staff_roles map using FieldPath to handle dots in email
       await updateDoc(configRef, new FieldPath('staff_roles', email), role);
       input.value = '';
       roleSelect.value = 'member';
@@ -203,23 +325,6 @@ export function render(container) {
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add';
-    }
-  });
-
-
-  // ── Sign out ─────────────────────────────────────────────────
-  container.querySelector('#sign-out-btn').addEventListener('click', async () => {
-    const btn = container.querySelector('#sign-out-btn');
-    btn.disabled = true;
-    btn.textContent = 'Signing out...';
-    try {
-      await signOut(auth);
-      // onAuthStateChanged fires → clears DOM + renders auth screen
-      window.location.hash = '';
-    } catch (err) {
-      console.error('[Vikretha] Sign out failed:', err);
-      btn.disabled = false;
-      btn.textContent = 'Sign Out';
     }
   });
 }
