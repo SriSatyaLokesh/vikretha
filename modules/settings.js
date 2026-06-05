@@ -8,7 +8,7 @@ import {
   doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
   FieldPath, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { SHOP_ID, COLOR_THEME } from '../shop.config.js';
+import { SHOP_ID, COLOR_THEME, THEME_PALETTES } from '../shop.config.js';
 import { applyTheme } from '../lib/firebase-init.js';
 import { toast } from '../lib/toast.js';
 
@@ -39,6 +39,21 @@ export function render(container) {
                   aria-label="Toggle dark mode">
             <span class="toggle-thumb"></span>
           </button>
+        </div>
+        <p class="settings-section-sublabel">Theme</p>
+        <div class="theme-swatch-grid" id="theme-swatch-grid" role="radiogroup" aria-label="Color theme">
+          ${THEME_PALETTES.map(p => `
+            <button class="theme-swatch" data-theme-id="${p.id}" role="radio"
+                    aria-label="${p.label}" title="${p.label}"
+                    style="--swatch-light:${p.lightBg};--swatch-dark:${p.darkBg};--swatch-accent:${p.primary}">
+              <span class="theme-swatch-chip">
+                <span class="theme-swatch-half theme-swatch-light"></span>
+                <span class="theme-swatch-half theme-swatch-dark"></span>
+                <span class="theme-swatch-accent-dot"></span>
+              </span>
+              <span class="theme-swatch-label">${p.label}</span>
+            </button>
+          `).join('')}
         </div>
       </div>
 
@@ -135,7 +150,8 @@ export function render(container) {
   container.querySelector('#dark-mode-toggle').addEventListener('click', async () => {
     const isDark  = document.documentElement.dataset.dark === 'true';
     const newDark = !isDark;
-    applyTheme(COLOR_THEME, newDark);
+    const activeTheme = document.documentElement.dataset.theme || COLOR_THEME;
+    applyTheme(activeTheme, newDark);
     localStorage.setItem('vk_dark', String(newDark));
     _renderAppearance();
     try {
@@ -143,6 +159,33 @@ export function render(container) {
       await setDoc(configRef, { darkMode: newDark }, { merge: true });
     } catch (err) {
       console.error('[Vikretha] Could not save dark mode:', err);
+    }
+  });
+
+  // ── Appearance: theme picker ──────────────────────────────────────────
+  function _renderThemePicker() {
+    const currentTheme = document.documentElement.dataset.theme || 'orange';
+    container.querySelectorAll('.theme-swatch').forEach(btn => {
+      const active = btn.dataset.themeId === currentTheme;
+      btn.classList.toggle('theme-swatch--active', active);
+      btn.setAttribute('aria-checked', String(active));
+    });
+  }
+
+  _renderThemePicker();
+
+  container.querySelector('#theme-swatch-grid').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.theme-swatch');
+    if (!btn) return;
+    const themeId = btn.dataset.themeId;
+    const isDark  = document.documentElement.dataset.dark === 'true';
+    applyTheme(themeId, isDark);
+    _renderThemePicker();
+    try {
+      const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
+      await setDoc(configRef, { theme: themeId }, { merge: true });
+    } catch (err) {
+      console.error('[Vikretha] Could not save theme:', err);
     }
   });
 

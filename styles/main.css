@@ -1271,33 +1271,6 @@ select.form-input { cursor: pointer; }
   --surface-press:  rgba(255, 255, 255, 0.12);  /* pressed / active fills */
 }
 
-/* ================================================================
-   THEME PICKER UI — used in Settings screen (plan 17-02)
-   ================================================================ */
-
-.theme-swatch-grid {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.theme-swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: 3px solid transparent;
-  cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  outline: none;
-  flex-shrink: 0;
-}
-.theme-swatch:hover { transform: scale(1.12); }
-.theme-swatch:focus-visible { box-shadow: 0 0 0 3px var(--primary-ring); }
-.theme-swatch.active {
-  box-shadow: 0 0 0 3px var(--bg-surface), 0 0 0 6px var(--primary);
-}
-
 /* Settings dark mode toggle row */
 .settings-toggle-row {
   display: flex;
@@ -1880,3 +1853,89 @@ a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
 /* Phase 21 pivot: nav brand logo / wordmark */
 .sidebar-brand-logo { width: 34px; height: 34px; border-radius: var(--radius-sm); object-fit: contain; flex-shrink: 0; }
 .sidebar-brand-wordmark { font-family: 'Dancing Script', cursive; font-size: 1.5rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; padding: 4px 0; }
+
+/* ================================================================
+   THEME SWATCH PICKER — Settings Appearance section
+   ================================================================ */
+
+.settings-section-sublabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+
+.theme-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.theme-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.theme-swatch:hover {
+  background: var(--surface-hover);
+}
+
+.theme-swatch--active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Mini preview chip: left half = light bg, right half = dark bg, dot = accent */
+.theme-swatch-chip {
+  position: relative;
+  width: 40px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.theme-swatch-half {
+  flex: 1;
+  display: block;
+}
+
+.theme-swatch-light { background: var(--swatch-light); }
+.theme-swatch-dark  { background: var(--swatch-dark);  }
+
+/* Accent dot centered over the split */
+.theme-swatch-accent-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--swatch-accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.theme-swatch-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
