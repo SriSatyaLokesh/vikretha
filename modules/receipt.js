@@ -74,7 +74,7 @@ async function _drawReceipt(sale, cfg = {}) {
 
   // ── Canvas height calculation ─────────────────────────────────────────────
   let bodyH = 22;
-  bodyH += 68;                          // logo image OR script-font wordmark
+  bodyH += 72;                          // logo image OR script-font wordmark
   bodyH += 28;                           // shop name
   bodyH += 14;                           // gap + deco line 1
   bodyH += LH + 10;                      // deco RECEIPT + gap
@@ -150,7 +150,16 @@ async function _drawReceipt(sale, cfg = {}) {
     await new Promise(res => {
       const img   = new Image();
       const timer = setTimeout(res, 2000);
-      img.onload  = () => { clearTimeout(timer); ctx.drawImage(img, (WIDTH - 56) / 2, y, 56, 56); res(); };
+      img.onload  = () => {
+        clearTimeout(timer);
+        // Fit logo inside 240×52 bounding box, preserving aspect ratio
+        const MAX_W = 240; const MAX_H = 52;
+        const ratio = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight);
+        const dw = img.naturalWidth * ratio;
+        const dh = img.naturalHeight * ratio;
+        ctx.drawImage(img, (WIDTH - dw) / 2, y + (MAX_H - dh) / 2, dw, dh);
+        res();
+      };
       img.onerror = () => { clearTimeout(timer); res(); };
       img.src     = _logoUrl;
     });
@@ -164,7 +173,7 @@ async function _drawReceipt(sale, cfg = {}) {
     ctx.fillText(_shopName, WIDTH / 2, y + 44);
     ctx.restore();
   }
-  y += 68;
+  y += 72;
 
   // ── Shop name ─────────────────────────────────────────────────────────────
   ctx.font      = `bold 20px ${FONT}`;
