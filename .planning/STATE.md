@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 2 (v1.1 — Polish & Features)
-- **Phase:** 25 (Billing UX Fixes & Payment Mode — 🔲 Not Started)
-- **Next action:** Run `/gsd-plan-phase 25`
-- **Last session:** 2026-06-06 — Phase 25 added (UAT fixes: WhatsApp customer phone, login shop name, receipt black canvas, payment mode capture)
+- **Phase:** 22 or 24 (next to plan)
+- **Next action:** Run `/gsd-plan-phase 22` or `/gsd-plan-phase 24`
+- **Last session:** 2026-06-06 — Phase 25 complete (UAT approved). Fixes: WhatsApp customer routing, login shop name, receipt pitch white, footer text bug, billing payment mode (Cash/UPI/Card/Split), phone normalization (Indian +91), mobile reports panel fix.
 
 ## Phase Progress
 
@@ -21,7 +21,7 @@
 | 22 | Setup Simplification | 🔲 Not Started |
 | 23 | Full-Spectrum Theme Palettes | ✅ Complete |
 | 24 | Admin Settings Panel | 🔲 Not Started |
-| 25 | Billing UX Fixes & Payment Mode | 🔲 Not Started |
+| 25 | Billing UX Fixes & Payment Mode | ✅ Complete |
 
 ### Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
