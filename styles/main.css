@@ -134,9 +134,10 @@ ul, ol { list-style: none; }
   flex: 1; display: flex; align-items: center; overflow: hidden; min-width: 0;
 }
 .header-brand-wordmark {
-  font-size: 1.05rem; font-weight: 700; color: var(--text-primary);
+  font-family: 'Kaushan Script', cursive;
+  font-size: 1.35rem; color: var(--primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  letter-spacing: -0.01em;
+  line-height: 1; padding: 2px 0;
 }
 .header-brand-logo {
   height: 28px; width: auto; max-width: 140px; object-fit: contain; display: block;
