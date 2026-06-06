@@ -29,14 +29,14 @@ export async function render(container) {
 
 // ----- Brand panel (shared by sign-in + create-account steps) -----
 function _buildBrandPanel(cfg = {}) {
-  const tagline  = cfg.loginTagline    || 'Run your shop<br><span>for free.</span>';
-  const desc     = cfg.loginDesc       || 'Everything your shop needs — billing, inventory, receipts, and reports — in one simple app.';
+  const tagline  = cfg.loginTagline    || 'Run your shop<br><span>for free</span> with <span> Vikretha - విక్రేత.</span>';
+  const desc     = cfg.loginDesc       || 'Everything your shop needs - billing, inventory, receipts, and reports - in one simple app.';
   const rawFeatures = cfg.loginFeatures
     ? cfg.loginFeatures.split('\n').map(f => f.trim()).filter(Boolean)
     : [
-        'Instant billing &amp; WhatsApp receipts',
+        'Instant billing; WhatsApp receipts',
         'Inventory with low-stock alerts',
-        'Daily &amp; monthly sales reports',
+        'Daily; monthly sales reports',
         'Multi-staff access management',
       ];
   const featuresHTML = rawFeatures
