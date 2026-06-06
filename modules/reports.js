@@ -69,13 +69,17 @@ function _switchTab(tab, container) {
   const salesPane = container.querySelector('.reports-list-wrap');
   const salesPagn = container.querySelector('#rpt-pagination');
   const custPane  = container.querySelector('#rpt-customers-pane');
-  const filterBar = container.querySelector('.rpt-toolbar');
-  const statsBar  = container.querySelector('#rpt-stats-bar');
-  if (salesPane)  salesPane.style.display  = tab === 'sales' ? '' : 'none';
-  if (salesPagn)  salesPagn.style.display  = tab === 'sales' ? '' : 'none';
-  if (custPane)   custPane.style.display   = tab === 'customers' ? '' : 'none';
-  if (filterBar)  filterBar.style.display  = tab === 'sales' ? '' : 'none';
-  if (statsBar)   statsBar.style.display   = tab === 'sales' ? '' : 'none';
+  const filterBar   = container.querySelector('.rpt-toolbar');
+  const filterPanel = container.querySelector('#rpt-filter-panel');
+  const activeChips = container.querySelector('#rpt-active-chips');
+  const statsBar    = container.querySelector('#rpt-stats-bar');
+  if (salesPane)   salesPane.style.display   = tab === 'sales' ? '' : 'none';
+  if (salesPagn)   salesPagn.style.display   = tab === 'sales' ? '' : 'none';
+  if (custPane)    custPane.style.display    = tab === 'customers' ? '' : 'none';
+  if (filterBar)   filterBar.style.display   = tab === 'sales' ? '' : 'none';
+  if (filterPanel) filterPanel.style.display = tab === 'sales' ? '' : 'none';
+  if (activeChips) activeChips.style.display = tab === 'sales' ? '' : 'none';
+  if (statsBar)    statsBar.style.display    = tab === 'sales' ? '' : 'none';
   if (tab === 'customers') _loadAllCustomers(container);
 }
 
@@ -266,11 +270,68 @@ function _applyPreset(preset) {
   const toEl   = document.getElementById('rpt-to');
   if (fromEl) fromEl.value = from;
   if (toEl)   toEl.value   = to;
+  // Collapse custom date section when a preset is used
+  const customBody = document.getElementById('rpt-custom-date-body');
+  const customToggle = document.getElementById('rpt-custom-date-toggle');
+  if (customBody?.classList.contains('rpt-custom-date-body--open')) {
+    customBody.classList.remove('rpt-custom-date-body--open');
+    if (customToggle) customToggle.setAttribute('aria-expanded', 'false');
+  }
   document.querySelectorAll('.rpt-preset-pill').forEach(b => {
     b.classList.toggle('rpt-preset-pill--active', b.dataset.preset === preset);
   });
   _loadSales(true);
   _updateFilterBadge();
+}
+
+function _renderActiveChips() {
+  const chipsEl = document.getElementById('rpt-active-chips');
+  if (!chipsEl) return;
+
+  // Only show chips when panel is CLOSED
+  if (_filterPanelOpen) { chipsEl.innerHTML = ''; return; }
+
+  const chips = [];
+  if (_fromDate || _toDate) {
+    const activePreset = document.querySelector('.rpt-preset-pill--active');
+    const presetMap = { today: 'Today', yesterday: 'Yesterday', week: 'This week', month: 'This month', last30: 'Last 30 days' };
+    const label = activePreset ? (presetMap[activePreset.dataset.preset] || 'Date') : (_fromDate === _toDate ? _fromDate : (_fromDate + ' – ' + _toDate));
+    chips.push({ label, key: 'date', cls: 'rpt-chip--date' });
+  }
+  if (_payFilter !== 'all') {
+    chips.push({ label: { cash: 'Cash', upi: 'UPI', card: 'Card', split: 'Split' }[_payFilter] || _payFilter, key: 'pay', cls: 'rpt-chip--pay' });
+  }
+  if (_amtMin != null || _amtMax != null) {
+    const min = _amtMin != null ? '₹' + _amtMin : '';
+    const max = _amtMax != null ? '₹' + _amtMax : '';
+    chips.push({ label: (min && max) ? min + '–' + max : min ? '≥' + min : '≤' + max, key: 'amt', cls: 'rpt-chip--amt' });
+  }
+  if (_sortOrder !== 'newest') {
+    const sortMap = { oldest: 'Oldest first', amount_desc: 'Amt ↓', amount_asc: 'Amt ↑', items_desc: 'Items ↓', items_asc: 'Items ↑' };
+    chips.push({ label: sortMap[_sortOrder] || _sortOrder, key: 'sort', cls: 'rpt-chip--sort' });
+  }
+
+  if (!chips.length) { chipsEl.innerHTML = ''; return; }
+
+  chipsEl.innerHTML = chips.map(c =>
+    `<button class="rpt-active-chip ${escapeHtml(c.cls)}" data-chip-key="${escapeHtml(c.key)}"
+             aria-label="Active filter: ${escapeHtml(c.label)}. Tap to edit."
+             title="Tap to open filters">${escapeHtml(c.label)}</button>`
+  ).join('');
+
+  // Tapping any chip opens the filter panel
+  chipsEl.querySelectorAll('.rpt-active-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel  = document.getElementById('rpt-filter-panel');
+      const toggle = document.getElementById('rpt-filter-toggle');
+      if (!_filterPanelOpen) {
+        _filterPanelOpen = true;
+        if (panel)  { panel.classList.add('rpt-filter-panel--open'); panel.setAttribute('aria-hidden', 'false'); }
+        if (toggle) { toggle.setAttribute('aria-expanded', 'true'); toggle.classList.add('rpt-filter-toggle-btn--open'); }
+        _renderActiveChips();
+      }
+    });
+  });
 }
 
 function _updateFilterBadge() {
@@ -286,6 +347,7 @@ function _updateFilterBadge() {
   }
   const exportBtn = document.getElementById('rpt-export-filtered-btn');
   if (exportBtn) exportBtn.style.display = count > 0 ? '' : 'none';
+  _renderActiveChips();
 }
 
 // ── SheetJS helpers ───────────────────────────────────────────────────────────
@@ -1105,94 +1167,102 @@ export async function render(container, routeParam = null) {
                placeholder="Search by Sale ID, name or phone..." aria-label="Search sales">
         <button id="rpt-filter-toggle" class="btn btn-ghost btn-sm rpt-filter-toggle-btn"
                 aria-expanded="false" aria-controls="rpt-filter-panel">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-          Filters
+          <svg class="rpt-filter-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <span class="rpt-filter-btn-label">Filters</span>
           <span id="rpt-filter-badge" class="rpt-filter-badge" style="display:none">0</span>
         </button>
         <button id="rpt-export-filtered-btn" class="btn btn-ghost btn-sm" style="display:none" title="Export filtered results to Excel">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
       </div>
 
-      <!-- Collapsible filter panel -->
-      <div id="rpt-filter-panel" class="rpt-filter-panel" style="display:none" role="region" aria-label="Sales filters">
+      <!-- Active filter chips (shown when panel is closed and filters are active) -->
+      <div id="rpt-active-chips" class="rpt-active-chips" aria-live="polite"></div>
 
-        <!-- Row 1: Preset date shortcuts -->
-        <div class="rpt-filter-row">
-          <span class="rpt-filter-label">Date</span>
-          <div class="rpt-preset-pills">
-            <button class="rpt-preset-pill" data-preset="today">Today</button>
-            <button class="rpt-preset-pill" data-preset="yesterday">Yesterday</button>
-            <button class="rpt-preset-pill" data-preset="week">This week</button>
-            <button class="rpt-preset-pill" data-preset="month">This month</button>
-            <button class="rpt-preset-pill" data-preset="last30">Last 30 days</button>
-          </div>
-        </div>
+      <!-- Collapsible filter panel (CSS-animated — no display toggle) -->
+      <div id="rpt-filter-panel" class="rpt-filter-panel" aria-hidden="true" role="region" aria-label="Sales filters">
+        <div class="rpt-filter-panel-inner">
 
-        <!-- Row 2: Custom date range -->
-        <div class="rpt-filter-row rpt-filter-row--custom-date">
-          <div class="rpt-filter-group">
-            <span class="rpt-filter-label">From</span>
-            <div class="rpt-datetime-pair">
-              <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
-              <input type="time" id="rpt-from-time" class="rpt-time-input" aria-label="From time">
+          <!-- Row 1: Payment method pills — instant, most used -->
+          <div class="rpt-filter-row">
+            <span class="rpt-filter-label">Payment</span>
+            <div class="rpt-pay-pills">
+              <button class="rpt-pay-pill rpt-pay-pill--active" data-pay="all">All</button>
+              <button class="rpt-pay-pill" data-pay="cash">Cash</button>
+              <button class="rpt-pay-pill" data-pay="upi">UPI</button>
+              <button class="rpt-pay-pill" data-pay="card">Card</button>
+              <button class="rpt-pay-pill" data-pay="split">Split</button>
             </div>
           </div>
-          <span class="rpt-date-sep">&#x2192;</span>
-          <div class="rpt-filter-group">
-            <span class="rpt-filter-label">To</span>
-            <div class="rpt-datetime-pair">
-              <input type="date" id="rpt-to" class="rpt-date-input" aria-label="To date">
-              <input type="time" id="rpt-to-time" class="rpt-time-input" aria-label="To time">
+
+          <!-- Row 2: Quick date presets -->
+          <div class="rpt-filter-row">
+            <span class="rpt-filter-label">Quick date</span>
+            <div class="rpt-preset-pills">
+              <button class="rpt-preset-pill" data-preset="today">Today</button>
+              <button class="rpt-preset-pill" data-preset="yesterday">Yesterday</button>
+              <button class="rpt-preset-pill" data-preset="week">This week</button>
+              <button class="rpt-preset-pill" data-preset="month">This month</button>
+              <button class="rpt-preset-pill" data-preset="last30">Last 30 days</button>
             </div>
           </div>
-          <div class="rpt-filter-btns">
-            <button id="rpt-filter-btn" class="btn btn-primary btn-sm">Apply</button>
-          </div>
-        </div>
 
-        <!-- Row 3: Payment method pills -->
-        <div class="rpt-filter-row">
-          <span class="rpt-filter-label">Payment</span>
-          <div class="rpt-pay-pills">
-            <button class="rpt-pay-pill rpt-pay-pill--active" data-pay="all">All</button>
-            <button class="rpt-pay-pill" data-pay="cash">Cash</button>
-            <button class="rpt-pay-pill" data-pay="upi">UPI</button>
-            <button class="rpt-pay-pill" data-pay="card">Card</button>
-            <button class="rpt-pay-pill" data-pay="split">Split</button>
+          <!-- Row 3: Sort + Amount range + Clear (same row) -->
+          <div class="rpt-filter-row rpt-filter-row--controls">
+            <div class="rpt-filter-group rpt-sort-group">
+              <span class="rpt-filter-label">Sort by</span>
+              <select id="rpt-sort" class="rpt-sort-select" aria-label="Sort order">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="amount_desc">Amount &#x2193;</option>
+                <option value="amount_asc">Amount &#x2191;</option>
+                <option value="items_desc">Items &#x2193;</option>
+                <option value="items_asc">Items &#x2191;</option>
+              </select>
+            </div>
+            <div class="rpt-filter-group rpt-amt-group">
+              <span class="rpt-filter-label">Amount &#x20b9;</span>
+              <div class="rpt-amt-range">
+                <input type="number" id="rpt-amt-min" class="rpt-amt-input" placeholder="Min" min="0" aria-label="Minimum amount">
+                <span class="rpt-date-sep">&#x2013;</span>
+                <input type="number" id="rpt-amt-max" class="rpt-amt-input" placeholder="Max" min="0" aria-label="Maximum amount">
+              </div>
+            </div>
+            <button id="rpt-clear-btn" class="btn btn-sm btn-ghost rpt-clear-btn">&#x2715; Clear</button>
           </div>
-        </div>
 
-        <!-- Row 4: Amount range + Sort -->
-        <div class="rpt-filter-row rpt-filter-row--inline">
-          <div class="rpt-filter-group">
-            <span class="rpt-filter-label">Min &#x20b9;</span>
-            <input type="number" id="rpt-amt-min" class="rpt-amt-input" placeholder="0" min="0" aria-label="Minimum amount">
+          <!-- Row 4: Custom date range (collapsed by default) -->
+          <div class="rpt-custom-date-wrap">
+            <button id="rpt-custom-date-toggle" class="rpt-custom-date-trigger" aria-expanded="false" aria-controls="rpt-custom-date-body">
+              <svg class="rpt-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              Custom date range
+            </button>
+            <div id="rpt-custom-date-body" class="rpt-custom-date-body">
+              <div class="rpt-filter-row rpt-filter-row--custom-date">
+                <div class="rpt-filter-group">
+                  <span class="rpt-filter-label">From</span>
+                  <div class="rpt-datetime-pair">
+                    <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
+                    <input type="time" id="rpt-from-time" class="rpt-time-input" aria-label="From time">
+                  </div>
+                </div>
+                <span class="rpt-date-sep">&#x2192;</span>
+                <div class="rpt-filter-group">
+                  <span class="rpt-filter-label">To</span>
+                  <div class="rpt-datetime-pair">
+                    <input type="date" id="rpt-to" class="rpt-date-input" aria-label="To date">
+                    <input type="time" id="rpt-to-time" class="rpt-time-input" aria-label="To time">
+                  </div>
+                </div>
+                <div class="rpt-filter-btns">
+                  <button id="rpt-filter-btn" class="btn btn-primary btn-sm">Apply dates</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <span class="rpt-date-sep">&#x2013;</span>
-          <div class="rpt-filter-group">
-            <span class="rpt-filter-label">Max &#x20b9;</span>
-            <input type="number" id="rpt-amt-max" class="rpt-amt-input" placeholder="Any" min="0" aria-label="Maximum amount">
-          </div>
-          <div class="rpt-filter-group rpt-sort-group">
-            <span class="rpt-filter-label">Sort by</span>
-            <select id="rpt-sort" class="rpt-sort-select" aria-label="Sort order">
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="amount_desc">Amount &#x2193;</option>
-              <option value="amount_asc">Amount &#x2191;</option>
-              <option value="items_desc">Items &#x2193;</option>
-              <option value="items_asc">Items &#x2191;</option>
-            </select>
-          </div>
-        </div>
 
-        <!-- Row 5: Clear all -->
-        <div class="rpt-filter-row rpt-filter-row--actions">
-          <button id="rpt-clear-btn" class="btn btn-sm btn-ghost">&#x2715; Clear all filters</button>
         </div>
-
       </div>
 
       <!-- Stats summary (Sales tab only) -->
@@ -1237,13 +1307,28 @@ export async function render(container, routeParam = null) {
 
   // ── Event bindings ────────────────────────────────────────────────────────
 
-  // Filter toggle
+  // Filter toggle — CSS-animated via class
   container.querySelector('#rpt-filter-toggle').addEventListener('click', () => {
     _filterPanelOpen = !_filterPanelOpen;
     const panel = container.querySelector('#rpt-filter-panel');
     const btn   = container.querySelector('#rpt-filter-toggle');
-    if (panel) panel.style.display = _filterPanelOpen ? '' : 'none';
-    if (btn)   btn.setAttribute('aria-expanded', String(_filterPanelOpen));
+    if (panel) {
+      panel.classList.toggle('rpt-filter-panel--open', _filterPanelOpen);
+      panel.setAttribute('aria-hidden', String(!_filterPanelOpen));
+    }
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(_filterPanelOpen));
+      btn.classList.toggle('rpt-filter-toggle-btn--open', _filterPanelOpen);
+    }
+    _renderActiveChips();
+  });
+
+  // Custom date range toggle
+  container.querySelector('#rpt-custom-date-toggle')?.addEventListener('click', () => {
+    const body = container.querySelector('#rpt-custom-date-body');
+    const btn  = container.querySelector('#rpt-custom-date-toggle');
+    const open = body?.classList.toggle('rpt-custom-date-body--open');
+    if (btn) btn.setAttribute('aria-expanded', String(!!open));
   });
 
   // Preset date pills
