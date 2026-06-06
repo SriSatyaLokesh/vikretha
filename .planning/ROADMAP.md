@@ -321,6 +321,45 @@ Plans:
 
 ---
 
+### Phase 25 — Billing UX Fixes & Payment Mode
+
+**Goal:** Fix four UAT-surfaced issues and add payment mode capture to the sale flow: WhatsApp share uses the customer's phone from the sale; login screen reads shop name from Firestore config; receipt canvas uses pitch-black text/lines for print quality; billing collects Cash / UPI / Card with optional split-payment breakdown.
+
+**Delivers:** WhatsApp receipt button opens a pre-filled chat to the customer who made the purchase. Login shows the correct configured shop name. Receipts print cleanly with black text. Cashiers record how payment was made; owners can see payment breakdown in sale history.
+
+**Requirements covered:** FR-BUG-01, FR-BUG-02, FR-BUG-03, FR-PAY-01, FR-PAY-02, FR-PAY-03
+
+**Depends on:** Phase 4 (receipt.js + WhatsApp share), Phase 2 (auth.js login screen), Phase 21 (receipt canvas), Phase 3 (billing submit flow), Phase 15 (sale detail panel)
+
+**Key tasks:**
+- `modules/receipt.js` — WhatsApp share: use `sale.customer_phone` (already stored on sale doc) to build `https://wa.me/{phone}?text={encoded-receipt}` URL; fall back to `WHATSAPP_NUMBER` from shop config if no customer phone on the sale
+- `modules/auth.js` — login screen shop name: read `config/main.shopName` from Firestore (same getConfig pattern used elsewhere); display it in the subtitle and page title; fall back to `SHOP_NAME` from `shop.config.js` if not set
+- `modules/receipt.js` — receipt canvas: change all `fillStyle` / `strokeStyle` for text, lines, and dividers to `#000000`; remove any grey or muted color assignments in the canvas draw path
+- `modules/billing.js` — payment mode: add a "Payment" section to the cart panel (below Customer Name, above Submit); radio/button group for Cash / UPI / Card; "Split Payment" toggle that reveals three optional number inputs (Cash ₹, UPI ₹, Card ₹); validation: if split mode, sum must equal total (or show warning, not block); store `payment_mode` (string: `'cash'|'upi'|'card'|'split'`) and `payment_split` (`{cash, upi, card}` — null if not split) on the sale document
+- `firestore.rules` — add `payment_mode` to required fields list in the sales `allow create` rule
+- `modules/billing.js` (sale detail panel / receipt) — display payment mode badge on submitted sale confirmation screen
+- `styles/main.css` — payment mode button group styles; split input row layout
+
+**UAT:**
+- [ ] Sale with customer phone → WhatsApp button opens `wa.me/{customer_phone}` (not the shop number)
+- [ ] Sale without customer phone → WhatsApp button falls back to `WHATSAPP_NUMBER` from config
+- [ ] Login screen subtitle shows configured shop name from Firestore (not hardcoded "My Shop")
+- [ ] If `config/main.shopName` is not set → falls back to `SHOP_NAME` from `shop.config.js`
+- [ ] Receipt canvas PNG: all text is #000000; no grey lines or muted text
+- [ ] Print receipt → text is clearly legible and black on white
+- [ ] Billing screen shows Payment section: Cash / UPI / Card buttons
+- [ ] Selecting "Split Payment" reveals three optional amount inputs
+- [ ] Submitting a sale saves `payment_mode` on the Firestore sale doc
+- [ ] Split mode: entering partial amounts is allowed (no hard block if sum ≠ total)
+- [ ] Sale confirmation screen shows a payment mode badge (e.g. "Cash" or "Split: ₹200 Cash + ₹150 UPI")
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 25-01-PLAN.md — WhatsApp customer phone fix + login shop name fix + receipt black canvas fix
+- [ ] 25-02-PLAN.md — Payment mode UI in billing (Cash/UPI/Card + split) + Firestore field + sale detail badge + UAT checkpoint
+
+---
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
 > All 16 phases complete. See `.planning/reports/MILESTONE_SUMMARY-v1.md`.

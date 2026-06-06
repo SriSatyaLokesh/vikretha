@@ -3,9 +3,9 @@
 ## Current Status
 
 - **Milestone:** 2 (v1.1 — Polish & Features)
-- **Phase:** 21 (Branded Receipt — 🔲 Not Started)
-- **Next action:** Run `/gsd-plan-phase 21`
-- **Last session:** 2026-06-04 — Phase 20 approved by owner; Phases 19 (SVG Charts, skipped for now) and 21 (Branded Receipt) are next
+- **Phase:** 25 (Billing UX Fixes & Payment Mode — 🔲 Not Started)
+- **Next action:** Run `/gsd-plan-phase 25`
+- **Last session:** 2026-06-06 — Phase 25 added (UAT fixes: WhatsApp customer phone, login shop name, receipt black canvas, payment mode capture)
 
 ## Phase Progress
 
@@ -21,6 +21,7 @@
 | 22 | Setup Simplification | 🔲 Not Started |
 | 23 | Full-Spectrum Theme Palettes | ✅ Complete |
 | 24 | Admin Settings Panel | 🔲 Not Started |
+| 25 | Billing UX Fixes & Payment Mode | 🔲 Not Started |
 
 ### Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
