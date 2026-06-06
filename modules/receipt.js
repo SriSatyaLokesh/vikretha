@@ -34,7 +34,7 @@ async function _drawReceipt(sale, cfg = {}) {
   const _footer    = (cfg.receiptFooter  || '').trim() || RECEIPT_FOOTER;
 
   // ── Palette — bright thermal paper ──────────────────────────────────────
-  const PAPER    = '#FEFEF8';   // bright white with micro warmth
+  const PAPER    = '#FFFFFF';   // pitch white for crisp print
   const INK      = '#000000';   // pitch black for print
   const MUTED    = '#333333';   // dark grey for secondary labels
   const FAINT    = '#888888';   // deco dots
