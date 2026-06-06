@@ -409,12 +409,12 @@ Plans:
 - [ ] Active badge shows correct filter count
 - [ ] Export downloads filtered results only
 
-**Plans:** To be planned
+**Plans:** **Plans:** 3 plans
 
 Plans:
-- [ ] 26-01-PLAN.md — Filter panel UI (all dimensions) + active badge + clear all + CSS
-- [ ] 26-02-PLAN.md — Firestore query builder + client-side post-filter + summary chips + payment breakdown
-- [ ] 26-03-PLAN.md — Export filtered results + staff dropdown + UAT checkpoint
+- [ ] 26-01-PLAN.md — Filter panel UI + preset dates + payment pills + sort + active badge + CSS
+- [ ] 26-02-PLAN.md — _applyAllFilters() engine + enhanced stats chips + payment breakdown
+- [ ] 26-03-PLAN.md — Export filtered results to Excel + UAT checkpoint
 
 ---
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
