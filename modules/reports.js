@@ -1,4 +1,4 @@
-﻿/**
+/**
  * modules/reports.js - Sales History & Bill Management
  * Paginated sales list with date-range filter, search, detail panel, and receipt navigation.
  * Exported: render(container, routeParam) - called by app.js on #/reports route.
@@ -10,6 +10,7 @@ import {
   getDocs, getDoc, updateDoc, serverTimestamp, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
+import { toast } from '../lib/toast.js';
 
 // ── Module state ──────────────────────────────────────────────────────────────
 let _allDocs  = [];   // loaded QueryDocumentSnapshots
@@ -23,6 +24,16 @@ let _toTime   = null;
 let _searchTimer = null;
 let _escKeyHandler = null;
 let _invCache = null; // inventory items cache (fetched once per session)
+
+// ── SheetJS cache ─────────────────────────────────────────────────────────────
+let _rptXLSX = null;
+
+// ── Advanced filter state ─────────────────────────────────────────────────────
+let _payFilter      = 'all';    // 'all' | 'cash' | 'upi' | 'card' | 'split'
+let _sortOrder      = 'newest'; // 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'items_desc' | 'items_asc'
+let _amtMin         = null;     // number or null
+let _amtMax         = null;     // number or null
+let _filterPanelOpen = false;
 
 // ── Customers tab state ───────────────────────────────────────────────────────
 let _activeTab       = 'sales';   // 'sales' | 'customers'
@@ -58,7 +69,7 @@ function _switchTab(tab, container) {
   const salesPane = container.querySelector('.reports-list-wrap');
   const salesPagn = container.querySelector('#rpt-pagination');
   const custPane  = container.querySelector('#rpt-customers-pane');
-  const filterBar = container.querySelector('.reports-filter-bar');
+  const filterBar = container.querySelector('.rpt-toolbar');
   const statsBar  = container.querySelector('#rpt-stats-bar');
   if (salesPane)  salesPane.style.display  = tab === 'sales' ? '' : 'none';
   if (salesPagn)  salesPagn.style.display  = tab === 'sales' ? '' : 'none';
@@ -72,7 +83,7 @@ function _switchTab(tab, container) {
 
 function _buildQuery(afterDoc = null) {
   const salesColl = collection(db, 'shops', SHOP_ID, 'sales');
-  const constraints = [orderBy('timestamp', 'desc'), limit(25)];
+  const constraints = [orderBy('timestamp', 'desc'), limit(_hasAdvancedFilters() ? 500 : 25)];
 
   if (_fromDate) {
     const timeStr = _fromTime || '00:00';
@@ -111,7 +122,7 @@ async function _loadSales(reset = true) {
     _allDocs = reset ? snap.docs : [..._allDocs, ...snap.docs];
     _lastDoc = snap.docs.at(-1) ?? null;
 
-    _applySearch();
+    _applyAllFilters();
     _renderRows();
 
     if (paginEl) {
@@ -131,23 +142,213 @@ async function _loadSales(reset = true) {
   }
 }
 
-// ── Search & render ───────────────────────────────────────────────────────────
+// ── Filter helpers ────────────────────────────────────────────────────────────
 
-function _applySearch() {
+function _hasAdvancedFilters() {
+  return _payFilter !== 'all' || _amtMin != null || _amtMax != null || _sortOrder !== 'newest';
+}
+
+function _applyAllFilters() {
   const q = (document.getElementById('rpt-search')?.value ?? '').trim().toLowerCase();
-  if (!q) {
-    _filtered = [..._allDocs];
+
+  // 1. Payment filter
+  let docs = _allDocs.filter(docSnap => {
+    if (_payFilter === 'all') return true;
+    return (docSnap.data().payment_mode || 'cash') === _payFilter;
+  });
+
+  // 2. Amount range filter
+  if (_amtMin != null && !isNaN(_amtMin)) {
+    docs = docs.filter(d => (d.data().total || 0) >= _amtMin);
+  }
+  if (_amtMax != null && !isNaN(_amtMax)) {
+    docs = docs.filter(d => (d.data().total || 0) <= _amtMax);
+  }
+
+  // 3. Text search
+  if (q) {
+    docs = docs.filter(docSnap => {
+      const data = docSnap.data();
+      return (
+        data.saleId?.toLowerCase().includes(q) ||
+        (data.sale_id || '').toLowerCase().includes(q) ||
+        data.customer_name?.toLowerCase().includes(q) ||
+        data.customer_phone?.includes(q)
+      );
+    });
+  }
+
+  // 4. Sort
+  if (_sortOrder !== 'newest') {
+    docs = [...docs];
+    if (_sortOrder === 'oldest') {
+      docs.sort((a, b) => (a.data().timestamp?.seconds || 0) - (b.data().timestamp?.seconds || 0));
+    } else if (_sortOrder === 'amount_desc') {
+      docs.sort((a, b) => (b.data().total || 0) - (a.data().total || 0));
+    } else if (_sortOrder === 'amount_asc') {
+      docs.sort((a, b) => (a.data().total || 0) - (b.data().total || 0));
+    } else if (_sortOrder === 'items_desc') {
+      const qty = d => (d.data().items || []).reduce((s, i) => s + (i.quantity || i.qty || 0), 0);
+      docs.sort((a, b) => qty(b) - qty(a));
+    } else if (_sortOrder === 'items_asc') {
+      const qty = d => (d.data().items || []).reduce((s, i) => s + (i.quantity || i.qty || 0), 0);
+      docs.sort((a, b) => qty(a) - qty(b));
+    }
+  }
+
+  _filtered = docs;
+}
+
+function _renderStats() {
+  const statsEl = document.getElementById('rpt-stats-bar');
+  if (!statsEl) return;
+
+  if (_filtered.length === 0) {
+    statsEl.style.display = 'none';
     return;
   }
-  _filtered = _allDocs.filter(docSnap => {
-    const data = docSnap.data();
-    return (
-      data.saleId?.toLowerCase().includes(q) ||
-      data.customer_name?.toLowerCase().includes(q) ||
-      data.customer_phone?.includes(q)
-    );
+
+  const totalRev = _filtered.reduce((s, d) => s + (d.data().total || 0), 0);
+  const avg      = totalRev / _filtered.length;
+
+  let cashTotal = 0, upiTotal = 0, cardTotal = 0;
+  _filtered.forEach(docSnap => {
+    const s = docSnap.data();
+    const mode  = s.payment_mode || 'cash';
+    const total = s.total || 0;
+    const split = s.payment_split;
+    if (mode === 'split' && split) {
+      cashTotal += Number(split.cash || 0);
+      upiTotal  += Number(split.upi  || 0);
+      cardTotal += Number(split.card || 0);
+    } else if (mode === 'cash') {
+      cashTotal += total;
+    } else if (mode === 'upi') {
+      upiTotal  += total;
+    } else if (mode === 'card') {
+      cardTotal += total;
+    }
+  });
+
+  let html =
+    `<span class="rpt-stat-chip"><strong>${_filtered.length}</strong>&nbsp;sale${_filtered.length !== 1 ? 's' : ''}</span>` +
+    `<span class="rpt-stat-chip rpt-stat-total">Total&nbsp;<strong>${_fmt(totalRev)}</strong></span>` +
+    `<span class="rpt-stat-chip rpt-stat-avg">Avg&nbsp;<strong>${_fmt(avg)}</strong></span>`;
+
+  if (cashTotal > 0) html += `<span class="rpt-stat-chip rpt-stat-cash">Cash&nbsp;<strong>${_fmt(cashTotal)}</strong></span>`;
+  if (upiTotal  > 0) html += `<span class="rpt-stat-chip rpt-stat-upi">UPI&nbsp;<strong>${_fmt(upiTotal)}</strong></span>`;
+  if (cardTotal > 0) html += `<span class="rpt-stat-chip rpt-stat-card">Card&nbsp;<strong>${_fmt(cardTotal)}</strong></span>`;
+
+  statsEl.style.display = 'flex';
+  statsEl.innerHTML = html;
+}
+
+function _applyPreset(preset) {
+  const now   = new Date();
+  const toISO = d => d.toISOString().slice(0, 10);
+  let from, to;
+  if (preset === 'today') {
+    from = to = toISO(now);
+  } else if (preset === 'yesterday') {
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    from = to = toISO(y);
+  } else if (preset === 'week') {
+    const start = new Date(now); start.setDate(now.getDate() - now.getDay());
+    from = toISO(start); to = toISO(now);
+  } else if (preset === 'month') {
+    from = toISO(new Date(now.getFullYear(), now.getMonth(), 1)); to = toISO(now);
+  } else if (preset === 'last30') {
+    const start = new Date(now); start.setDate(now.getDate() - 30);
+    from = toISO(start); to = toISO(now);
+  }
+  _fromDate = from; _toDate = to; _fromTime = null; _toTime = null;
+  const fromEl = document.getElementById('rpt-from');
+  const toEl   = document.getElementById('rpt-to');
+  if (fromEl) fromEl.value = from;
+  if (toEl)   toEl.value   = to;
+  document.querySelectorAll('.rpt-preset-pill').forEach(b => {
+    b.classList.toggle('rpt-preset-pill--active', b.dataset.preset === preset);
+  });
+  _loadSales(true);
+  _updateFilterBadge();
+}
+
+function _updateFilterBadge() {
+  let count = 0;
+  if (_fromDate || _toDate)               count++;
+  if (_payFilter !== 'all')               count++;
+  if (_amtMin != null || _amtMax != null) count++;
+  if (_sortOrder !== 'newest')            count++;
+  const badge = document.getElementById('rpt-filter-badge');
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  const exportBtn = document.getElementById('rpt-export-filtered-btn');
+  if (exportBtn) exportBtn.style.display = count > 0 ? '' : 'none';
+}
+
+// ── SheetJS helpers ───────────────────────────────────────────────────────────
+
+function _loadSheetJSLocal() {
+  if (_rptXLSX) return Promise.resolve(_rptXLSX);
+  if (window.XLSX) { _rptXLSX = window.XLSX; return Promise.resolve(_rptXLSX); }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = () => { _rptXLSX = window.XLSX; resolve(_rptXLSX); };
+    s.onerror = () => reject(new Error('SheetJS load failed'));
+    document.head.appendChild(s);
   });
 }
+
+async function _exportFiltered(btn) {
+  if (!_filtered.length) {
+    toast.warn('No data to export — adjust filters first.');
+    return;
+  }
+  if (btn) btn.disabled = true;
+  try {
+    const XLSX = await _loadSheetJSLocal();
+    const header = ['Sale ID', 'Date', 'Customer', 'Phone', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'Payment Mode', 'Cash', 'UPI', 'Card'];
+    const rows = [header];
+    _filtered.forEach(docSnap => {
+      const s        = docSnap.data();
+      const items    = s.items || [];
+      const dateStr  = s.timestamp ? s.timestamp.toDate().toLocaleDateString(LOCALE) : '';
+      const itemsText = items.map(i => (i.name || i.item_id || '') + '×' + (i.quantity || i.qty || 1)).join('; ');
+      const totalQty = items.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
+      const split    = s.payment_split;
+      rows.push([
+        s.saleId || s.sale_id || docSnap.id,
+        dateStr,
+        s.customer_name  || '',
+        s.customer_phone || '',
+        itemsText,
+        totalQty,
+        s.subtotal || 0,
+        s.discount || 0,
+        s.total    || 0,
+        s.payment_mode || 'cash',
+        split ? (split.cash || 0) : (s.payment_mode === 'cash' ? s.total : 0),
+        split ? (split.upi  || 0) : (s.payment_mode === 'upi'  ? s.total : 0),
+        split ? (split.card || 0) : (s.payment_mode === 'card' ? s.total : 0),
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sales');
+    const dateSuffix = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `vikretha_filtered_sales_${dateSuffix}.xlsx`);
+    toast.success(`Exported ${_filtered.length} sale${_filtered.length !== 1 ? 's' : ''}`);
+  } catch (err) {
+    toast.error('Export failed: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Search & render ───────────────────────────────────────────────────────────
 
 function _renderRows() {
   const tbody  = document.getElementById('rpt-tbody');
@@ -162,19 +363,7 @@ function _renderRows() {
 
   if (emptyEl) emptyEl.style.display = 'none';
 
-  // Stats bar
-  const statsEl = document.getElementById('rpt-stats-bar');
-  if (statsEl) {
-    if (_filtered.length > 0) {
-      const totalSum = _filtered.reduce((s, d) => s + (d.data().total || 0), 0);
-      statsEl.style.display = 'flex';
-      statsEl.innerHTML =
-        `<span class="rpt-stat-chip"><strong>${_filtered.length}</strong>&nbsp;sale${_filtered.length !== 1 ? 's' : ''}</span>` +
-        `<span class="rpt-stat-chip rpt-stat-total">Total&nbsp;<strong>${_fmt(totalSum)}</strong></span>`;
-    } else {
-      statsEl.style.display = 'none';
-    }
-  }
+  _renderStats();
 
   tbody.innerHTML = _filtered.map(docSnap => {
     const data = docSnap.data();
@@ -762,7 +951,7 @@ async function _saveEdit(originalData, docId, zone) {
         editedAt:      { toDate: () => new Date() },
       };
       _allDocs[idx] = { id: docId, data: () => updatedData };
-      _applySearch();
+      _applyAllFilters();
       _renderRows();
       _renderDetailPanel(updatedData, docId);
       _injectEditZone(updatedData, docId);
@@ -884,6 +1073,11 @@ export async function render(container, routeParam = null) {
   _toDate          = null;
   _fromTime        = null;
   _toTime          = null;
+  _payFilter       = 'all';
+  _sortOrder       = 'newest';
+  _amtMin          = null;
+  _amtMax          = null;
+  _filterPanelOpen = false;
   _activeTab       = 'sales';
   _allCustomers    = [];
   _custListLoaded  = false;
@@ -905,29 +1099,100 @@ export async function render(container, routeParam = null) {
                 role="tab" aria-selected="false" data-tab="customers">Customers</button>
       </div>
 
-      <!-- Filter bar (Sales tab only) -->
-      <div class="reports-filter-bar">
-        <div class="rpt-filter-group">
-          <span class="rpt-filter-label">From</span>
-          <div class="rpt-datetime-pair">
-            <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
-            <input type="time" id="rpt-from-time" class="rpt-time-input" aria-label="From time">
-          </div>
-        </div>
-        <span class="rpt-date-sep">&#x2192;</span>
-        <div class="rpt-filter-group">
-          <span class="rpt-filter-label">To</span>
-          <div class="rpt-datetime-pair">
-            <input type="date" id="rpt-to" class="rpt-date-input" aria-label="To date">
-            <input type="time" id="rpt-to-time" class="rpt-time-input" aria-label="To time">
-          </div>
-        </div>
-        <div class="rpt-filter-btns">
-          <button id="rpt-filter-btn" class="btn btn-primary btn-sm">Filter</button>
-          <button id="rpt-clear-btn"  class="btn btn-sm btn-ghost">Clear</button>
-        </div>
+      <!-- Filter toolbar: search + toggle -->
+      <div class="reports-filter-bar rpt-toolbar">
         <input type="search" id="rpt-search" class="rpt-search-input"
                placeholder="Search by Sale ID, name or phone..." aria-label="Search sales">
+        <button id="rpt-filter-toggle" class="btn btn-ghost btn-sm rpt-filter-toggle-btn"
+                aria-expanded="false" aria-controls="rpt-filter-panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filters
+          <span id="rpt-filter-badge" class="rpt-filter-badge" style="display:none">0</span>
+        </button>
+        <button id="rpt-export-filtered-btn" class="btn btn-ghost btn-sm" style="display:none" title="Export filtered results to Excel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+
+      <!-- Collapsible filter panel -->
+      <div id="rpt-filter-panel" class="rpt-filter-panel" style="display:none" role="region" aria-label="Sales filters">
+
+        <!-- Row 1: Preset date shortcuts -->
+        <div class="rpt-filter-row">
+          <span class="rpt-filter-label">Date</span>
+          <div class="rpt-preset-pills">
+            <button class="rpt-preset-pill" data-preset="today">Today</button>
+            <button class="rpt-preset-pill" data-preset="yesterday">Yesterday</button>
+            <button class="rpt-preset-pill" data-preset="week">This week</button>
+            <button class="rpt-preset-pill" data-preset="month">This month</button>
+            <button class="rpt-preset-pill" data-preset="last30">Last 30 days</button>
+          </div>
+        </div>
+
+        <!-- Row 2: Custom date range -->
+        <div class="rpt-filter-row rpt-filter-row--custom-date">
+          <div class="rpt-filter-group">
+            <span class="rpt-filter-label">From</span>
+            <div class="rpt-datetime-pair">
+              <input type="date" id="rpt-from" class="rpt-date-input" aria-label="From date">
+              <input type="time" id="rpt-from-time" class="rpt-time-input" aria-label="From time">
+            </div>
+          </div>
+          <span class="rpt-date-sep">&#x2192;</span>
+          <div class="rpt-filter-group">
+            <span class="rpt-filter-label">To</span>
+            <div class="rpt-datetime-pair">
+              <input type="date" id="rpt-to" class="rpt-date-input" aria-label="To date">
+              <input type="time" id="rpt-to-time" class="rpt-time-input" aria-label="To time">
+            </div>
+          </div>
+          <div class="rpt-filter-btns">
+            <button id="rpt-filter-btn" class="btn btn-primary btn-sm">Apply</button>
+          </div>
+        </div>
+
+        <!-- Row 3: Payment method pills -->
+        <div class="rpt-filter-row">
+          <span class="rpt-filter-label">Payment</span>
+          <div class="rpt-pay-pills">
+            <button class="rpt-pay-pill rpt-pay-pill--active" data-pay="all">All</button>
+            <button class="rpt-pay-pill" data-pay="cash">Cash</button>
+            <button class="rpt-pay-pill" data-pay="upi">UPI</button>
+            <button class="rpt-pay-pill" data-pay="card">Card</button>
+            <button class="rpt-pay-pill" data-pay="split">Split</button>
+          </div>
+        </div>
+
+        <!-- Row 4: Amount range + Sort -->
+        <div class="rpt-filter-row rpt-filter-row--inline">
+          <div class="rpt-filter-group">
+            <span class="rpt-filter-label">Min &#x20b9;</span>
+            <input type="number" id="rpt-amt-min" class="rpt-amt-input" placeholder="0" min="0" aria-label="Minimum amount">
+          </div>
+          <span class="rpt-date-sep">&#x2013;</span>
+          <div class="rpt-filter-group">
+            <span class="rpt-filter-label">Max &#x20b9;</span>
+            <input type="number" id="rpt-amt-max" class="rpt-amt-input" placeholder="Any" min="0" aria-label="Maximum amount">
+          </div>
+          <div class="rpt-filter-group rpt-sort-group">
+            <span class="rpt-filter-label">Sort by</span>
+            <select id="rpt-sort" class="rpt-sort-select" aria-label="Sort order">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="amount_desc">Amount &#x2193;</option>
+              <option value="amount_asc">Amount &#x2191;</option>
+              <option value="items_desc">Items &#x2193;</option>
+              <option value="items_asc">Items &#x2191;</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 5: Clear all -->
+        <div class="rpt-filter-row rpt-filter-row--actions">
+          <button id="rpt-clear-btn" class="btn btn-sm btn-ghost">&#x2715; Clear all filters</button>
+        </div>
+
       </div>
 
       <!-- Stats summary (Sales tab only) -->
@@ -972,35 +1237,118 @@ export async function render(container, routeParam = null) {
 
   // ── Event bindings ────────────────────────────────────────────────────────
 
-  const rptFrom     = container.querySelector('#rpt-from');
-  const rptTo       = container.querySelector('#rpt-to');
-  const rptFromTime = container.querySelector('#rpt-from-time');
-  const rptToTime   = container.querySelector('#rpt-to-time');
+  // Filter toggle
+  container.querySelector('#rpt-filter-toggle').addEventListener('click', () => {
+    _filterPanelOpen = !_filterPanelOpen;
+    const panel = container.querySelector('#rpt-filter-panel');
+    const btn   = container.querySelector('#rpt-filter-toggle');
+    if (panel) panel.style.display = _filterPanelOpen ? '' : 'none';
+    if (btn)   btn.setAttribute('aria-expanded', String(_filterPanelOpen));
+  });
 
+  // Preset date pills
+  container.querySelector('#rpt-filter-panel').addEventListener('click', e => {
+    const preset = e.target.closest('.rpt-preset-pill');
+    if (preset) _applyPreset(preset.dataset.preset);
+  });
+
+  // Payment pills
+  container.querySelector('#rpt-filter-panel').addEventListener('click', e => {
+    const pill = e.target.closest('.rpt-pay-pill');
+    if (!pill) return;
+    _payFilter = pill.dataset.pay;
+    container.querySelectorAll('.rpt-pay-pill').forEach(b =>
+      b.classList.toggle('rpt-pay-pill--active', b.dataset.pay === _payFilter));
+    _applyAllFilters();
+    _renderRows();
+    _updateFilterBadge();
+  });
+
+  // Apply date button
   container.querySelector('#rpt-filter-btn').addEventListener('click', () => {
+    const rptFrom     = container.querySelector('#rpt-from');
+    const rptTo       = container.querySelector('#rpt-to');
+    const rptFromTime = container.querySelector('#rpt-from-time');
+    const rptToTime   = container.querySelector('#rpt-to-time');
     _fromDate = rptFrom.value     || null;
     _toDate   = rptTo.value       || null;
     _fromTime = rptFromTime.value || null;
     _toTime   = rptToTime.value   || null;
+    // Clear active preset highlights
+    container.querySelectorAll('.rpt-preset-pill').forEach(b => b.classList.remove('rpt-preset-pill--active'));
     _loadSales(true);
+    _updateFilterBadge();
   });
 
+  // Clear all filters
   container.querySelector('#rpt-clear-btn').addEventListener('click', () => {
-    rptFrom.value     = '';
-    rptTo.value       = '';
-    rptFromTime.value = '';
-    rptToTime.value   = '';
+    const rptFrom     = container.querySelector('#rpt-from');
+    const rptTo       = container.querySelector('#rpt-to');
+    const rptFromTime = container.querySelector('#rpt-from-time');
+    const rptToTime   = container.querySelector('#rpt-to-time');
+    if (rptFrom)     rptFrom.value     = '';
+    if (rptTo)       rptTo.value       = '';
+    if (rptFromTime) rptFromTime.value = '';
+    if (rptToTime)   rptToTime.value   = '';
     _fromDate = null; _toDate   = null;
     _fromTime = null; _toTime   = null;
+    _payFilter  = 'all';
+    _sortOrder  = 'newest';
+    _amtMin     = null;
+    _amtMax     = null;
+    const amtMin = container.querySelector('#rpt-amt-min');
+    const amtMax = container.querySelector('#rpt-amt-max');
+    const sort   = container.querySelector('#rpt-sort');
+    if (amtMin) amtMin.value = '';
+    if (amtMax) amtMax.value = '';
+    if (sort)   sort.value   = 'newest';
+    container.querySelectorAll('.rpt-pay-pill').forEach(b =>
+      b.classList.toggle('rpt-pay-pill--active', b.dataset.pay === 'all'));
+    container.querySelectorAll('.rpt-preset-pill').forEach(b =>
+      b.classList.remove('rpt-preset-pill--active'));
     _loadSales(true);
+    _updateFilterBadge();
   });
 
+  // Sort dropdown
+  container.querySelector('#rpt-sort')?.addEventListener('change', e => {
+    _sortOrder = e.target.value;
+    _applyAllFilters();
+    _renderRows();
+    _updateFilterBadge();
+  });
+
+  // Amount range inputs (debounced)
+  let _amtTimer = null;
+  container.querySelector('#rpt-amt-min')?.addEventListener('input', e => {
+    if (_amtTimer) clearTimeout(_amtTimer);
+    _amtTimer = setTimeout(() => {
+      const v = parseFloat(e.target.value);
+      _amtMin = isNaN(v) ? null : v;
+      _applyAllFilters(); _renderRows(); _updateFilterBadge();
+    }, 400);
+  });
+  container.querySelector('#rpt-amt-max')?.addEventListener('input', e => {
+    if (_amtTimer) clearTimeout(_amtTimer);
+    _amtTimer = setTimeout(() => {
+      const v = parseFloat(e.target.value);
+      _amtMax = isNaN(v) ? null : v;
+      _applyAllFilters(); _renderRows(); _updateFilterBadge();
+    }, 400);
+  });
+
+  // Search input (debounced)
   container.querySelector('#rpt-search').addEventListener('input', () => {
     if (_searchTimer) clearTimeout(_searchTimer);
     _searchTimer = setTimeout(() => {
-      _applySearch();
+      _applyAllFilters();
       _renderRows();
     }, 300);
+  });
+
+  // Export filtered button
+  container.querySelector('#rpt-export-filtered-btn')?.addEventListener('click', e => {
+    _exportFiltered(e.currentTarget);
   });
 
   container.querySelector('#rpt-load-more')?.addEventListener('click', () => {
@@ -1059,3 +1407,7 @@ export async function render(container, routeParam = null) {
     await _loadSales(true);
   }
 }
+
+
+
+
