@@ -2,7 +2,7 @@
 
 **Zero-cost shop management PWA for small retailers. Fork → configure → deploy. No subscriptions, no servers.**
 
-Vikretha (Hindi for "seller/merchant") is a progressive web app that gives independent shop owners professional billing, inventory tracking, dashboards, and WhatsApp receipt sharing — all hosted free on GitHub Pages with Firebase Firestore as the backend.
+Vikretha (Telugu for "seller/merchant") is a progressive web app that gives independent shop owners professional billing, inventory tracking, dashboards, and WhatsApp receipt sharing — all hosted free on GitHub Pages with Firebase Firestore as the backend.
 
 ---
 
