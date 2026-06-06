@@ -897,11 +897,6 @@ export async function render(container, routeParam = null) {
 
   container.innerHTML = `
     <div class="reports-screen">
-      <!-- Page header -->
-      <div class="rpt-page-header">
-        <h2 class="rpt-page-title">Reports</h2>
-      </div>
-
       <!-- Tab bar -->
       <div class="rpt-tabs" role="tablist" aria-label="Reports sections">
         <button class="rpt-tab rpt-tab--active" id="rpt-tab-sales"

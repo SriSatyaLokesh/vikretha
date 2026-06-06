@@ -70,7 +70,11 @@ function mountAppShell() {
       <!-- Main content area -->
       <div class="app-main">
         <header class="app-header">
-          <h1 class="page-title" id="page-title">${SHOP_NAME}</h1>
+          <div class="page-title" id="page-title" aria-label="Shop name">
+            ${LOGO_URL?.trim()
+              ? `<img src="${LOGO_URL}" class="header-brand-logo" alt="${SHOP_NAME}">`
+              : `<span class="header-brand-wordmark">${SHOP_NAME}</span>`}
+          </div>
           <div id="header-actions">
           <button id="dark-mode-header-btn" class="header-icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
             <svg id="dark-mode-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -288,12 +292,9 @@ async function handleRoute() {
     link.classList.toggle('active', link.dataset.route === route);
   });
 
-  // Update page title
-  const titleEl = document.getElementById('page-title');
-  if (titleEl) {
-    const titles = { dashboard: 'Dashboard', billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
-    titleEl.textContent = titles[route] || SHOP_NAME;
-  }
+  // Update browser tab title per route (header always shows shop name/logo)
+  const _routeTitles = { dashboard: 'Dashboard', billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
+  document.title = (_routeTitles[route] ? _routeTitles[route] + ' — ' : '') + SHOP_NAME;
 
   // Lazy load and render the route module
   const content = document.getElementById('app-content');

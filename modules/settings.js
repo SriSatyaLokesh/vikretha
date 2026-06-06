@@ -228,6 +228,9 @@ function _bindOwnerHandlers(container, currentEmail) {
       await setDoc(configRef, { shopName: nameVal }, { merge: true });
       const brandEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
       if (brandEl) brandEl.textContent = nameVal;
+      // Also update header wordmark
+      const headerWordmark = document.querySelector('.header-brand-wordmark');
+      if (headerWordmark) headerWordmark.textContent = nameVal;
       toast.success('Shop name saved');
     } catch (err) {
       toast.error('Could not save: ' + err.message);
