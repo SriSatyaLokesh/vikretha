@@ -356,7 +356,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 25-01-PLAN.md — WhatsApp customer phone fix + login shop name fix + receipt black canvas fix
+- [ ] 25-01-PLAN.md — WhatsApp customer phone fix + login shop name fix + receipt black canvas fix + footer text bug
 - [ ] 25-02-PLAN.md — Payment mode UI in billing (Cash/UPI/Card + split) + Firestore field + sale detail badge + UAT checkpoint
 
 ---
