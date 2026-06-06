@@ -205,6 +205,8 @@ async function _openDetail(docId) {
 
   const overlay = document.getElementById('rpt-detail-overlay');
   if (overlay) {
+    // Teleport to body so position:fixed isn't trapped by overflow-y:auto on iOS Safari
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
     overlay.classList.remove('rpt-panel-open');
     overlay.style.display = 'flex';
     // Trigger slide-in on next paint (double-rAF ensures transition fires)
@@ -443,7 +445,12 @@ function _openCustBillDetail(docId) {
   if (!docSnap) return;
 
   const overlay = document.getElementById('rpt-detail-overlay');
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay) {
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
+    overlay.classList.remove('rpt-panel-open');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('rpt-panel-open')));
+  }
 
   _renderDetailPanel(docSnap.data(), docSnap.id);
 
@@ -866,6 +873,9 @@ async function _injectEditZone(data, docId) {
 
 export async function render(container, routeParam = null) {
   // Reset module state on each render
+  // Remove any detached overlay from a previous session
+  const _oldOverlay = document.getElementById('rpt-detail-overlay');
+  if (_oldOverlay) _oldOverlay.remove();
   _allDocs         = [];
   _filtered        = [];
   _lastDoc         = null;

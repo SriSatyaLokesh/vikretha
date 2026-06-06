@@ -804,6 +804,28 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
   background:var(--bg-surface); border-top:1px solid var(--border);
 }
 
+/* Mobile: responsive main reports list table */
+@media(max-width:767px) {
+  .reports-screen { padding:12px; gap:10px; }
+  /* Hide Sale-ID column (col 2) — too long for narrow screens */
+  .reports-table th:nth-child(2),
+  .reports-table td:nth-child(2) { display:none; }
+  /* Tighter cell padding */
+  .reports-table th { padding:8px 10px; font-size:0.68rem; }
+  .reports-table td { padding:10px 10px; font-size:0.82rem; }
+  /* Date column: smaller on mobile */
+  .rpt-date-primary { font-size:0.8rem; }
+  .rpt-date-time    { font-size:0.7rem; }
+  /* Filter bar: stack vertically */
+  .reports-filter-bar { flex-direction:column; gap:8px; }
+  .rpt-filter-group { width:100%; }
+  .rpt-datetime-pair { width:100%; }
+  .rpt-date-input { flex:1; }
+  .rpt-filter-btns { width:100%; }
+  .rpt-filter-btns .btn { flex:1; }
+  .rpt-search-input { min-width:unset; width:100%; }
+}
+
 /* ── Detail panel overlay ── */
 /* Mobile: dim backdrop + bottom sheet */
 .rpt-detail-overlay {
