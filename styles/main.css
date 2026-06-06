@@ -784,10 +784,11 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
   background:var(--bg-surface);
 }
 .rpt-filter-panel--open {
-  max-height:640px;
+  max-height:700px;
   opacity:1;
   pointer-events:auto;
   border-color:var(--border);
+  box-shadow:var(--shadow-sm);
 }
 .rpt-filter-panel-inner {
   display:flex; flex-direction:column; gap:12px;
@@ -795,17 +796,17 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
 }
 
 .rpt-filter-row {
-  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
-.rpt-filter-row--custom-date { align-items:flex-end; }
+.rpt-filter-row--custom-date { align-items:flex-end; flex-wrap:wrap; }
 .rpt-filter-row--controls {
-  align-items:center; gap:10px; flex-wrap:wrap;
+  align-items:flex-end; gap:10px; flex-wrap:wrap;
   border-top:1px solid var(--border); padding-top:10px;
 }
 .rpt-filter-label {
   font-size:0.72rem; font-weight:600; color:var(--text-muted);
   text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap;
-  min-width:60px;
+  min-width:60px; flex-shrink:0;
 }
 
 /* Preset date pills */
@@ -836,53 +837,68 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
 .rpt-pay-pill--active { background:var(--primary); border-color:var(--primary); color:#fff; font-weight:600; }
 
 /* Amount range group */
-.rpt-amt-group { display:flex; flex-direction:column; gap:4px; }
+.rpt-amt-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:160px; }
 .rpt-amt-range { display:flex; align-items:center; gap:6px; }
 .rpt-amt-input {
-  width:80px; padding:6px 8px; font-size:0.85rem;
+  width:76px; padding:6px 8px; font-size:0.85rem;
   border:1.5px solid var(--border); border-radius:var(--radius-sm);
   background:var(--bg-app); color:var(--text-primary);
-  min-height:34px;
+  min-height:36px;
 }
 .rpt-amt-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-ring); }
 
 /* Sort group */
-.rpt-sort-group { display:flex; flex-direction:column; gap:4px; }
+.rpt-sort-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px; }
 .rpt-sort-select {
-  padding:6px 10px; font-size:0.85rem; min-height:34px;
+  padding:6px 10px; font-size:0.85rem; min-height:36px;
   border:1.5px solid var(--border); border-radius:var(--radius-sm);
   background:var(--bg-app); color:var(--text-primary); cursor:pointer;
+  width:100%;
 }
 .rpt-sort-select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-ring); }
 
 /* Clear button in controls row */
-.rpt-clear-btn { margin-left:auto; flex-shrink:0; }
+.rpt-clear-btn { flex-shrink:0; align-self:flex-end; color:var(--text-secondary); }
+.rpt-clear-btn:hover { color:var(--danger,#ef4444); }
 
 /* Custom date collapsible section */
 .rpt-custom-date-wrap {
   border-top:1px solid var(--border); padding-top:10px;
 }
 .rpt-custom-date-trigger {
-  display:flex; align-items:center; gap:6px;
-  font-size:0.8rem; font-weight:500; color:var(--text-secondary);
-  background:none; border:none; cursor:pointer; padding:4px 2px;
-  transition:color 0.12s;
+  display:flex; align-items:center; gap:8px; width:100%;
+  font-size:0.82rem; font-weight:600; color:var(--text-secondary);
+  background:var(--bg-app);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius-sm,6px);
+  cursor:pointer; padding:8px 12px;
+  transition:background 0.12s, border-color 0.12s, color 0.12s;
+  text-align:left;
 }
-.rpt-custom-date-trigger:hover { color:var(--primary); }
+.rpt-custom-date-trigger:hover {
+  border-color:var(--primary); color:var(--primary);
+  background:var(--primary-light,#fff7ed);
+}
+.rpt-custom-date-trigger[aria-expanded="true"] {
+  border-color:var(--primary); color:var(--primary);
+  background:var(--primary-light,#fff7ed);
+}
 .rpt-chevron {
   transition:transform 0.2s ease;
-  flex-shrink:0;
+  flex-shrink:0; opacity:0.6;
 }
-.rpt-custom-date-trigger[aria-expanded="true"] .rpt-chevron { transform:rotate(90deg); }
+.rpt-custom-date-trigger[aria-expanded="true"] .rpt-chevron {
+  transform:rotate(90deg); opacity:1;
+}
 
 .rpt-custom-date-body {
   overflow:hidden; max-height:0; opacity:0;
-  transition:max-height 0.22s ease, opacity 0.16s ease;
+  transition:max-height 0.26s ease, opacity 0.18s ease;
   pointer-events:none;
 }
 .rpt-custom-date-body--open {
-  max-height:200px; opacity:1; pointer-events:auto;
-  padding-top:10px;
+  max-height:280px; opacity:1; pointer-events:auto;
+  padding-top:12px;
 }
 
 /* Stats summary bar */
@@ -897,16 +913,23 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
 .rpt-stats-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:4px 0; }
 
 @media(max-width:767px) {
-  .rpt-toolbar { flex-wrap:wrap; }
+  .rpt-toolbar { flex-wrap:nowrap; }
   .rpt-filter-row--controls { flex-wrap:wrap; }
-  .rpt-amt-input { width:70px; }
-  .rpt-sort-group { width:100%; }
-  .rpt-sort-select { width:100%; }
+  .rpt-sort-group { flex:unset; width:100%; min-width:unset; }
+  .rpt-amt-group  { flex:unset; width:100%; min-width:unset; }
+  .rpt-amt-input { width:calc(50% - 18px); }
   .rpt-filter-label { min-width:unset; }
-  .rpt-clear-btn { margin-left:0; }
+  .rpt-clear-btn { width:100%; justify-content:center; }
   .rpt-pay-pills { gap:6px; }
   .rpt-pay-pill { padding:7px 14px; min-height:38px; font-size:0.84rem; }
   .rpt-preset-pill { padding:6px 12px; }
+  .rpt-custom-date-body--open { max-height:320px; }
+  .rpt-filter-row--custom-date { flex-direction:column; align-items:stretch; gap:8px; }
+  .rpt-filter-row--custom-date .rpt-date-sep { display:none; }
+  .rpt-filter-row--custom-date .rpt-datetime-pair { flex-wrap:wrap; }
+  .rpt-filter-row--custom-date .rpt-date-input { flex:1; min-width:120px; }
+  .rpt-filter-row--custom-date .rpt-filter-btns { justify-content:stretch; }
+  .rpt-filter-row--custom-date .rpt-filter-btns .btn { width:100%; justify-content:center; }
 }
 
 
