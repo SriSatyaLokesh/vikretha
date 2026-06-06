@@ -248,18 +248,27 @@ function _bindOwnerHandlers(container, currentEmail) {
     try {
       const configRef = doc(db, 'shops', SHOP_ID, 'config', 'main');
       await setDoc(configRef, { receiptLogoUrl: logoUrl, receiptFooter: footer }, { merge: true });
-      // Live-update sidebar brand logo
+      // Resolve current shop name for live-update
+      const shopNameEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name, .header-brand-wordmark');
+      const liveShopName = shopNameEl ? shopNameEl.textContent.trim() : '';
+
+      // Live-update desktop sidebar brand
       const brandEl = document.querySelector('.sidebar-brand');
       if (brandEl) {
         if (logoUrl) {
-          const shopNameEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
-          const shopName = shopNameEl ? shopNameEl.textContent : '';
-          brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${shopName || 'Shop logo'}">`;
+          brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${liveShopName || 'Shop logo'}">`;
         } else {
-          // logo removed — revert to wordmark
-          const shopNameEl = document.querySelector('.sidebar-brand-wordmark, .sidebar-brand-name');
-          const shopName = shopNameEl ? shopNameEl.textContent : '';
-          brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${shopName || document.title}</span>`;
+          brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${liveShopName || document.title}</span>`;
+        }
+      }
+
+      // Live-update mobile header brand
+      const pageTitleEl = document.getElementById('page-title');
+      if (pageTitleEl) {
+        if (logoUrl) {
+          pageTitleEl.innerHTML = `<img src="${logoUrl}" class="header-brand-logo" alt="${liveShopName || 'Shop logo'}">`;
+        } else {
+          pageTitleEl.innerHTML = `<span class="header-brand-wordmark">${liveShopName || document.title}</span>`;
         }
       }
       toast.success('Receipt branding saved');
