@@ -29,6 +29,19 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+/** Normalises an Indian mobile number for wa.me URLs.
+ *  Accepts: 10 digits, 9110-digits, +9110-digits.
+ *  Returns "91XXXXXXXXXX", null (empty), or false (invalid). */
+function normalizeIndianPhone(raw) {
+  if (!raw) return null;
+  const stripped = String(raw).trim();
+  if (!stripped) return null;
+  const digits = stripped.replace(/\D/g, '');
+  if (digits.length === 10) return '91' + digits;
+  if (digits.length === 12 && digits.startsWith('91')) return digits;
+  return false;
+}
+
 
 // ── Customer Contact Book ─────────────────────────────────────
 async function _loadCustomers() {
@@ -128,6 +141,7 @@ export function render(container) {
             <input id="customer-phone" type="tel" autocomplete="tel"
               list="phone-suggestions" placeholder="+91 98765 43210" class="form-input">
             <datalist id="phone-suggestions"></datalist>
+            <div id="phone-err" style="display:none;font-size:0.78rem;color:var(--danger);margin-top:4px;">Phone must be 10 digits or start with +91</div>
           </div>
           <div class="form-group" style="margin-top:8px;">
             <label class="form-label">
@@ -295,8 +309,16 @@ export function render(container) {
 
   // Phone input: auto-fill name when exact match found
   container.querySelector('#customer-phone').addEventListener('input', e => {
-    const phone = e.target.value.trim();
-    const match = _customers.find(c => c.phone === phone);
+    const raw   = e.target.value.trim();
+    const errEl = document.getElementById('phone-err');
+    if (raw) {
+      const norm = normalizeIndianPhone(raw);
+      if (errEl) errEl.style.display = norm === false ? 'block' : 'none';
+    } else {
+      if (errEl) errEl.style.display = 'none';
+    }
+    // Auto-fill name when exact match found
+    const match = _customers.find(c => c.phone === raw);
     if (match) {
       const nameEl = document.getElementById('customer-name');
       if (nameEl && !nameEl.value) nameEl.value = match.name;
@@ -828,7 +850,13 @@ async function _handleSubmit(container) {
     ? subtotal * Math.min(discRaw, 100) / 100
     : Math.min(discRaw, subtotal)).toFixed(2);
   const total      = +(subtotal - discAmount).toFixed(2);
-  const phone        = document.getElementById('customer-phone')?.value.trim() || null;
+  const _rawPhone  = document.getElementById('customer-phone')?.value.trim() || '';
+  const phone      = _rawPhone ? normalizeIndianPhone(_rawPhone) : null;
+  if (phone === false) {
+    const errEl = document.getElementById('submit-err');
+    if (errEl) { errEl.textContent = 'Customer phone must be 10 digits or +91XXXXXXXXXX.'; errEl.style.display = 'block'; }
+    return;
+  }
   const customerName = document.getElementById('customer-name')?.value.trim() || null;
   const payMode  = _paymentMode;
   const paySplit = payMode === 'split' ? {

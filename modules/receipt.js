@@ -8,6 +8,20 @@ import {
   SHOP_NAME, SHOP_ID, CURRENCY, LOCALE, LOGO_URL, RECEIPT_FOOTER, THEME_COLOR, WHATSAPP_NUMBER
 } from '../shop.config.js';
 
+/** Normalises an Indian mobile number for wa.me URLs.
+ *  Accepts: 10 digits, 9110-digits, +9110-digits.
+ *  Returns "91XXXXXXXXXX", null (empty), or false (invalid). */
+function normalizeIndianPhone(raw) {
+  if (!raw) return null;
+  const stripped = String(raw).trim();
+  if (!stripped) return null;
+  const digits = stripped.replace(/\D/g, '');
+  if (digits.length === 10) return '91' + digits;
+  if (digits.length === 12 && digits.startsWith('91')) return digits;
+  return false;
+}
+
+
 // ── Canvas receipt drawing ────────────────────────────────────────────────────
 
 async function _drawReceipt(sale, cfg = {}) {
@@ -462,7 +476,7 @@ export async function render(container, saleId) {
 
     // Customer phone present — direct wa.me link to that customer
     if (sale.customer_phone) {
-      const phone = sale.customer_phone.replace(/\D/g, '');
+      const phone = normalizeIndianPhone(sale.customer_phone) || sale.customer_phone.replace(/\D/g, '');
       const text  = encodeURIComponent(message);
       window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
       return;
