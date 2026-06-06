@@ -173,6 +173,7 @@ ul, ol { list-style: none; }
 @media (min-width: 1024px) {
   .app-shell { flex-direction: row; }
   #page-title { display: none; } /* sidebar already shows shop brand */
+  #header-actions { margin-left: auto; }
   .app-sidebar {
     display: flex; flex-direction: column; width: var(--sidebar-width);
     min-width: var(--sidebar-width); background: var(--bg-sidebar);
