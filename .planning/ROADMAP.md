@@ -359,6 +359,63 @@ Plans:
 - [ ] 25-01-PLAN.md — WhatsApp customer phone fix + login shop name fix + receipt black canvas fix + footer text bug
 - [ ] 25-02-PLAN.md — Payment mode UI in billing (Cash/UPI/Card + split) + Firestore field + sale detail badge + UAT checkpoint
 
+
+---
+
+### Phase 26 — Reports Advanced Filters
+
+**Goal:** Give shop owners deep analytical filters on the Reports screen — filter sales by payment method, date range, product type, brand, customer, cashier/staff, and amount range. Summary chips update live to reflect the filtered dataset.
+
+**Delivers:** Owner can instantly answer: "How much cash collected today?", "Which staff has highest sales this week?", "How much came via UPI vs Cash in June?" All filters compose — any combination works together.
+
+**Requirements covered:** FR-RPT-01 through FR-RPT-12
+
+**Depends on:** Phase 15 (reports base), Phase 20 (customer tab), Phase 25 (payment_mode on sale docs)
+
+**Filter dimensions:**
+
+| Filter | Type | Values |
+|--------|------|--------|
+| Date range | Preset + custom | Today / Yesterday / This week / This month / Last 30 days / Custom (from–to date picker) |
+| Payment method | Multi-select toggle | Cash / UPI / Card / Split / (All) |
+| Amount range | Min–Max inputs | e.g. ₹500 – ₹5000 |
+| Product type | Dropdown | All Types + types from inventory |
+| Brand | Dropdown | All Brands + brands from inventory |
+| Customer | Phone search | Matches customer_phone on sale doc |
+| Staff / cashier | Dropdown | All staff + names from sale docs (recorded_by field) |
+| Sort by | Dropdown | Newest / Oldest / Amount ↑ / Amount ↓ / Item count ↑ / Item count ↓ |
+
+**Summary chips (live-updating):** Total count · Total revenue · Payment breakdown (₹X cash / ₹Y UPI / ₹Z card) · Average sale value
+
+**Key tasks:**
+- `modules/reports.js` — collapsible "Filters" panel with all dimensions; active filter count badge (e.g. "Filters (3)"); "Clear all" button
+- Firestore query builder: compose `where()` clauses for payment_mode, customer_phone, recorded_by, date range; client-side post-filter for amount range, product type, brand
+- Summary chips row below filter bar: recalculate from filtered result set on every data change
+- Payment breakdown chip: for split sales sum `sale.payment_split.cash`, `.upi`, `.card` components correctly
+- Export filtered results to Excel (reuse Phase 7 export logic, pass filtered array)
+- `styles/main.css` — filter panel layout, active badge, summary chips row, date range inputs
+
+**UAT:**
+- [ ] Selecting "Cash" shows only cash sales; chips show cash total
+- [ ] Selecting "Today" shows only today's sales
+- [ ] Cash + Today shows correct intersection
+- [ ] Amount range ₹500–₹2000 hides outside-range sales
+- [ ] Customer phone filter shows only that customer's sales
+- [ ] Staff filter shows only that member's sales
+- [ ] Sort by "Amount ↓" reorders correctly
+- [ ] Summary chips update live on every filter change
+- [ ] Payment breakdown correctly handles split-mode sales (sums components)
+- [ ] "Clear all" resets to full unfiltered list
+- [ ] Active badge shows correct filter count
+- [ ] Export downloads filtered results only
+
+**Plans:** To be planned
+
+Plans:
+- [ ] 26-01-PLAN.md — Filter panel UI (all dimensions) + active badge + clear all + CSS
+- [ ] 26-02-PLAN.md — Firestore query builder + client-side post-filter + summary chips + payment breakdown
+- [ ] 26-03-PLAN.md — Export filtered results + staff dropdown + UAT checkpoint
+
 ---
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
