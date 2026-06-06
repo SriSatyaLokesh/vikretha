@@ -21,6 +21,7 @@ let _unsubInv  = null;      // inventory onSnapshot unsubscribe
 let _customers = [];        // [{ name, phone }] — loaded once per billing session
 let _billingTypeFilter   = '';
 let _billingbrandFilter = '';
+let _paymentMode = 'cash';  // 'cash' | 'upi' | 'card' | 'split'
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -47,6 +48,7 @@ export function render(container) {
   _customers = [];
   _billingTypeFilter   = '';
   _billingbrandFilter = '';
+  _paymentMode = 'cash';
 
   container.innerHTML = `
     <div id="billing-screen" class="billing-screen">
@@ -135,6 +137,30 @@ export function render(container) {
               placeholder="Auto-fills from phone" class="form-input">
           </div>
 
+          <!-- Payment mode -->
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-label">Payment</label>
+            <div class="pay-mode-group">
+              <button type="button" class="pay-mode-btn active" data-mode="cash">Cash</button>
+              <button type="button" class="pay-mode-btn" data-mode="upi">UPI</button>
+              <button type="button" class="pay-mode-btn" data-mode="card">Card</button>
+              <button type="button" class="pay-mode-btn" data-mode="split">Split</button>
+            </div>
+            <div id="pay-split-inputs" style="display:none;margin-top:8px;">
+              <div class="pay-split-row">
+                <span class="pay-split-label">Cash</span>
+                <input id="split-cash" type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+              </div>
+              <div class="pay-split-row" style="margin-top:4px;">
+                <span class="pay-split-label">UPI</span>
+                <input id="split-upi"  type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+              </div>
+              <div class="pay-split-row" style="margin-top:4px;">
+                <span class="pay-split-label">Card</span>
+                <input id="split-card" type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+              </div>
+            </div>
+          </div>
           <!-- Totals -->
           <div class="divider"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -276,6 +302,18 @@ export function render(container) {
       if (nameEl && !nameEl.value) nameEl.value = match.name;
     }
   });
+
+  // Payment mode buttons
+  container.querySelector('.pay-mode-group').addEventListener('click', e => {
+    const btn = e.target.closest('.pay-mode-btn');
+    if (!btn) return;
+    _paymentMode = btn.dataset.mode;
+    container.querySelectorAll('.pay-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const splitEl = container.querySelector('#pay-split-inputs');
+    if (splitEl) splitEl.style.display = _paymentMode === 'split' ? 'block' : 'none';
+  });
+
 }
 
 // ── Refresh grid + cart together ─────────────────────────────
@@ -792,6 +830,12 @@ async function _handleSubmit(container) {
   const total      = +(subtotal - discAmount).toFixed(2);
   const phone        = document.getElementById('customer-phone')?.value.trim() || null;
   const customerName = document.getElementById('customer-name')?.value.trim() || null;
+  const payMode  = _paymentMode;
+  const paySplit = payMode === 'split' ? {
+    cash: +(parseFloat(document.getElementById('split-cash')?.value) || 0).toFixed(2),
+    upi:  +(parseFloat(document.getElementById('split-upi')?.value)  || 0).toFixed(2),
+    card: +(parseFloat(document.getElementById('split-card')?.value) || 0).toFixed(2),
+  } : null;
 
   try {
     const batch      = writeBatch(db);
@@ -802,6 +846,8 @@ async function _handleSubmit(container) {
       items: cartArr, subtotal, discount: discAmount, total,
       customer_name: customerName,
       customer_phone: phone,
+      payment_mode:  payMode,
+      payment_split: paySplit,
       created_by: auth.currentUser?.email ?? null
     });
 
@@ -866,7 +912,7 @@ async function _handleSubmit(container) {
     const adhocItems = [...adhocMap.values()];
 
     _promptSaveAdhocItems(container, adhocItems, () => {
-      _showConfirmation(container, { saleId, total, cartArr });
+      _showConfirmation(container, { saleId, total, cartArr, payMode, paySplit });
     });
     toast.success('Sale recorded ✓');
 
@@ -881,7 +927,17 @@ async function _handleSubmit(container) {
 }
 
 // ── Success screen with live sync badge ───────────────────────
-function _showConfirmation(container, { saleId, total, cartArr }) {
+function _showConfirmation(container, { saleId, total, cartArr, payMode, paySplit }) {
+  const PAY_LABELS = { cash: 'Cash', upi: 'UPI', card: 'Card', split: 'Split' };
+  let payBadgeText = PAY_LABELS[payMode] || payMode || '';
+  if (payMode === 'split' && paySplit) {
+    const parts = [];
+    if (paySplit.cash > 0) parts.push(`${CURRENCY}${paySplit.cash.toFixed(2)} Cash`);
+    if (paySplit.upi  > 0) parts.push(`${CURRENCY}${paySplit.upi.toFixed(2)} UPI`);
+    if (paySplit.card > 0) parts.push(`${CURRENCY}${paySplit.card.toFixed(2)} Card`);
+    if (parts.length) payBadgeText = parts.join(' + ');
+  }
+
   _unsubInv?.(); // stop inventory listener — no longer needed
   const fmt = v => `${CURRENCY}${v.toLocaleString(LOCALE, { minimumFractionDigits: 2 })}`;
 
@@ -928,6 +984,12 @@ function _showConfirmation(container, { saleId, total, cartArr }) {
         <p style="font-size:0.8rem;color:#60a5fa;margin-top:4px;">
           ${cartArr.length} item${cartArr.length !== 1 ? 's' : ''}
         </p>
+      </div>
+
+      <!-- Payment mode badge -->
+      <div style="font-size:0.8rem;color:var(--text-secondary);background:var(--bg-surface);
+                  border:1px solid var(--border);border-radius:8px;padding:5px 14px;">
+        Paid via: <strong style="color:var(--text-primary);">${escapeHtml(payBadgeText)}</strong>
       </div>
 
       <!-- Sync status badge -->

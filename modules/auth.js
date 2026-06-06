@@ -68,7 +68,7 @@ function showSignInStep(container, prefillEmail = '', loginCfg = {}) {
         <div class="auth-card">
           <div class="auth-logo">${SHOP_ICON_SVG}</div>
           <h1 class="auth-title">Welcome back</h1>
-          <p class="auth-subtitle">Sign in to ${SHOP_NAME}</p>
+          <p class="auth-subtitle">Sign in to ${escapeHtml(loginCfg.shopName || SHOP_NAME)}</p>
 
           <div class="form-group">
             <label class="form-label" for="email-input">Email</label>

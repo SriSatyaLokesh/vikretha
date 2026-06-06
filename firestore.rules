@@ -102,8 +102,9 @@ service cloud.firestore {
 
       // Create only — sales are immutable once submitted (audit trail)
       allow create: if isAuthorized(shopId)
-        && request.resource.data.keys().hasAll(['saleId', 'timestamp', 'items', 'total'])
-        && request.resource.data.total >= 0;
+        && request.resource.data.keys().hasAll(['saleId', 'timestamp', 'items', 'total', 'payment_mode'])
+        && request.resource.data.total >= 0
+        && request.resource.data.payment_mode is string;
 
       // Owner can amend a sale (correction with audit trail). Delete still blocked.
       allow update: if isAuthorized(shopId)

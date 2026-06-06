@@ -21,11 +21,11 @@ async function _drawReceipt(sale, cfg = {}) {
 
   // ── Palette — bright thermal paper ──────────────────────────────────────
   const PAPER    = '#FEFEF8';   // bright white with micro warmth
-  const INK      = '#111111';   // near-black, crisp
-  const MUTED    = '#7A7060';   // warm mid-gray
-  const FAINT    = '#CDC5B8';   // very light for deco
-  const SAVE     = '#B83A2A';   // discount red
-  const SEP_CLR  = '#C4BDB0';   // separator lines
+  const INK      = '#000000';   // pitch black for print
+  const MUTED    = '#333333';   // dark grey for secondary labels
+  const FAINT    = '#888888';   // deco dots
+  const SAVE     = '#000000';   // discount — black for print
+  const SEP_CLR  = '#000000';   // separator lines — solid black for print
 
   // ── Column grid (all right-aligned except item name) ─────────────────────
   const C_AMT   = WIDTH - PADX;        // line total right edge
@@ -319,7 +319,7 @@ async function _drawReceipt(sale, cfg = {}) {
   ctx.fillStyle = INK;
   ctx.textAlign = 'center';
   const footerText = _footer?.trim()
-    ? RECEIPT_FOOTER.trim().toUpperCase()
+    ? _footer.trim().toUpperCase()
     : '* THANK YOU FOR SHOPPING! *';
   ctx.fillText(footerText, WIDTH / 2, y);
   y += LH;
@@ -454,16 +454,27 @@ export async function render(container, saleId) {
     }, 'image/png');
   });
 
-  // WhatsApp share button — Web Share API with wa.me fallback
+  // WhatsApp share button
+  // If sale has a customer phone, route directly to that customer.
+  // Skip Web Share API — it opens a generic system sheet with no phone routing.
   document.getElementById('btn-whatsapp').addEventListener('click', async () => {
     const message = `Receipt from ${SHOP_NAME}\nBill #${saleId}\nTotal: ${CURRENCY}${sale.total.toFixed(2)}`;
 
+    // Customer phone present — direct wa.me link to that customer
+    if (sale.customer_phone) {
+      const phone = sale.customer_phone.replace(/\D/g, '');
+      const text  = encodeURIComponent(message);
+      window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // No customer phone: try Web Share API (lets shopkeeper choose recipient)
     if (navigator.canShare) {
       try {
         const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-        const file = new File([blob], `receipt-${saleId}.png`, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Receipt — ${SHOP_NAME}`, text: message });
+        const imgFile = new File([blob], `receipt-${saleId}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [imgFile] })) {
+          await navigator.share({ files: [imgFile], title: `Receipt — ${SHOP_NAME}`, text: message });
           return;
         }
       } catch (e) {
@@ -471,8 +482,8 @@ export async function render(container, saleId) {
       }
     }
 
-    // Fallback: wa.me deep link
-    const phone = (sale.customer_phone || WHATSAPP_NUMBER || '').replace(/\D/g, '');
+    // Final fallback: shop WhatsApp number or generic wa.me
+    const phone = (WHATSAPP_NUMBER || '').replace(/\D/g, '');
     const text  = encodeURIComponent(message);
     const url   = phone
       ? `https://wa.me/${phone}?text=${text}`
