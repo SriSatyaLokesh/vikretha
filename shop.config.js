@@ -20,7 +20,7 @@ export const FIREBASE_CONFIG = {
 /**
  * Shop Identity
  */
-export const SHOP_NAME = "My Shop";          // Displayed in header and receipts
+export const SHOP_NAME = "Vikretha";          // Displayed in header and receipts
 export const SHOP_ID = "shop_001";           // Unique ID for Firestore path: /shops/{SHOP_ID}/
                                              // Use a URL-safe string (no spaces)
 

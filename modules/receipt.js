@@ -472,7 +472,8 @@ export async function render(container, saleId) {
   // If sale has a customer phone, route directly to that customer.
   // Skip Web Share API — it opens a generic system sheet with no phone routing.
   document.getElementById('btn-whatsapp').addEventListener('click', async () => {
-    const message = `Receipt from ${SHOP_NAME}\nBill #${saleId}\nTotal: ${CURRENCY}${sale.total.toFixed(2)}`;
+    const shopDisplayName = (cfg.shopName || SHOP_NAME).trim() || SHOP_NAME;
+    const message = `Receipt from ${shopDisplayName}\nBill #${saleId}\nTotal: ${CURRENCY}${sale.total.toFixed(2)}`;
 
     // Customer phone present — direct wa.me link to that customer
     if (sale.customer_phone) {
