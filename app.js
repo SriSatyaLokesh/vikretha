@@ -182,14 +182,35 @@ async function _updateSidebarBrand() {
     const cfg = await getShopConfig();
     const logoUrl  = (cfg.receiptLogoUrl || '').trim();
     const shopName = (cfg.shopName || '').trim();
+
+    // Desktop sidebar
     const brandEl  = document.querySelector('.sidebar-brand');
-    if (!brandEl) return;
-    if (logoUrl) {
-      brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${shopName || 'Shop logo'}">`;
-    } else if (shopName) {
-      brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${shopName}</span>`;
+    if (brandEl) {
+      if (logoUrl) {
+        brandEl.innerHTML = `<img src="${logoUrl}" class="sidebar-brand-logo" alt="${shopName || 'Shop logo'}">`;
+      } else if (shopName) {
+        brandEl.innerHTML = `<span class="sidebar-brand-wordmark">${shopName}</span>`;
+      }
+      // if neither set, keep the static default rendered by mountAppShell
     }
-    // if neither set, keep the static default rendered by mountAppShell
+
+    // Mobile header
+    const pageTitleEl = document.getElementById('page-title');
+    if (pageTitleEl) {
+      if (logoUrl) {
+        pageTitleEl.innerHTML = `<img src="${logoUrl}" class="header-brand-logo" alt="${shopName || 'Shop logo'}">`;
+      } else if (shopName) {
+        pageTitleEl.innerHTML = `<span class="header-brand-wordmark">${shopName}</span>`;
+      }
+      // if neither set, keep the static default rendered by mountAppShell
+    }
+
+    // Update browser tab title to use actual shop name (not the hardcoded default)
+    if (shopName) {
+      const route = window.location.hash.replace('#/', '').split('/')[0] || 'dashboard';
+      const _routeTitles = { dashboard: 'Dashboard', billing: 'New Sale', inventory: 'Inventory', reports: 'Reports', settings: 'Settings', receipt: 'Receipt', adminSettings: 'Admin Settings' };
+      document.title = (_routeTitles[route] ? _routeTitles[route] + ' \u2014 ' : '') + shopName;
+    }
   } catch (err) {
     console.warn('[Vikretha] Could not update sidebar brand:', err);
   }
