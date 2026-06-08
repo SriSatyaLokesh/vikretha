@@ -434,8 +434,9 @@ select.form-input { cursor: pointer; }
 .monthly-report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
 .monthly-report-title  { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
 .month-picker-select {
-  height: 36px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  height: 36px; padding: 0 32px 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius);
   font-size: 0.875rem; background: var(--bg-surface); color: var(--text-primary); cursor: pointer; font: inherit;
+  appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px 16px;
 }
 .month-picker-select:focus { outline: none; border-color: var(--primary); }
 .monthly-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -464,9 +465,9 @@ select.form-input { cursor: pointer; }
 }
 .billing-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
 .billing-filter-row { display: flex; gap: 8px; padding: 0 0 10px; flex-wrap: wrap; }
-.billing-filter-select { flex: 1; min-width: 110px; height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--border-radius); font: inherit; font-size: 0.82rem; background: var(--bg-surface); color: var(--text-primary); cursor: pointer; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast); }
+.billing-filter-select { flex: 1; min-width: 110px; height: 38px; padding: 0 32px 0 10px; border: 1.5px solid var(--border); border-radius: var(--border-radius); font: inherit; font-size: 0.82rem; background: var(--bg-surface); color: var(--text-primary); cursor: pointer; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast); appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px 16px; }
 .billing-filter-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
-.billing-filter-select.has-value { border-color: var(--primary); color: var(--primary); font-weight: 600; background: var(--primary-light); }
+.billing-filter-select.has-value { border-color: var(--primary); color: var(--primary); font-weight: 600; background: var(--primary-light); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px 16px; }
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
 @media (max-width: 480px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
 .product-card {
@@ -600,8 +601,9 @@ select.form-input { cursor: pointer; }
 }
 .settings-add-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
 .settings-role-select {
-  height: 44px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  height: 44px; padding: 0 32px 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius);
   font-size: 0.875rem; background: var(--bg-surface); color: var(--text-primary); cursor: pointer; font: inherit;
+  appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px 16px;
 }
 .settings-role-select:focus { outline: none; border-color: var(--primary); }
 .settings-add-btn { height: 44px; padding: 0 18px; background: var(--primary); color: #fff; border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; white-space: nowrap; transition: background var(--transition-fast); min-width: 64px; }
@@ -855,10 +857,11 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
 /* Sort group */
 .rpt-sort-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px; }
 .rpt-sort-select {
-  padding:6px 10px; font-size:0.85rem; min-height:36px;
+  padding: 6px 32px 6px 10px; font-size:0.85rem; min-height:36px;
   border:1.5px solid var(--border); border-radius:var(--radius-sm);
   background:var(--bg-app); color:var(--text-primary); cursor:pointer;
-  width:100%;
+  width:100%; font: inherit;
+  appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px 16px;
 }
 .rpt-sort-select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-ring); }
 
@@ -1547,6 +1550,15 @@ button.sync-badge:disabled { cursor: default; opacity: 0.6; }
   --surface-hover:  rgba(255, 255, 255, 0.07);  /* hover fills */
   --surface-press:  rgba(255, 255, 255, 0.12);  /* pressed / active fills */
 }
+
+
+/* Custom select chevrons — dark mode variant (slate-500 stroke) */
+[data-dark="true"] .billing-filter-select,
+[data-dark="true"] .billing-filter-select.has-value,
+[data-dark="true"] .month-picker-select,
+[data-dark="true"] .rpt-sort-select,
+[data-dark="true"] .settings-role-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
+[data-dark="true"] .billing-filter-select.has-value { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
 
 /* Settings dark mode toggle row */
 .settings-toggle-row {

@@ -61,11 +61,11 @@ export function render(container) {
         </div>
         <button id="inv-add-fab" class="btn btn-primary btn-sm">+ Add Item</button>
       </div>
-      <div id="inv-filter-row" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-        <select id="inv-type-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+      <div id="inv-filter-row" class="billing-filter-row" style="margin-bottom:12px;">
+        <select id="inv-type-filter" class="billing-filter-select" aria-label="Filter by type">
           <option value="">All Types</option>
         </select>
-        <select id="inv-brand-filter" style="flex:1;min-width:120px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.85rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+        <select id="inv-brand-filter" class="billing-filter-select" aria-label="Filter by brand">
           <option value="">All Brands</option>
         </select>
       </div>
