@@ -2379,3 +2379,24 @@ a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
 .pay-split-input {
   flex: 1;
 }
+
+/* ── Phase-27: Color/Size Variant Rows ──────────────────────── */
+.inv-color-row {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 10px 10px 6px;
+  margin-bottom: 8px;
+}
+.inv-color-sizes-sub {
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  margin-left: 4px;
+  margin-top: 6px;
+}
+.inv-size-sub-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}

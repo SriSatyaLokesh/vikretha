@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/billing.js — Billing & Sale Recording
  * 2026 seller-optimised UI: product card grid, in-cart stepper,
  * live-total submit, animated confirmation with ⏳/✓ sync badge.
@@ -248,6 +248,10 @@ export function render(container) {
       const id  = card.dataset.id;
       const inv = _inventory.find(p => p.id === id);
       if (!inv) return;
+      if (inv.has_colors && inv.variants && inv.variants.length > 0) {
+        _showVariantPicker(container, inv);
+        return;
+      }
       if (inv.hasSizes && inv.sizes && Object.keys(inv.sizes).length > 0) {
         _showSizePicker(container, inv);
         return;
@@ -396,19 +400,23 @@ function _renderGrid(query = '') {
   }
 
   grid.innerHTML = filteredItems.map(item => {
-    const inCartCheck = item.hasSizes
+    const inCartCheck = item.has_colors
+      ? [..._cart.keys()].some(k => k.startsWith(item.id + '__'))
+      : item.hasSizes
       ? [..._cart.keys()].some(k => k.startsWith(item.id + '::'))
       : _cart.has(item.id);
     const cartItem = inCartCheck
-      ? (item.hasSizes
+      ? ((item.has_colors || item.hasSizes)
           ? { qty: [..._cart.values()].filter(e => e.id === item.id).reduce((s, e) => s + e.qty, 0) }
           : _cart.get(item.id))
       : null;
     const inCart   = !!cartItem;
     const qty      = cartItem?.qty ?? 0;
-    const stock    = (item.hasSizes && item.sizes)
-      ? Object.values(item.sizes).reduce((s, v) => s + (v.stock ?? 0), 0)
-      : Number(item.stock ?? 0);
+    const stock    = (item.has_colors && item.variants)
+      ? item.variants.reduce((s, v) => s + v.qty, 0)
+      : (item.hasSizes && item.sizes)
+        ? Object.values(item.sizes).reduce((s, v) => s + (v.stock ?? 0), 0)
+        : Number(item.stock ?? 0);
     const lowStock = stock > 0 && stock <= 5;
     const noStock  = stock === 0;
     const stockBadge = noStock
@@ -426,13 +434,13 @@ function _renderGrid(query = '') {
         aria-disabled="${noStock}">
         <div class="product-card-name">${escapeHtml(item.name)}</div>
         ${stockBadge}
-        ${item.color ? `<div style="margin-bottom:2px;"><span style="display:inline-block;font-size:0.7rem;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
+        ${(!item.has_colors && item.color) ? `<div style="margin-bottom:2px;"><span style="display:inline-block;font-size:0.7rem;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
         <div class="product-card-footer">
           <div>
             <span class="product-card-price">${CURRENCY}${Number(item.price)}</span>
             <span class="product-card-stock">/${escapeHtml(item.unit || 'pc')}</span>
           </div>
-          ${(item.hasSizes && inCart) ? `
+          ${((item.has_colors || item.hasSizes) && inCart) ? `
             <span style="font-size:0.75rem;color:var(--primary);font-weight:600;">In cart ✓</span>` :
             inCart ? `
             <div class="card-qty-ctrl" role="group" aria-label="Quantity">
@@ -516,6 +524,113 @@ function _updateTotals() {
 }
 
 
+// ── Color/size variant picker (Phase-27) ─────────────────────
+function _showVariantPicker(container, inv) {
+  document.body.style.overflow = 'hidden';
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:80vh;overflow-y:auto;box-sizing:border-box;';
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
+  const titleEl = document.createElement('h2');
+  titleEl.style.cssText = 'font-size:1.05rem;font-weight:700;color:var(--text-primary);margin:0;';
+  titleEl.textContent = (inv.has_sizes ? 'Select Color & Size' : 'Select Color') + ' — ' + inv.name;
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
+  header.appendChild(titleEl);
+  header.appendChild(closeBtn);
+  const optionsList = document.createElement('div');
+
+  if (inv.has_sizes) {
+    // Group by color, then show sizes under each
+    const colorGroups = {};
+    inv.variants.forEach(v => {
+      if (!colorGroups[v.color]) colorGroups[v.color] = [];
+      colorGroups[v.color].push(v);
+    });
+    Object.entries(colorGroups).forEach(([color, sizeVariants]) => {
+      const colorHeader = document.createElement('div');
+      colorHeader.style.cssText = 'font-size:0.85rem;font-weight:600;color:var(--text-secondary);margin:10px 0 6px;';
+      colorHeader.textContent = color;
+      optionsList.appendChild(colorHeader);
+      sizeVariants.forEach(v => {
+        const outOfStock = v.qty <= 0;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+        const sizeLabel = document.createElement('div');
+        sizeLabel.style.cssText = 'font-weight:700;font-size:0.9rem;color:var(--text-primary);';
+        sizeLabel.textContent = v.size;
+        const stockEl = document.createElement('div');
+        stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);';
+        stockEl.textContent = v.qty + ' in stock';
+        row.appendChild(sizeLabel);
+        row.appendChild(stockEl);
+        if (!outOfStock) {
+          row.addEventListener('click', () => {
+            const cartKey = inv.id + '__' + v.color + '__' + v.size;
+            if (_cart.has(cartKey)) {
+              _cart.get(cartKey).qty++;
+            } else {
+              _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
+                price: Number(inv.price), unit: inv.unit || 'pcs', qty: 1,
+                sizeKey: v.color + '/' + v.size, sizeLabel: v.color + ' · ' + v.size });
+            }
+            _close();
+            _refresh(container);
+          });
+        }
+        optionsList.appendChild(row);
+      });
+    });
+  } else {
+    // Colors only
+    inv.variants.forEach(v => {
+      const outOfStock = v.qty <= 0;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+      const colorLbl = document.createElement('div');
+      colorLbl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);';
+      colorLbl.textContent = v.color;
+      const stockEl = document.createElement('div');
+      stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;';
+      stockEl.textContent = v.qty + ' in stock';
+      row.appendChild(colorLbl);
+      row.appendChild(stockEl);
+      if (!outOfStock) {
+        row.addEventListener('click', () => {
+          const cartKey = inv.id + '__' + v.color;
+          if (_cart.has(cartKey)) {
+            _cart.get(cartKey).qty++;
+          } else {
+            _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
+              price: Number(inv.price), unit: inv.unit || 'pcs', qty: 1,
+              sizeKey: v.color, sizeLabel: v.color });
+          }
+          _close();
+          _refresh(container);
+        });
+      }
+      optionsList.appendChild(row);
+    });
+  }
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-secondary btn-full';
+  cancelBtn.style.marginTop = '8px';
+  cancelBtn.addEventListener('click', _close);
+  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+  closeBtn.addEventListener('click', _close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
+  sheet.appendChild(header);
+  sheet.appendChild(optionsList);
+  sheet.appendChild(cancelBtn);
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
 // ── Size picker sheet for sized inventory items ────────────────────
 function _showSizePicker(container, inv) {
   document.body.style.overflow = 'hidden';

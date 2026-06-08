@@ -195,25 +195,69 @@ async function _exportInventory(container) {
     const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'inventory'));
 
     const rows = [
-      ['ID', 'Name', 'Type', 'brand', 'Color', 'Unit', 'Price', 'Stock', 'Threshold', 'Status']
+      ['ID', 'Name', 'Type', 'Brand', 'Color', 'Size', 'Unit', 'Price', 'Stock', 'Threshold', 'Status']
     ];
     const dataRows = [];
     snap.forEach(docSnap => {
       const d = docSnap.data();
       const threshold = d.threshold ?? 5;
-      const status    = d.stock < threshold ? 'Low Stock' : 'OK';
-      dataRows.push([
-        _safeStr(docSnap.id),
-        _safeStr(d.name   || ''),
-        _safeStr(d.type   || ''),
-        _safeStr(d.brand || ''),
-        _safeStr(d.color  || ''),
-        _safeStr(d.unit   || ''),
-        d.price  || 0,
-        d.stock  || 0,
-        threshold,
-        status
-      ]);
+
+      if (d.has_colors && Array.isArray(d.variants) && d.variants.length > 0) {
+        // Phase-27: one row per colour/size variant
+        d.variants.forEach(v => {
+          const variantStock = v.qty ?? 0;
+          const vStatus = variantStock < threshold ? 'Low Stock' : 'OK';
+          dataRows.push([
+            _safeStr(docSnap.id),
+            _safeStr(d.name  || ''),
+            _safeStr(d.type  || ''),
+            _safeStr(d.brand || ''),
+            _safeStr(v.color || ''),
+            _safeStr(v.size  || ''),
+            _safeStr(d.unit  || ''),
+            d.price || 0,
+            variantStock,
+            threshold,
+            vStatus
+          ]);
+        });
+      } else if (d.hasSizes && d.sizes && typeof d.sizes === 'object') {
+        // Phase-13: one row per size entry
+        Object.entries(d.sizes).forEach(([sizeKey, sv]) => {
+          const sizeStock = sv.stock ?? 0;
+          const sStatus = sizeStock < threshold ? 'Low Stock' : 'OK';
+          dataRows.push([
+            _safeStr(docSnap.id),
+            _safeStr(d.name  || ''),
+            _safeStr(d.type  || ''),
+            _safeStr(d.brand || ''),
+            _safeStr(d.color || ''),
+            _safeStr(sv.label || sizeKey || ''),
+            _safeStr(d.unit  || ''),
+            d.price || 0,
+            sizeStock,
+            threshold,
+            sStatus
+          ]);
+        });
+      } else {
+        // Flat item — single row, empty Size column
+        const stock = Number(d.stock ?? 0);
+        const fStatus = stock < threshold ? 'Low Stock' : 'OK';
+        dataRows.push([
+          _safeStr(docSnap.id),
+          _safeStr(d.name  || ''),
+          _safeStr(d.type  || ''),
+          _safeStr(d.brand || ''),
+          _safeStr(d.color || ''),
+          '',
+          _safeStr(d.unit  || ''),
+          d.price || 0,
+          stock,
+          threshold,
+          fStatus
+        ]);
+      }
     });
     // Sort alphabetically by Name (index 1)
     dataRows.sort((a, b) => String(a[1]).localeCompare(String(b[1])));
