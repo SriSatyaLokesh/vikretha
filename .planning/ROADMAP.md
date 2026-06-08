@@ -417,6 +417,71 @@ Plans:
 - [ ] 26-03-PLAN.md — Export filtered results to Excel + UAT checkpoint
 
 ---
+
+### Phase 27 — Inventory Variant System (Colors & Sizes)
+
+**Goal:** Extend the inventory add/edit form with a structured variant system — items can have colors, sizes, or both. Variant-level quantities replace the single flat stock number. Type and brand become smart autocomplete fields fed by existing Firestore values.
+
+**Delivers:** Shop owners can model real clothing/apparel stock: e.g. "Blue, M: 5 pcs", "Red, L: 2 pcs". A "Has Colors" checkbox enables per-color quantities. A "Has Sizes" checkbox (only active when Has Colors is also on) enables per-color × per-size quantities. Brand appears immediately below the Name field. Type and Brand inputs offer autocomplete from previously saved values, preventing duplicate entries due to typos. When "Has Colors" is checked, the standalone Color field is hidden (colors are now captured inside the variant grid).
+
+**Delivers:** FR-06 (Inventory Management) — variant-level stock modelling for fashion/apparel shops.
+
+**Depends on:** Phase 16 (type, branch, color fields added), Phase 13 (sizes infrastructure)
+
+**Data model changes (Firestore inventory doc):**
+- `has_colors` (boolean, default false)
+- `has_sizes` (boolean, default false — only meaningful if `has_colors` is true)
+- `variants` (array, replaces flat `stock`/`color` fields when either flag is true):
+  - If only `has_colors`: `[{ color: "Blue", qty: 5 }, { color: "Red", qty: 2 }]`
+  - If `has_colors` + `has_sizes`: `[{ color: "Blue", size: "M", qty: 5 }, { color: "Blue", size: "L", qty: 2 }, ...]`
+- `stock` (number) — kept for items without variants (flat qty); computed as `sum(variants[].qty)` for variant items for backward-compat reads
+- `color` field — still stored for simple color (no variants); hidden in form when `has_colors` is true
+
+**Key tasks:**
+- `modules/inventory.js` — add/edit item form:
+  - Move **Brand** field directly below **Name** field (remove from end of form)
+  - **Type** input: `<datalist>` or custom dropdown autocomplete — fetches distinct `type` values from inventory collection once per form open; shows suggestions as user types; allows free-text entry of new values
+  - **Brand** input: same autocomplete pattern — fetches distinct `brand` values from inventory collection
+  - Add **"Has Colors"** checkbox; when checked: hide the flat `color` input; show color-variant entry UI (add-color button, per-color row with name + qty)
+  - Add **"Has Sizes"** checkbox (only enabled + visible when "Has Colors" is checked); when checked: each color row gains per-size sub-rows (add-size button per color row, size name + qty)
+  - Variant entry grid: add/remove rows dynamically; validate no duplicate color or color+size combos; min qty 0
+  - On save: write `has_colors`, `has_sizes`, `variants` to Firestore; compute and write `stock` as sum of all variant qtys
+- `modules/inventory.js` — list view:
+  - Items with variants show a compact variant summary badge (e.g. "3 colors", "2 colors × 4 sizes") instead of a flat stock number
+  - Tooltip / expand shows full variant breakdown on tap/hover
+- `modules/billing.js` — product card:
+  - Variant items show a color/size selector before adding to cart
+  - Cart line item captures selected variant (color + size if applicable)
+- `styles/main.css` — variant entry grid styles, checkbox row layout, datalist/autocomplete dropdown styles
+- `modules/export.js` — expand Excel export: variant items write one row per variant (color, size, qty columns); flat items unchanged
+
+**UAT:**
+- [ ] Add item form: Brand field appears directly below Name (not at bottom of form)
+- [ ] Type input: typing shows suggestions from existing types; selecting one fills the field; typing a new value works too
+- [ ] Brand input: same autocomplete behavior as Type
+- [ ] "Has Colors" unchecked: flat Color field is visible; stock is a single number
+- [ ] "Has Colors" checked: flat Color field is hidden; color-variant entry rows appear
+- [ ] Can add multiple color rows, each with a name and quantity
+- [ ] "Has Sizes" checkbox only appears (and is only usable) when "Has Colors" is also checked
+- [ ] "Has Sizes" checked: each color row shows sub-rows for sizes with individual quantities
+- [ ] Can add multiple size sub-rows under each color
+- [ ] Saving a "Has Colors only" item writes correct `variants` array + computed `stock` to Firestore
+- [ ] Saving a "Has Colors + Has Sizes" item writes correct variant matrix to Firestore
+- [ ] Inventory list shows "3 colors" badge for color-variant items (not a raw stock number)
+- [ ] Inventory list shows "2 colors × 4 sizes" badge for color+size variant items
+- [ ] Editing an existing variant item pre-fills the variant grid correctly
+- [ ] Billing product card for variant item shows a color/size picker before adding to cart
+- [ ] Excel export: variant items produce one row per variant (color, size, qty)
+- [ ] Items without variants (has_colors = false) are unaffected by this change
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 27-01-PLAN.md — Inventory form: Brand below Name, Type/Brand autocomplete, Has Colors + variant row UI
+- [ ] 27-02-PLAN.md — Has Sizes sub-rows, Firestore save/load, list badge, billing picker, export rows
+- [ ] 27-03-PLAN.md — Human verification checkpoint
+
+---
 ## Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
 > All 16 phases complete. See `.planning/reports/MILESTONE_SUMMARY-v1.md`.

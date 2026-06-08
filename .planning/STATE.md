@@ -5,7 +5,7 @@
 - **Milestone:** 2 (v1.1 — Polish & Features)
 - **Phase:** 22 or 24 (next to plan)
 - **Next action:** Run `/gsd-plan-phase 22` or `/gsd-plan-phase 24`
-- **Last session:** 2026-06-06 — Phase 25 complete (UAT approved). Fixes: WhatsApp customer routing, login shop name, receipt pitch white, footer text bug, billing payment mode (Cash/UPI/Card/Split), phone normalization (Indian +91), mobile reports panel fix.
+- **Last session:** 2026-06-08 — Phase 27 added: Inventory Variant System (Colors & Sizes) — Has Colors checkbox, Has Sizes sub-rows, Type/Brand autocomplete, Brand moved below Name. Ready to plan.
 
 ## Phase Progress
 
@@ -23,6 +23,7 @@
 | 24 | Admin Settings Panel | 🔲 Not Started |
 | 25 | Billing UX Fixes & Payment Mode | ✅ Complete |
 | 26 | Reports Advanced Filters | 🔲 Not Started |
+| 27 | Inventory Variant System (Colors & Sizes) | 🔲 Not Started |
 
 ### Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
