@@ -463,6 +463,10 @@ select.form-input { cursor: pointer; }
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .billing-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+.billing-filter-row { display: flex; gap: 8px; padding: 0 0 10px; flex-wrap: wrap; }
+.billing-filter-select { flex: 1; min-width: 110px; height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--border-radius); font: inherit; font-size: 0.82rem; background: var(--bg-surface); color: var(--text-primary); cursor: pointer; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast); }
+.billing-filter-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+.billing-filter-select.has-value { border-color: var(--primary); color: var(--primary); font-weight: 600; background: var(--primary-light); }
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
 @media (max-width: 480px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
 .product-card {
@@ -472,9 +476,10 @@ select.form-input { cursor: pointer; }
   display: flex; flex-direction: column; gap: 4px; user-select: none;
 }
 .product-card:hover  { border-color: var(--primary); background: var(--primary-light); box-shadow: var(--shadow-sm); }
+.product-card:active { transform: scale(0.97); transition-duration: 80ms; }
 .product-card.in-cart { border-color: var(--primary); background: var(--primary-light); }
 .product-card.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-.product-card-name   { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); line-height: 1.35; }
+.product-card-name   { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(0.875rem * 1.35 * 2); }
 .product-card-price  { font-size: 0.9375rem; color: var(--primary); font-weight: 700; font-variant-numeric: tabular-nums; }
 .product-card-stock  { font-size: 0.75rem; color: var(--text-muted); }
 .product-card-add    { font-size: 0.75rem; font-weight: 600; color: var(--primary); background: rgba(249,115,22,0.12); padding: 3px 10px; border-radius: var(--radius-full); white-space: nowrap; }
@@ -483,7 +488,7 @@ select.form-input { cursor: pointer; }
 /* In-card qty controls (div, not button — avoids nested-button HTML violation) */
 .card-qty-ctrl { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .card-qty-btn {
-  width: 26px; height: 26px; border-radius: var(--radius-sm); border: 1.5px solid var(--primary);
+  width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1.5px solid var(--primary);
   background: var(--bg-surface); display: flex; align-items: center; justify-content: center;
   font-size: 1rem; font-weight: 700; color: var(--primary); cursor: pointer; line-height: 1;
   transition: background var(--transition-fast), color var(--transition-fast); flex-shrink: 0;

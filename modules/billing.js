@@ -78,13 +78,11 @@ export function render(container) {
             class="billing-search-input" placeholder="Search products..."
             aria-label="Search products">
         </div>
-        <div id="billing-filter-row" style="display:flex;gap:8px;padding:0 0 8px;flex-wrap:wrap;">
-          <select id="billing-type-filter"
-            style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+        <div id="billing-filter-row" class="billing-filter-row">
+          <select id="billing-type-filter" class="billing-filter-select" aria-label="Filter by type">
             <option value="">All Types</option>
           </select>
-          <select id="billing-brand-filter"
-            style="flex:1;min-width:110px;height:36px;padding:0 8px;border:1.5px solid var(--border);border-radius:var(--border-radius);font:inherit;font-size:0.82rem;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;">
+          <select id="billing-brand-filter" class="billing-filter-select" aria-label="Filter by brand">
             <option value="">All Brands</option>
           </select>
         </div>
@@ -365,6 +363,7 @@ function _renderGrid(query = '') {
     typeEl.innerHTML = '<option value="">All Types</option>' +
       types.map(t => `<option value="${escapeHtml(t)}"${t === cur ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
     if (!types.includes(cur)) { typeEl.value = ''; _billingTypeFilter = ''; }
+    typeEl.classList.toggle('has-value', !!_billingTypeFilter);
   }
   if (brandEl) {
     const brands = [...new Set(_inventory.map(p => p.brand || '').filter(Boolean))].sort();
@@ -372,6 +371,7 @@ function _renderGrid(query = '') {
     brandEl.innerHTML = '<option value="">All Brands</option>' +
       brands.map(b => `<option value="${escapeHtml(b)}"${b === cur ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
     if (!brands.includes(cur)) { brandEl.value = ''; _billingbrandFilter = ''; }
+    brandEl.classList.toggle('has-value', !!_billingbrandFilter);
   }
 
   // Apply type/brand filter
@@ -382,7 +382,7 @@ function _renderGrid(query = '') {
   if (_inventory.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;padding-top:48px;">
-        <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
+        <div style="margin-bottom:12px;color:var(--text-muted);"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
         <p style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">
           No products yet
         </p>
@@ -393,7 +393,7 @@ function _renderGrid(query = '') {
   if (items.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;padding-top:48px;">
-        <div style="font-size:2rem;margin-bottom:12px;">🔍</div>
+        <div style="margin-bottom:12px;color:var(--text-muted);"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
         <p>No results for &ldquo;${escapeHtml(query)}&rdquo;</p>
       </div>`;
     return;
