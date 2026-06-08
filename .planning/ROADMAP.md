@@ -477,8 +477,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 27-01-PLAN.md — Inventory form: Brand below Name, Type/Brand autocomplete, Has Colors + variant row UI
-- [ ] 27-02-PLAN.md — Has Sizes sub-rows, Firestore save/load, list badge, billing picker, export rows
+- [x] 27-01-PLAN.md — Inventory form: Brand below Name, Type/Brand autocomplete, Has Colors + variant row UI
+- [x] 27-02-PLAN.md — Has Sizes sub-rows, Firestore save/load, list badge, billing picker, export rows
 - [ ] 27-03-PLAN.md — Human verification checkpoint
 
 ---

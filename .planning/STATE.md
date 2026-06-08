@@ -23,7 +23,7 @@
 | 24 | Admin Settings Panel | 🔲 Not Started |
 | 25 | Billing UX Fixes & Payment Mode | ✅ Complete |
 | 26 | Reports Advanced Filters | 🔲 Not Started |
-| 27 | Inventory Variant System (Colors & Sizes) | 🔲 Not Started |
+| 27 | Inventory Variant System (Colors & Sizes) | 🔄 In Progress (checkpoint pending) |
 
 ### Milestone 1: MVP (v1.0) — ✅ Complete (2026-06-03)
 
