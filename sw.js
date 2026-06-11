@@ -9,7 +9,7 @@
  * Code changes are automatically picked up via network-first -- no manual bump needed.
  */
 
-const CACHE_VERSION = 'vikretha-v3';
+const CACHE_VERSION = 'vikretha-v4';
 
 const APP_SHELL = [
   './',
@@ -19,7 +19,18 @@ const APP_SHELL = [
   './styles/main.css',
   './lib/firebase-init.js',
   './lib/svg-chart.js',
-  './manifest.json'
+  './lib/toast.js',
+  './manifest.json',
+  // Route modules — pre-cached so they load offline even on first visit
+  './modules/auth.js',
+  './modules/billing.js',
+  './modules/dashboard.js',
+  './modules/inventory.js',
+  './modules/reports.js',
+  './modules/settings.js',
+  './modules/receipt.js',
+  './modules/export.js',
+  './modules/adminSettings.js',
 ];
 
 // Install: pre-cache app shell so the app loads offline immediately
