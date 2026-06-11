@@ -167,6 +167,7 @@ export function render(container) {
                 <span class="pay-split-label">Card</span>
                 <input id="split-card" type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
               </div>
+              <div id="split-balance" style="margin-top:6px;font-size:0.8rem;color:var(--text-secondary);text-align:right;"></div>
             </div>
           </div>
           <!-- Totals -->
@@ -332,6 +333,12 @@ export function render(container) {
     btn.classList.add('active');
     const splitEl = container.querySelector('#pay-split-inputs');
     if (splitEl) splitEl.style.display = _paymentMode === 'split' ? 'block' : 'none';
+    if (_paymentMode === 'split') _updateTotals(); // refresh balance hint on switch
+  });
+
+  // Split inputs — live balance hint
+  ['split-cash', 'split-upi', 'split-card'].forEach(id => {
+    container.querySelector(`#${id}`)?.addEventListener('input', _updateTotals);
   });
 
 }
@@ -517,11 +524,36 @@ function _updateTotals() {
     dl.style.display = disc > 0 ? 'flex' : 'none';
     if ($('disc-val')) $('disc-val').textContent = `−${fmt(disc)}`;
   }
+  // Update split balance hint
+  _updateSplitBalance(total);
 }
 
 
-// ── Color/size variant picker (Phase-27) ─────────────────────
-function _showVariantPicker(container, inv) {
+// ── Live split balance hint ───────────────────────────────────
+function _updateSplitBalance(total) {
+  const balEl = document.getElementById('split-balance');
+  if (!balEl) return;
+  const cash = parseFloat(document.getElementById('split-cash')?.value) || 0;
+  const upi  = parseFloat(document.getElementById('split-upi')?.value)  || 0;
+  const card = parseFloat(document.getElementById('split-card')?.value) || 0;
+  const entered   = +(cash + upi + card).toFixed(2);
+  const remaining = +(total - entered).toFixed(2);
+  if (entered === 0) {
+    balEl.textContent = `Total to split: ${CURRENCY}${total.toFixed(2)}`;
+    balEl.style.color = 'var(--text-secondary)';
+  } else if (Math.abs(remaining) < 0.01) {
+    balEl.textContent = '✓ Split matches total';
+    balEl.style.color = 'var(--success)';
+  } else if (remaining > 0) {
+    balEl.textContent = `${CURRENCY}${remaining.toFixed(2)} still to allocate`;
+    balEl.style.color = 'var(--warning, #f59e0b)';
+  } else {
+    balEl.textContent = `Over by ${CURRENCY}${Math.abs(remaining).toFixed(2)}`;
+    balEl.style.color = 'var(--danger)';
+  }
+}
+
+// ── Color/size variant picker (Phase-27) ─────────────────────function _showVariantPicker(container, inv) {
   document.body.style.overflow = 'hidden';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
@@ -1005,8 +1037,10 @@ async function _handleSubmit(container) {
   const _rawPhone  = document.getElementById('customer-phone')?.value.trim() || '';
   const phone      = _rawPhone ? normalizeIndianPhone(_rawPhone) : null;
   if (phone === false) {
-    const errEl = document.getElementById('submit-err');
-    if (errEl) { errEl.textContent = 'Customer phone must be 10 digits or +91XXXXXXXXXX.'; errEl.style.display = 'block'; }
+    btn.disabled = false;
+    btn.textContent = 'Submit Sale';
+    const errEl2 = document.getElementById('submit-err');
+    if (errEl2) { errEl2.textContent = 'Customer phone must be 10 digits or +91XXXXXXXXXX.'; errEl2.style.display = 'block'; }
     return;
   }
   const customerName = document.getElementById('customer-name')?.value.trim() || null;
@@ -1016,6 +1050,18 @@ async function _handleSubmit(container) {
     upi:  +(parseFloat(document.getElementById('split-upi')?.value)  || 0).toFixed(2),
     card: +(parseFloat(document.getElementById('split-card')?.value) || 0).toFixed(2),
   } : null;
+
+  // Validate split amounts sum to total (after discount)
+  if (payMode === 'split') {
+    const splitSum = +((paySplit.cash + paySplit.upi + paySplit.card)).toFixed(2);
+    if (Math.abs(splitSum - total) > 0.01) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Sale';
+      errEl.textContent = `Split amounts (${CURRENCY}${splitSum.toFixed(2)}) must equal the total (${CURRENCY}${total.toFixed(2)}).`;
+      errEl.style.display = 'block';
+      return;
+    }
+  }
 
   try {
     const batch      = writeBatch(db);
