@@ -1219,7 +1219,7 @@ function _showConfirmation(container, { saleId, total, cartArr, payMode, paySpli
       </div>
 
       <!-- Sync status badge -->
-      <span id="sync-badge" class="sync-badge pending"
+      <span id="sync-badge" class="sync-badge sync-badge--pending"
             style="font-size:0.8rem;padding:5px 14px;">
         ⏳ Syncing to server...
       </span>
@@ -1257,7 +1257,7 @@ function _showConfirmation(container, { saleId, total, cartArr, payMode, paySpli
       if (!snap.metadata.hasPendingWrites) {
         const badge = document.getElementById('sync-badge');
         if (badge) {
-          badge.className   = 'sync-badge synced';
+          badge.className   = 'sync-badge sync-badge--synced';
           badge.textContent = '✓ Synced to server';
         }
         unsubSync(); // clean up — no longer needed

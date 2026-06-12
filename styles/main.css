@@ -317,6 +317,7 @@ select.form-input { cursor: pointer; }
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scaleIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* == 12. Alerts == */
 .alert { padding: 12px 14px; border-radius: var(--radius); font-size: 0.875rem; }
@@ -450,6 +451,12 @@ select.form-input { cursor: pointer; }
 
 /* == 18. Billing == */
 .billing-screen { display: flex; flex-direction: column; gap: 16px; }
+/* Tablet (768px): side-by-side layout — products left, cart right */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .billing-screen { flex-direction: row; align-items: flex-start; gap: 16px; }
+  .billing-products-panel { flex: 1; min-width: 0; }
+  .billing-cart-panel { width: 320px; flex-shrink: 0; position: sticky; top: calc(var(--header-height) + 16px); }
+}
 @media (min-width: 1024px) {
   .billing-screen { flex-direction: row; align-items: flex-start; gap: 20px; }
   .billing-products-panel { flex: 1; min-width: 0; }

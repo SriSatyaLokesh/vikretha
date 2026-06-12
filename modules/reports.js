@@ -439,7 +439,7 @@ function _renderRows() {
     const amount   = _fmt(data.total);
     const badge    = data.editedAt ? ' <span class="rpt-amended-badge" title="Amended">✏</span>' : '';
 
-    return `<tr data-doc-id="${escapeHtml(docSnap.id)}">
+    return `<tr data-doc-id="${escapeHtml(docSnap.id)}" tabindex="0" role="button" aria-label="View sale ${escapeHtml(data.saleId || docSnap.id)}">
       <td><span class="rpt-date-primary">${escapeHtml(datePart)}</span><span class="rpt-date-time">${escapeHtml(timePart)}</span></td>
       <td class="rpt-sale-id">${escapeHtml(data.saleId || docSnap.id)}</td>
       <td>${customer}</td>
@@ -1443,6 +1443,13 @@ export async function render(container, routeParam = null) {
   container.querySelector('#rpt-tbody').addEventListener('click', e => {
     const row = e.target.closest('tr[data-doc-id]');
     if (row) _openDetail(row.dataset.docId);
+  });
+
+  container.querySelector('#rpt-tbody').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const row = e.target.closest('tr[data-doc-id]');
+      if (row) { e.preventDefault(); _openDetail(row.dataset.docId); }
+    }
   });
 
   container.querySelector('#rpt-detail-overlay').addEventListener('click', e => {
