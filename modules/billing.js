@@ -553,7 +553,8 @@ function _updateSplitBalance(total) {
   }
 }
 
-// ── Color/size variant picker (Phase-27) ─────────────────────function _showVariantPicker(container, inv) {
+// ── Color/size variant picker (Phase-27) ─────────────────────
+function _showVariantPicker(container, inv) {
   document.body.style.overflow = 'hidden';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
