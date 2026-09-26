@@ -1,0 +1,27 @@
+{
+  "name": "vikretha",
+  "version": "1.1.0",
+  "description": "Zero-cost shop management PWA for small retailers",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "serve -l 3000 .",
+    "dev": "serve -l 3000 .",
+    "serve:py": "python3 -m http.server 3000",
+    "seed": "node scripts/seed-demo.js",
+    "deploy-rules": "node scripts/deploy-rules.js"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  },
+  "keywords": [
+    "pwa",
+    "retail",
+    "pos",
+    "inventory",
+    "billing",
+    "firestore"
+  ],
+  "author": "SriSatyaLokesh",
+  "license": "MIT"
+}
