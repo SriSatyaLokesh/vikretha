@@ -85,9 +85,16 @@ function _switchTab(tab, container) {
 
 // ── Firestore query helpers ───────────────────────────────────────────────────
 
+const PAGE_SIZE_DEFAULT  = 25;
+const PAGE_SIZE_FILTERED = 500;
+
+function _getPageLimit() {
+  return _hasAdvancedFilters() ? PAGE_SIZE_FILTERED : PAGE_SIZE_DEFAULT;
+}
+
 function _buildQuery(afterDoc = null) {
   const salesColl = collection(db, 'shops', SHOP_ID, 'sales');
-  const constraints = [orderBy('timestamp', 'desc'), limit(_hasAdvancedFilters() ? 500 : 25)];
+  const constraints = [orderBy('timestamp', 'desc'), limit(_getPageLimit())];
 
   if (_fromDate) {
     const timeStr = _fromTime || '00:00';
@@ -130,7 +137,7 @@ async function _loadSales(reset = true) {
     _renderRows();
 
     if (paginEl) {
-      paginEl.style.display = snap.docs.length === 25 ? 'flex' : 'none';
+      paginEl.style.display = snap.docs.length >= _getPageLimit() ? 'flex' : 'none';
     }
   } catch (err) {
     console.error('reports: load failed', err);
@@ -149,7 +156,7 @@ async function _loadSales(reset = true) {
 // ── Filter helpers ────────────────────────────────────────────────────────────
 
 function _hasAdvancedFilters() {
-  return _payFilter !== 'all' || _amtMin != null || _amtMax != null || _sortOrder !== 'newest';
+  return Boolean(_fromDate || _toDate) || _payFilter !== 'all' || _amtMin != null || _amtMax != null || _sortOrder !== 'newest';
 }
 
 function _applyAllFilters() {
