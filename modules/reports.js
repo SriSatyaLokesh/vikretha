@@ -54,7 +54,45 @@ function escapeHtml(s) {
 }
 
 function _fmt(amount) {
-  return CURRENCY + Number(amount || 0).toLocaleString(LOCALE, { minimumFractionDigits: 2 });
+  return CURRENCY + Number(amount || 0).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function _getSalePaymentBreakdown(s) {
+  const total = +(Number(s.total || 0).toFixed(2));
+  if (total <= 0) return { cash: 0, upi: 0, card: 0 };
+
+  const mode = String(s.payment_mode || 'cash').trim().toLowerCase();
+
+  if (mode === 'upi')  return { cash: 0, upi: total, card: 0 };
+  if (mode === 'card') return { cash: 0, upi: 0, card: total };
+  if (mode === 'cash') return { cash: total, upi: 0, card: 0 };
+
+  if (mode === 'split' && s.payment_split) {
+    const rawCash = Math.max(0, +(Number(s.payment_split.cash || 0).toFixed(2)));
+    const rawUpi  = Math.max(0, +(Number(s.payment_split.upi  || 0).toFixed(2)));
+    const rawCard = Math.max(0, +(Number(s.payment_split.card || 0).toFixed(2)));
+    const rawSum  = +(rawCash + rawUpi + rawCard).toFixed(2);
+
+    if (rawSum > 0) {
+      if (Math.abs(rawSum - total) <= 0.01) {
+        const diff = +(total - rawSum).toFixed(2);
+        if (rawCash >= rawUpi && rawCash >= rawCard) {
+          return { cash: +(rawCash + diff).toFixed(2), upi: rawUpi, card: rawCard };
+        } else if (rawUpi >= rawCard) {
+          return { cash: rawCash, upi: +(rawUpi + diff).toFixed(2), card: rawCard };
+        } else {
+          return { cash: rawCash, upi: rawUpi, card: +(rawCard + diff).toFixed(2) };
+        }
+      }
+      const scale = total / rawSum;
+      const c = +(rawCash * scale).toFixed(2);
+      const u = +(rawUpi  * scale).toFixed(2);
+      const k = +(total - c - u).toFixed(2);
+      return { cash: c, upi: u, card: k };
+    }
+  }
+
+  return { cash: total, upi: 0, card: 0 };
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
@@ -158,7 +196,7 @@ function _applyAllFilters() {
   // 1. Payment filter
   let docs = _allDocs.filter(docSnap => {
     if (_payFilter === 'all') return true;
-    return (docSnap.data().payment_mode || 'cash') === _payFilter;
+    return String(docSnap.data().payment_mode || 'cash').trim().toLowerCase() === _payFilter;
   });
 
   // 2. Amount range filter
@@ -212,27 +250,31 @@ function _renderStats() {
     return;
   }
 
-  const totalRev = _filtered.reduce((s, d) => s + (d.data().total || 0), 0);
-  const avg      = totalRev / _filtered.length;
-
+  let totalRev  = 0;
   let cashTotal = 0, upiTotal = 0, cardTotal = 0;
+
   _filtered.forEach(docSnap => {
     const s = docSnap.data();
-    const mode  = s.payment_mode || 'cash';
-    const total = s.total || 0;
-    const split = s.payment_split;
-    if (mode === 'split' && split) {
-      cashTotal += Number(split.cash || 0);
-      upiTotal  += Number(split.upi  || 0);
-      cardTotal += Number(split.card || 0);
-    } else if (mode === 'cash') {
-      cashTotal += total;
-    } else if (mode === 'upi') {
-      upiTotal  += total;
-    } else if (mode === 'card') {
-      cardTotal += total;
-    }
+    const t = +(Number(s.total || 0).toFixed(2));
+    totalRev += t;
+    const b = _getSalePaymentBreakdown(s);
+    cashTotal += b.cash;
+    upiTotal  += b.upi;
+    cardTotal += b.card;
   });
+
+  totalRev  = +(totalRev.toFixed(2));
+  cashTotal = +(cashTotal.toFixed(2));
+  upiTotal  = +(upiTotal.toFixed(2));
+  cardTotal = +(cardTotal.toFixed(2));
+
+  // Guarantee payment breakdown strictly tallies with total revenue
+  const diff = +(totalRev - (cashTotal + upiTotal + cardTotal)).toFixed(2);
+  if (Math.abs(diff) > 0) {
+    cashTotal = +(cashTotal + diff).toFixed(2);
+  }
+
+  const avg = _filtered.length ? totalRev / _filtered.length : 0;
 
   let html =
     `<span class="rpt-stat-chip"><strong>${_filtered.length}</strong>&nbsp;sale${_filtered.length !== 1 ? 's' : ''}</span>` +
@@ -380,7 +422,7 @@ async function _exportFiltered(btn) {
       const dateStr  = s.timestamp ? s.timestamp.toDate().toLocaleDateString(LOCALE) : '';
       const itemsText = items.map(i => (i.name || i.item_id || '') + '×' + (i.quantity || i.qty || 1)).join('; ');
       const totalQty = items.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
-      const split    = s.payment_split;
+      const b = _getSalePaymentBreakdown(s);
       rows.push([
         s.saleId || s.sale_id || docSnap.id,
         dateStr,
@@ -392,9 +434,9 @@ async function _exportFiltered(btn) {
         s.discount || 0,
         s.total    || 0,
         s.payment_mode || 'cash',
-        split ? (split.cash || 0) : (s.payment_mode === 'cash' ? s.total : 0),
-        split ? (split.upi  || 0) : (s.payment_mode === 'upi'  ? s.total : 0),
-        split ? (split.card || 0) : (s.payment_mode === 'card' ? s.total : 0),
+        b.cash,
+        b.upi,
+        b.card,
       ]);
     });
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -988,6 +1030,11 @@ async function _saveEdit(originalData, docId, zone) {
     if (newDiscount > newSubtotal) newDiscount = newSubtotal;
     const newTotal    = newSubtotal - newDiscount;
     const originalTotal = originalData.originalTotal ?? originalData.total;
+    let newSplit = originalData.payment_split || null;
+    if (String(originalData.payment_mode).toLowerCase() === 'split' && newSplit) {
+      const b = _getSalePaymentBreakdown({ ...originalData, total: newTotal });
+      newSplit = { cash: b.cash, upi: b.upi, card: b.card };
+    }
 
     const saleRef = doc(db, 'shops', SHOP_ID, 'sales', docId);
     await updateDoc(saleRef, {
@@ -999,6 +1046,7 @@ async function _saveEdit(originalData, docId, zone) {
       editedBy:      auth.currentUser?.email ?? '',
       originalTotal: originalTotal,
       amendedTotal:  newTotal,
+      ...(newSplit ? { payment_split: newSplit } : {}),
     });
 
     const idx = _allDocs.findIndex(d => d.id === docId);
@@ -1013,6 +1061,7 @@ async function _saveEdit(originalData, docId, zone) {
         originalTotal: originalTotal,
         amendedTotal:  newTotal,
         editedAt:      { toDate: () => new Date() },
+        ...(newSplit ? { payment_split: newSplit } : {}),
       };
       _allDocs[idx] = { id: docId, data: () => updatedData };
       _applyAllFilters();
