@@ -185,16 +185,19 @@ export function render(container) {
               <div class="pay-split-row">
                 <span class="pay-split-label">Cash</span>
                 <input id="split-cash" type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+                <button type="button" class="btn-split-fill" data-target="split-cash" title="Fill remaining balance into Cash">Fill</button>
               </div>
               <div class="pay-split-row" style="margin-top:4px;">
                 <span class="pay-split-label">UPI</span>
                 <input id="split-upi"  type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+                <button type="button" class="btn-split-fill" data-target="split-upi" title="Fill remaining balance into UPI">Fill</button>
               </div>
               <div class="pay-split-row" style="margin-top:4px;">
                 <span class="pay-split-label">Card</span>
                 <input id="split-card" type="number" min="0" step="0.01" placeholder="0" class="form-input pay-split-input">
+                <button type="button" class="btn-split-fill" data-target="split-card" title="Fill remaining balance into Card">Fill</button>
               </div>
-              <div id="split-balance" style="margin-top:6px;font-size:0.8rem;color:var(--text-secondary);text-align:right;"></div>
+              <div id="split-balance"></div>
             </div>
           </div>
           <!-- Totals -->
@@ -377,6 +380,60 @@ export function render(container) {
   // Split inputs — live balance hint
   ['split-cash', 'split-upi', 'split-card'].forEach(id => {
     container.querySelector(`#${id}`)?.addEventListener('input', _updateTotals);
+  });
+
+  // Split fill buttons & quick auto-fill
+  container.addEventListener('click', e => {
+    const fillBtn = e.target.closest('.btn-split-fill');
+    if (fillBtn) {
+      const targetId = fillBtn.dataset.target;
+      const targetInput = container.querySelector(`#${targetId}`);
+      if (targetInput) {
+        const subtotal = [..._cart.values()].reduce((s, i) => s + i.price * i.qty, 0);
+        const discRaw  = parseFloat(document.getElementById('discount-val')?.value) || 0;
+        const disc     = _discMode === 'pct'
+          ? subtotal * Math.min(Math.max(discRaw, 0), 100) / 100
+          : Math.min(Math.max(discRaw, 0), subtotal);
+        const total    = Math.max(0, subtotal - disc);
+
+        const otherIds = ['split-cash', 'split-upi', 'split-card'].filter(id => id !== targetId);
+        const othersSum = otherIds.reduce((sum, id) => {
+          return sum + (parseFloat(document.getElementById(id)?.value) || 0);
+        }, 0);
+
+        const needed = Math.max(0, +(total - othersSum).toFixed(2));
+        targetInput.value = needed > 0 ? needed : '';
+        _updateTotals();
+        targetInput.focus();
+      }
+      return;
+    }
+
+    const quickBalBtn = e.target.closest('.btn-split-quick-balance');
+    if (quickBalBtn) {
+      const subtotal = [..._cart.values()].reduce((s, i) => s + i.price * i.qty, 0);
+      const discRaw  = parseFloat(document.getElementById('discount-val')?.value) || 0;
+      const disc     = _discMode === 'pct'
+        ? subtotal * Math.min(Math.max(discRaw, 0), 100) / 100
+        : Math.min(Math.max(discRaw, 0), subtotal);
+      const total    = Math.max(0, subtotal - disc);
+
+      const splitIds = ['split-cash', 'split-upi', 'split-card'];
+      const values = splitIds.map(id => parseFloat(document.getElementById(id)?.value) || 0);
+      const currentSum = values.reduce((a, b) => a + b, 0);
+      const remaining = +(total - currentSum).toFixed(2);
+      if (remaining > 0) {
+        const emptyIdx = values.findIndex(v => v === 0);
+        const targetId = emptyIdx !== -1 ? splitIds[emptyIdx] : 'split-card';
+        const targetInput = document.getElementById(targetId);
+        if (targetInput) {
+          const currentVal = parseFloat(targetInput.value) || 0;
+          targetInput.value = +(currentVal + remaining).toFixed(2);
+          _updateTotals();
+          targetInput.focus();
+        }
+      }
+    }
   });
 
 }
@@ -568,6 +625,17 @@ function _updateTotals() {
   }
   // Update split balance hint
   _updateSplitBalance(total);
+
+  // If error banner was previously showing split mismatch, clear it once split matches
+  const errEl = $('submit-err');
+  if (errEl && errEl.textContent.includes('Split amounts')) {
+    const cash = parseFloat($('split-cash')?.value) || 0;
+    const upi  = parseFloat($('split-upi')?.value)  || 0;
+    const card = parseFloat($('split-card')?.value) || 0;
+    if (Math.abs((cash + upi + card) - total) < 0.01) {
+      errEl.style.display = 'none';
+    }
+  }
 }
 
 
@@ -580,18 +648,23 @@ function _updateSplitBalance(total) {
   const card = parseFloat(document.getElementById('split-card')?.value) || 0;
   const entered   = +(cash + upi + card).toFixed(2);
   const remaining = +(total - entered).toFixed(2);
+
   if (entered === 0) {
-    balEl.textContent = `Total to split: ${CURRENCY}${total.toFixed(2)}`;
+    balEl.innerHTML = `<span>Total to split: <strong>${CURRENCY}${total.toFixed(2)}</strong></span>`;
     balEl.style.color = 'var(--text-secondary)';
+    balEl.style.background = 'transparent';
   } else if (Math.abs(remaining) < 0.01) {
-    balEl.textContent = '✓ Split matches total';
-    balEl.style.color = 'var(--success)';
+    balEl.innerHTML = `<span>✓ Split matches total</span>`;
+    balEl.style.color = 'var(--success-text, #15803d)';
+    balEl.style.background = 'var(--success-bg, #f0fdf4)';
   } else if (remaining > 0) {
-    balEl.textContent = `${CURRENCY}${remaining.toFixed(2)} still to allocate`;
-    balEl.style.color = 'var(--warning, #f59e0b)';
+    balEl.innerHTML = `<span>${CURRENCY}${remaining.toFixed(2)} still to allocate</span><button type="button" class="btn-split-quick-balance" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.8rem;font-weight:600;padding:2px 6px;border-radius:4px;text-decoration:underline;">Auto-fill</button>`;
+    balEl.style.color = 'var(--warning-text, #b45309)';
+    balEl.style.background = 'var(--warning-bg, #fffbeb)';
   } else {
-    balEl.textContent = `Over by ${CURRENCY}${Math.abs(remaining).toFixed(2)}`;
-    balEl.style.color = 'var(--danger)';
+    balEl.innerHTML = `<span>Over by ${CURRENCY}${Math.abs(remaining).toFixed(2)}</span>`;
+    balEl.style.color = 'var(--danger-text, #b91c1c)';
+    balEl.style.background = 'var(--danger-bg, #fef2f2)';
   }
 }
 
@@ -1048,20 +1121,15 @@ function _generateOfflineSaleId() {
 async function _handleSubmit(container) {
   const errEl = document.getElementById('submit-err');
   const btn   = document.getElementById('submit-btn');
+
+  // 1. Immediate Synchronous Validations (0ms response time, zero network delay)
   if (_cart.size === 0) {
-    errEl.textContent = 'Add at least one product to the cart.';
-    errEl.style.display = 'block';
+    if (errEl) {
+      errEl.textContent = 'Add at least one product to the cart.';
+      errEl.style.display = 'block';
+    }
     return;
   }
-  errEl.style.display = 'none';
-  btn.disabled = true;
-  btn.innerHTML = `<div class="spinner"
-    style="width:22px;height:22px;margin:0 auto;border-width:2px;"></div>`;
-
-  // Try sequential ID; fall back to offline ID if no network
-  let saleId;
-  try   { saleId = await _generateSaleId(); }
-  catch { saleId = _generateOfflineSaleId(); }
 
   const cartArr = [..._cart.values()].map(i => ({
     item_id:    i.id,
@@ -1083,12 +1151,13 @@ async function _handleSubmit(container) {
   const _rawPhone  = document.getElementById('customer-phone')?.value.trim() || '';
   const phone      = _rawPhone ? normalizeIndianPhone(_rawPhone) : null;
   if (phone === false) {
-    btn.disabled = false;
-    btn.textContent = 'Submit Sale';
-    const errEl2 = document.getElementById('submit-err');
-    if (errEl2) { errEl2.textContent = 'Customer phone must be 10 digits or +91XXXXXXXXXX.'; errEl2.style.display = 'block'; }
+    if (errEl) {
+      errEl.textContent = 'Customer phone must be 10 digits or +91XXXXXXXXXX.';
+      errEl.style.display = 'block';
+    }
     return;
   }
+
   const customerName = document.getElementById('customer-name')?.value.trim() || null;
   const payMode  = _paymentMode;
   const paySplit = payMode === 'split' ? {
@@ -1101,10 +1170,10 @@ async function _handleSubmit(container) {
   if (payMode === 'split') {
     const splitSum = +((paySplit.cash + paySplit.upi + paySplit.card)).toFixed(2);
     if (Math.abs(splitSum - total) > 0.01) {
-      btn.disabled = false;
-      btn.textContent = 'Submit Sale';
-      errEl.textContent = `Split amounts (${CURRENCY}${splitSum.toFixed(2)}) must equal the total (${CURRENCY}${total.toFixed(2)}).`;
-      errEl.style.display = 'block';
+      if (errEl) {
+        errEl.textContent = `Split amounts (${CURRENCY}${splitSum.toFixed(2)}) must equal the total (${CURRENCY}${total.toFixed(2)}).`;
+        errEl.style.display = 'block';
+      }
       return;
     }
   }
@@ -1114,13 +1183,24 @@ async function _handleSubmit(container) {
     if (item.adhoc || !item.item_id) continue;
     const maxStock = _getAvailableStock(item);
     if (item.qty > maxStock) {
-      btn.disabled = false;
-      btn.textContent = 'Submit Sale';
-      errEl.textContent = `Cannot complete sale: "${item.name}" quantity (${item.qty}) exceeds available stock (${maxStock}).`;
-      errEl.style.display = 'block';
+      if (errEl) {
+        errEl.textContent = `Cannot complete sale: "${item.name}" quantity (${item.qty}) exceeds available stock (${maxStock}).`;
+        errEl.style.display = 'block';
+      }
       return;
     }
   }
+
+  // 2. All validations passed — clear error banner & show spinner
+  if (errEl) errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"
+    style="width:22px;height:22px;margin:0 auto;border-width:2px;"></div>`;
+
+  // Try sequential ID; fall back to offline ID if no network
+  let saleId;
+  try   { saleId = await _generateSaleId(); }
+  catch { saleId = _generateOfflineSaleId(); }
 
   try {
     const batch      = writeBatch(db);

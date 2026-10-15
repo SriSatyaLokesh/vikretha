@@ -2456,6 +2456,44 @@ a.rpt-customer-row--link:hover .rpt-customer-hist-hint { opacity: 1; }
 .pay-split-input {
   flex: 1;
 }
+.btn-split-fill {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 10px;
+  height: 44px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast, 0.15s ease);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.btn-split-fill:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+.btn-split-fill:active {
+  transform: scale(0.97);
+}
+#split-balance {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: right;
+  transition: all var(--transition-fast, 0.15s ease);
+}
 
 /* ── Phase-27: Color/Size Variant Rows ──────────────────────── */
 .inv-color-row {
