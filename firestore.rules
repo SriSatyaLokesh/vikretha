@@ -33,12 +33,17 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email != null;
     }
 
+    function hasConfig(shopId) {
+      return exists(/databases/$(database)/documents/shops/$(shopId)/config/main);
+    }
+
     function getConfig(shopId) {
       return get(/databases/$(database)/documents/shops/$(shopId)/config/main).data;
     }
 
     function isAuthorized(shopId) {
       return isAuthenticated()
+        && hasConfig(shopId)
         && request.auth.token.email in getConfig(shopId).authorized_emails;
     }
 
@@ -65,8 +70,8 @@ service cloud.firestore {
         && request.auth.token.email in request.resource.data.authorized_emails
         && request.resource.data.staff_roles[request.auth.token.email] == 'owner';
 
-      // Any authorized email can read config (needed for role lookups)
-      allow read: if isAuthorized(shopId);
+      // Any authenticated user can read config (needed for checking existence & role lookups)
+      allow read: if isAuthenticated();
 
       // Only owners can modify or delete config
       allow update, delete: if isAuthorized(shopId) && getRole(shopId) == 'owner';
