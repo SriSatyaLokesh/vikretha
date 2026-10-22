@@ -179,15 +179,3 @@ graph TD
 
     S1 --> S2 --> S3 --> S4 --> S5 --> S6
 ```
-
----
-
-## 6. Prompt to Start the New Chat
-
-Copy and paste the following snippet into the new chat to begin implementation immediately:
-
-```text
-Please implement Item-Level Purchase Price (WAC), Profit Tracking, and Manual Barcode Management following the approved specification in docs/trd/item-costing-barcode-implementation-plan.md. 
-
-Start with Step 1 (lib/costing.js) and proceed through the execution plan systematically.
-```
