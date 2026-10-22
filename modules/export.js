@@ -102,22 +102,25 @@ async function _exportSalesMonth(container, year, month) {
     }
 
     const rows = [
-      ['Sale ID', 'Date', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'Phone']
+      ['Sale ID', 'Date', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'COGS', 'Gross Profit', 'Margin %', 'Phone']
     ];
     snap.forEach(docSnap => {
       const s = docSnap.data();
       const items    = s.items || [];
       const dateStr  = s.timestamp ? s.timestamp.toDate().toLocaleDateString(LOCALE) : '';
-      const itemsText = items.map(i => _safeStr(i.name || i.item_id) + '\xd7' + i.quantity).join('; ');
-      const totalQty = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+      const itemsText = items.map(i => _safeStr(i.name || i.item_id) + '\xd7' + (i.quantity || i.qty || 1)).join('; ');
+      const totalQty = items.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
       rows.push([
-        _safeStr(s.sale_id || docSnap.id),
+        _safeStr(s.saleId || s.sale_id || docSnap.id),
         dateStr,
         itemsText,
         totalQty,
         s.subtotal  || 0,
         s.discount  || 0,
         s.total     || 0,
+        s.cogs != null ? s.cogs : '',
+        s.gross_profit != null ? s.gross_profit : '',
+        s.profit_margin_pct != null ? `${s.profit_margin_pct}%` : '',
         _safeStr(s.customer_phone || '')
       ]);
     });
@@ -153,22 +156,25 @@ async function _exportSalesAll(container) {
     }
 
     const rows = [
-      ['Sale ID', 'Date', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'Phone']
+      ['Sale ID', 'Date', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'COGS', 'Gross Profit', 'Margin %', 'Phone']
     ];
     snap.forEach(docSnap => {
       const s = docSnap.data();
       const items    = s.items || [];
       const dateStr  = s.timestamp ? s.timestamp.toDate().toLocaleDateString(LOCALE) : '';
-      const itemsText = items.map(i => _safeStr(i.name || i.item_id) + '\xd7' + i.quantity).join('; ');
-      const totalQty = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+      const itemsText = items.map(i => _safeStr(i.name || i.item_id) + '\xd7' + (i.quantity || i.qty || 1)).join('; ');
+      const totalQty = items.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
       rows.push([
-        _safeStr(s.sale_id || docSnap.id),
+        _safeStr(s.saleId || s.sale_id || docSnap.id),
         dateStr,
         itemsText,
         totalQty,
         s.subtotal  || 0,
         s.discount  || 0,
         s.total     || 0,
+        s.cogs != null ? s.cogs : '',
+        s.gross_profit != null ? s.gross_profit : '',
+        s.profit_margin_pct != null ? `${s.profit_margin_pct}%` : '',
         _safeStr(s.customer_phone || '')
       ]);
     });
@@ -195,7 +201,7 @@ async function _exportInventory(container) {
     const snap = await getDocs(collection(db, 'shops', SHOP_ID, 'inventory'));
 
     const rows = [
-      ['ID', 'Name', 'Type', 'Brand', 'Color', 'Size', 'Unit', 'Price', 'Stock', 'Threshold', 'Status']
+      ['ID', 'Name', 'Barcode', 'Type', 'Brand', 'Color', 'Size', 'Unit', 'Price', 'Purchase Cost', 'Stock', 'Threshold', 'Status']
     ];
     const dataRows = [];
     snap.forEach(docSnap => {
@@ -210,12 +216,14 @@ async function _exportInventory(container) {
           dataRows.push([
             _safeStr(docSnap.id),
             _safeStr(d.name  || ''),
+            _safeStr(v.barcode || d.barcode || ''),
             _safeStr(d.type  || ''),
             _safeStr(d.brand || ''),
             _safeStr(v.color || ''),
             _safeStr(v.size  || ''),
             _safeStr(d.unit  || ''),
             d.price || 0,
+            v.purchase_price || d.purchase_price || 0,
             variantStock,
             threshold,
             vStatus
@@ -229,12 +237,14 @@ async function _exportInventory(container) {
           dataRows.push([
             _safeStr(docSnap.id),
             _safeStr(d.name  || ''),
+            _safeStr(sv.barcode || d.barcode || ''),
             _safeStr(d.type  || ''),
             _safeStr(d.brand || ''),
             _safeStr(d.color || ''),
             _safeStr(sv.label || sizeKey || ''),
             _safeStr(d.unit  || ''),
             d.price || 0,
+            sv.purchase_price || d.purchase_price || 0,
             sizeStock,
             threshold,
             sStatus
@@ -247,12 +257,14 @@ async function _exportInventory(container) {
         dataRows.push([
           _safeStr(docSnap.id),
           _safeStr(d.name  || ''),
+          _safeStr(d.barcode || ''),
           _safeStr(d.type  || ''),
           _safeStr(d.brand || ''),
           _safeStr(d.color || ''),
           '',
           _safeStr(d.unit  || ''),
           d.price || 0,
+          d.purchase_price || 0,
           stock,
           threshold,
           fStatus

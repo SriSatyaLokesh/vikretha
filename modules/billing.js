@@ -12,6 +12,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
 import { toast } from '../lib/toast.js';
+import { calculateSaleFinancials, findItemByBarcode } from '../lib/costing.js';
 
 // ── Module State ──────────────────────────────────────────────
 let _inventory = [];        // [{ id, name, price, unit, stock }]
@@ -224,8 +225,86 @@ export function render(container) {
     </div>`;
 
   // ── Attach event listeners ────────────────────────────────
-  container.querySelector('#product-search')
-    .addEventListener('input', e => _renderGrid(e.target.value));
+  const searchInput = container.querySelector('#product-search');
+  searchInput.addEventListener('input', e => _renderGrid(e.target.value));
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = searchInput.value.trim();
+      if (!val) return;
+      e.preventDefault();
+
+      const match = findItemByBarcode(_inventory, val);
+      if (match && match.item) {
+        const item = match.item;
+        if (match.variantType === 'color_variant' && match.variant) {
+          const v = match.variant;
+          const cartKey = item.id + '__' + v.color + (v.size ? '__' + v.size : '');
+          if (_cart.has(cartKey)) {
+            const cItem = _cart.get(cartKey);
+            if (!_tryIncrementCartItem(cItem, v.qty)) return;
+          } else {
+            if (v.qty <= 0) { toast('Item is out of stock', 'error'); return; }
+            _cart.set(cartKey, {
+              id: item.id, cartKey, name: item.name,
+              price: Number(v.price || item.price),
+              purchase_price: Number(v.purchase_price || item.purchase_price || 0),
+              unit: item.unit || 'pcs', qty: 1,
+              sizeKey: v.color + (v.size ? '/' + v.size : ''),
+              sizeLabel: v.color + (v.size ? ' · ' + v.size : '')
+            });
+          }
+          toast(`Added: ${item.name} (${v.color}${v.size ? ' · ' + v.size : ''})`);
+        } else if (match.variantType === 'size_variant' && match.variant) {
+          const s = match.variant;
+          const cartKey = item.id + '::' + match.sizeKey;
+          const sizeLabel = s.color ? s.label + ' · ' + s.color : s.label;
+          if (_cart.has(cartKey)) {
+            const cItem = _cart.get(cartKey);
+            if (!_tryIncrementCartItem(cItem, s.stock)) return;
+          } else {
+            if (s.stock <= 0) { toast('Item is out of stock', 'error'); return; }
+            _cart.set(cartKey, {
+              id: item.id, cartKey, name: item.name,
+              price: Number(s.price || item.price),
+              purchase_price: Number(s.purchase_price || item.purchase_price || 0),
+              unit: 'pcs', qty: 1,
+              sizeKey: match.sizeKey, sizeLabel
+            });
+          }
+          toast(`Added: ${item.name} (${sizeLabel})`);
+        } else {
+          if (item.has_colors && item.variants && item.variants.length > 0) {
+            _showVariantPicker(container, item);
+            return;
+          }
+          if (item.hasSizes && item.sizes && Object.keys(item.sizes).length > 0) {
+            _showSizePicker(container, item);
+            return;
+          }
+          const maxStock = Number(item.stock ?? 0);
+          if (maxStock <= 0) {
+            toast('Item is out of stock', 'error');
+            return;
+          }
+          if (_cart.has(item.id)) {
+            const cItem = _cart.get(item.id);
+            if (!_tryIncrementCartItem(cItem, maxStock)) return;
+          } else {
+            _cart.set(item.id, {
+              id: item.id, cartKey: item.id, name: item.name,
+              price: Number(item.price),
+              purchase_price: Number(item.purchase_price || 0),
+              unit: item.unit || 'pc', qty: 1,
+              sizeKey: null, sizeLabel: null
+            });
+          }
+          toast(`Added: ${item.name}`);
+        }
+        searchInput.value = '';
+        _refresh(container);
+      }
+    }
+  });
 
   container.querySelector('#billing-type-filter')
     .addEventListener('change', e => {
@@ -292,7 +371,9 @@ export function render(container) {
       }
       if (!_cart.has(id)) {
         _cart.set(id, { id: inv.id, cartKey: inv.id, name: inv.name,
-          price: Number(inv.price), unit: inv.unit || 'pc', qty: 1,
+          price: Number(inv.price),
+          purchase_price: Number(inv.purchase_price || 0),
+          unit: inv.unit || 'pc', qty: 1,
           sizeKey: null, sizeLabel: null });
       }
       _refresh(container);
@@ -450,7 +531,7 @@ function _renderGrid(query = '') {
   const grid = document.getElementById('product-grid');
   if (!grid) return;
   const q     = query.trim().toLowerCase();
-  const items = q ? _inventory.filter(p => p.name.toLowerCase().includes(q)) : _inventory;
+  const items = q ? _inventory.filter(p => p.name.toLowerCase().includes(q) || (p.barcode && String(p.barcode).toLowerCase().includes(q))) : _inventory;
 
   // Populate filter dropdowns from all inventory items
   const typeEl   = document.getElementById('billing-type-filter');
@@ -531,6 +612,7 @@ function _renderGrid(query = '') {
         aria-label="${escapeHtml(item.name)}, ${CURRENCY}${Number(item.price)}"
         aria-disabled="${noStock}">
         <div class="product-card-name">${escapeHtml(item.name)}</div>
+        ${item.barcode ? `<div style="font-size:0.7rem;color:var(--text-muted);font-family:monospace;margin-top:1px;">🏷️ ${escapeHtml(item.barcode)}</div>` : ''}
         ${stockBadge}
         ${(!item.has_colors && item.color) ? `<div style="margin-bottom:2px;"><span style="display:inline-block;font-size:0.7rem;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
         <div class="product-card-footer">
@@ -720,7 +802,9 @@ function _showVariantPicker(container, inv) {
               if (!_tryIncrementCartItem(item, v.qty)) return;
             } else {
               _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
-                price: Number(inv.price), unit: inv.unit || 'pcs', qty: 1,
+                price: Number(inv.price),
+                purchase_price: Number(v.purchase_price || inv.purchase_price || 0),
+                unit: inv.unit || 'pcs', qty: 1,
                 sizeKey: v.color + '/' + v.size, sizeLabel: v.color + ' · ' + v.size });
             }
             _close();
@@ -752,7 +836,9 @@ function _showVariantPicker(container, inv) {
             if (!_tryIncrementCartItem(item, v.qty)) return;
           } else {
             _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
-              price: Number(inv.price), unit: inv.unit || 'pcs', qty: 1,
+              price: Number(inv.price),
+              purchase_price: Number(v.purchase_price || inv.purchase_price || 0),
+              unit: inv.unit || 'pcs', qty: 1,
               sizeKey: v.color, sizeLabel: v.color });
           }
           _close();
@@ -826,7 +912,9 @@ function _showSizePicker(container, inv) {
           if (!_tryIncrementCartItem(item, sizeData.stock)) return;
         } else {
           _cart.set(cartKey, { id: inv.id, cartKey, name: inv.name,
-            price: Number(inv.price), unit: 'pcs', qty: 1,
+            price: Number(inv.price),
+            purchase_price: Number(sizeData.purchase_price || inv.purchase_price || 0),
+            unit: 'pcs', qty: 1,
             sizeKey, sizeLabel });
         }
         _close();
@@ -969,7 +1057,9 @@ function _showAdhocItemForm(container) {
     errEl.style.display = 'none';
     const cartKey = 'adhoc::' + Date.now().toString(36);
     _cart.set(cartKey, {
-      id: null, cartKey, name, price, unit: 'pc', qty: 1,
+      id: null, cartKey, name, price,
+      purchase_price: 0,
+      unit: 'pc', qty: 1,
       adhoc: true, sizeKey: null, sizeLabel: null
     });
     _close();
@@ -1131,23 +1221,33 @@ async function _handleSubmit(container) {
     return;
   }
 
-  const cartArr = [..._cart.values()].map(i => ({
-    item_id:    i.id,
-    name:       i.name,
-    price:      i.price,
-    unit:       i.unit,
-    qty:        i.qty,
-    line_total: +(i.price * i.qty).toFixed(2),
-    size_key:   i.sizeKey   || null,
-    size_label: i.sizeLabel || null,
-    adhoc:      i.adhoc     || false
-  }));
+  const cartArr = [..._cart.values()].map(i => {
+    const purchase_price = Number(i.purchase_price || 0);
+    const line_total = +(i.price * i.qty).toFixed(2);
+    const line_cost = +(purchase_price * i.qty).toFixed(2);
+    const line_profit = +(line_total - line_cost).toFixed(2);
+    return {
+      item_id:        i.id,
+      name:           i.name,
+      price:          i.price,
+      purchase_price: purchase_price,
+      unit:           i.unit,
+      qty:            i.qty,
+      line_total:     line_total,
+      line_cost:      line_cost,
+      line_profit:    line_profit,
+      size_key:       i.sizeKey   || null,
+      size_label:     i.sizeLabel || null,
+      adhoc:          i.adhoc     || false
+    };
+  });
   const subtotal   = +cartArr.reduce((s, i) => s + i.line_total, 0).toFixed(2);
   const discRaw    = parseFloat(document.getElementById('discount-val')?.value) || 0;
   const discAmount = +(_discMode === 'pct'
     ? subtotal * Math.min(discRaw, 100) / 100
     : Math.min(discRaw, subtotal)).toFixed(2);
   const total      = +(subtotal - discAmount).toFixed(2);
+  const { cogs, gross_profit, profit_margin_pct } = calculateSaleFinancials(cartArr, total);
   const _rawPhone  = document.getElementById('customer-phone')?.value.trim() || '';
   const phone      = _rawPhone ? normalizeIndianPhone(_rawPhone) : null;
   if (phone === false) {
@@ -1209,6 +1309,7 @@ async function _handleSubmit(container) {
     batch.set(saleRef, {
       saleId, timestamp: serverTimestamp(),
       items: cartArr, subtotal, discount: discAmount, total,
+      cogs, gross_profit, profit_margin_pct,
       customer_name: customerName,
       customer_phone: phone,
       payment_mode:  payMode,
@@ -1234,6 +1335,8 @@ async function _handleSubmit(container) {
       date: today,
       count: increment(1),
       revenue: increment(total),
+      gross_profit: increment(gross_profit),
+      cogs: increment(cogs),
       last_updated: serverTimestamp()
     }, { merge: true });
 
@@ -1244,6 +1347,8 @@ async function _handleSubmit(container) {
       month,
       count: increment(1),
       revenue: increment(total),
+      gross_profit: increment(gross_profit),
+      cogs: increment(cogs),
       last_updated: serverTimestamp()
     }, { merge: true });
 
