@@ -1,8 +1,9 @@
-﻿/**
+/**
  * modules/receipt.js — Receipt Page
  * Fetch sale from Firestore, draw Canvas 2D receipt, download PNG, WhatsApp share.
  */
 import { db, getShopConfig } from '../lib/firebase-init.js';
+import { toast } from '../lib/toast.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
   SHOP_NAME, SHOP_ID, CURRENCY, LOCALE, LOGO_URL, RECEIPT_FOOTER, THEME_COLOR, WHATSAPP_NUMBER
@@ -390,6 +391,155 @@ async function _drawReceipt(sale, cfg = {}) {
   return canvas;
 }
 
+// ── WhatsApp formatted receipt generator ──────────────────────────────────────
+
+function _buildWhatsAppMessage(sale, cfg = {}) {
+  const shopName = (cfg.shopName || SHOP_NAME).trim() || SHOP_NAME;
+  const billNo   = String(sale.saleId ?? '').padStart(6, '0');
+  const dateStr  = new Date(sale.timestamp?.toDate?.() ?? Date.now())
+    .toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+
+  const lines = [
+    `🧾 *TAX INVOICE / RECEIPT*`,
+    `🏪 *${shopName}*`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `*Bill No:* #${billNo}`,
+    `*Date:* ${dateStr}`,
+  ];
+
+  if (sale.customer_name || sale.customer_phone) {
+    const cust = [sale.customer_name, sale.customer_phone].filter(Boolean).join(' • ');
+    lines.push(`*Customer:* ${cust}`);
+  }
+
+  lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`*ITEMS:*`);
+
+  (sale.items || []).forEach((it, i) => {
+    const size = it.size_label ? ` (${it.size_label})` : '';
+    const lineTot = (it.line_total ?? ((it.qty || 0) * (it.price || 0))).toFixed(2);
+    lines.push(`${i + 1}. *${it.name}*${size}`);
+    lines.push(`   ${it.qty} × ${CURRENCY}${Number(it.price || 0).toFixed(2)} = *${CURRENCY}${lineTot}*`);
+  });
+
+  lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+  if (sale.discount && sale.discount > 0) {
+    lines.push(`*Subtotal:* ${CURRENCY}${(sale.subtotal ?? sale.total).toFixed(2)}`);
+    lines.push(`*Discount:* -${CURRENCY}${Number(sale.discount).toFixed(2)}`);
+  }
+  lines.push(`*TOTAL: ${CURRENCY}${Number(sale.total || 0).toFixed(2)}*`);
+
+  if (sale.payment_mode) {
+    lines.push(`*Payment Mode:* ${sale.payment_mode.toUpperCase()}`);
+  }
+
+  const footer = (cfg.receiptFooter || RECEIPT_FOOTER || '').trim();
+  lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(footer || `_Thank you for your visit!_`);
+
+  if (typeof window !== 'undefined' && window.location?.origin && sale.saleId) {
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`🧾 *Digital Receipt:* ${window.location.origin}/#/receipt/${encodeURIComponent(sale.saleId)}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Clean 1-2 line image caption for WhatsApp receipt sharing.
+ * Avoids dumping a 30-line ASCII bill text when sharing the graphic receipt.
+ */
+function _buildWhatsAppCaption(sale, cfg = {}) {
+  const shopName = (cfg.shopName || SHOP_NAME).trim() || SHOP_NAME;
+  const billNo   = String(sale.saleId ?? '').padStart(6, '0');
+  const total    = `${CURRENCY}${Number(sale.total || 0).toFixed(2)}`;
+  let caption = `🧾 *Receipt #${billNo}* from *${shopName}* (Total: ${total})`;
+  if (typeof window !== 'undefined' && window.location?.origin && sale.saleId) {
+    caption += `\n🔗 View Online: ${window.location.origin}/#/receipt/${encodeURIComponent(sale.saleId)}`;
+  }
+  return caption;
+}
+
+/**
+ * UI/UX Pro Max Dialog: Shows receipt preview and Ctrl+V guidance
+ */
+function _showShareImageModal({ saleId, dataUrl, blob, appUrl, webUrl, copied }) {
+  const existing = document.getElementById('share-image-modal');
+  if (existing) existing.remove();
+
+  const modalBackdrop = document.createElement('div');
+  modalBackdrop.id = 'share-image-modal';
+  modalBackdrop.className = 'share-modal-backdrop';
+  modalBackdrop.setAttribute('role', 'dialog');
+  modalBackdrop.setAttribute('aria-modal', 'true');
+  modalBackdrop.setAttribute('aria-labelledby', 'share-modal-title');
+
+  modalBackdrop.innerHTML = `
+    <div class="share-modal-card">
+      <div class="share-modal-icon">🧾</div>
+      <h3 id="share-modal-title" class="share-modal-title">Share Receipt Image</h3>
+      <p class="share-modal-desc">
+        ${copied ? 'Receipt image copied to your clipboard!' : 'Your receipt image is ready to send.'}
+      </p>
+      <div class="share-modal-preview">
+        <img src="${dataUrl}" alt="Receipt #${saleId}" />
+      </div>
+      <div class="share-modal-tip">
+        <span class="kbd-badge">Ctrl + V</span> Press <strong>Ctrl + V</strong> in WhatsApp to paste and send image!
+      </div>
+      <div class="share-modal-actions">
+        <button id="modal-copy-btn" class="btn btn-primary btn-full">
+          ${copied ? '✓ Image in Clipboard' : '📋 Copy Image to Clipboard'}
+        </button>
+        <button id="modal-open-wa-btn" class="btn btn-whatsapp btn-full">
+          💬 Open WhatsApp App
+        </button>
+        <a id="modal-wa-web-link" href="${webUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.8125rem;color:var(--text-secondary);text-decoration:underline;margin:2px 0;">
+          Or open in WhatsApp Web
+        </a>
+        <button id="modal-close-btn" class="btn btn-ghost btn-full" style="color:var(--text-muted);margin-top:2px;">
+          Done
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modalBackdrop);
+
+  modalBackdrop.querySelector('#modal-copy-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      const btn = modalBackdrop.querySelector('#modal-copy-btn');
+      btn.textContent = '✓ Copied to Clipboard';
+      toast.success('Receipt image copied to clipboard');
+    } catch (_) {
+      toast.warn('Could not copy image. Use Download Image instead.');
+    }
+  });
+
+  modalBackdrop.querySelector('#modal-open-wa-btn').addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = appUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  const closeModal = () => modalBackdrop.remove();
+  modalBackdrop.querySelector('#modal-close-btn').addEventListener('click', closeModal);
+  modalBackdrop.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+}
+
 // ── Main render ───────────────────────────────────────────────────────────────
 
 export async function render(container, saleId) {
@@ -434,6 +584,9 @@ export async function render(container, saleId) {
       <div class="receipt-actions">
         <button id="btn-download" class="btn btn-primary btn-full">↓ Download Receipt</button>
         <button id="btn-whatsapp" class="btn btn-whatsapp btn-full">Share via WhatsApp</button>
+        <p style="text-align:center;font-size:0.75rem;color:var(--text-secondary);margin:4px 0 8px;">
+          Opens WhatsApp App • Receipt image copied to clipboard (Ctrl+V)
+        </p>
         <a href="#/dashboard" style="display:block;text-align:center;margin-top:8px;color:var(--text-secondary);font-size:0.875rem;">
           ← Back to Dashboard
         </a>
@@ -444,6 +597,10 @@ export async function render(container, saleId) {
   const canvas  = await _drawReceipt(sale, cfg);
   const dataUrl = canvas.toDataURL('image/png');
   document.getElementById('receipt-img').src = dataUrl;
+
+  // Pre-generate blob for instantaneous clipboard write on user click
+  let cachedBlob = null;
+  canvas.toBlob(b => { cachedBlob = b; }, 'image/png');
 
   // Customer history link — only when sale has customer_phone
   if (sale.customer_phone) {
@@ -456,53 +613,88 @@ export async function render(container, saleId) {
     }
   }
 
+  const downloadReceipt = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = `receipt-${saleId}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Download button
   document.getElementById('btn-download').addEventListener('click', () => {
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a   = document.createElement('a');
-      a.href     = url;
-      a.download = `receipt-${saleId}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }, 'image/png');
+    if (cachedBlob) {
+      downloadReceipt(cachedBlob);
+    } else {
+      canvas.toBlob(blob => { if (blob) downloadReceipt(blob); }, 'image/png');
+    }
   });
 
-  // WhatsApp share button
-  // If sale has a customer phone, route directly to that customer.
-  // Skip Web Share API — it opens a generic system sheet with no phone routing.
+  // WhatsApp share button: Share PNG image file via native share or clipboard modal
   document.getElementById('btn-whatsapp').addEventListener('click', async () => {
-    const shopDisplayName = (cfg.shopName || SHOP_NAME).trim() || SHOP_NAME;
-    const message = `Receipt from ${shopDisplayName}\nBill #${saleId}\nTotal: ${CURRENCY}${sale.total.toFixed(2)}`;
+    const phone = sale.customer_phone
+      ? (normalizeIndianPhone(sale.customer_phone) || sale.customer_phone.replace(/\D/g, ''))
+      : (WHATSAPP_NUMBER || '').replace(/\D/g, '');
+    const caption = _buildWhatsAppCaption(sale, cfg);
+    const text    = encodeURIComponent(caption);
+    const appUrl  = phone ? `whatsapp://send?phone=${phone}&text=${text}` : `whatsapp://send?text=${text}`;
+    const webUrl  = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
 
-    // Customer phone present — direct wa.me link to that customer
-    if (sale.customer_phone) {
-      const phone = normalizeIndianPhone(sale.customer_phone) || sale.customer_phone.replace(/\D/g, '');
-      const text  = encodeURIComponent(message);
-      window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
-      return;
-    }
+    const blob = cachedBlob || await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!blob) return;
 
-    // No customer phone: try Web Share API (lets shopkeeper choose recipient)
-    if (navigator.canShare) {
+    const imgFile = new File([blob], `receipt-${saleId}.png`, { type: 'image/png' });
+
+    // 1. If Web Share with files is supported (mobile, tablet, or supporting desktop), share the ACTUAL PNG IMAGE FILE directly!
+    if (navigator.canShare && navigator.canShare({ files: [imgFile] })) {
       try {
-        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-        const imgFile = new File([blob], `receipt-${saleId}.png`, { type: 'image/png' });
-        if (navigator.canShare({ files: [imgFile] })) {
-          await navigator.share({ files: [imgFile], title: `Receipt — ${SHOP_NAME}`, text: message });
-          return;
-        }
+        await navigator.share({
+          files: [imgFile],
+          title: `Receipt — ${(cfg.shopName || '').trim() || SHOP_NAME}`,
+          text: caption
+        });
+        return;
       } catch (e) {
-        if (e.name === 'AbortError') return; // user cancelled — don't fall through to wa.me
+        if (e.name === 'AbortError') return;
       }
     }
 
-    // Final fallback: shop WhatsApp number or generic wa.me
-    const phone = (WHATSAPP_NUMBER || '').replace(/\D/g, '');
-    const text  = encodeURIComponent(message);
-    const url   = phone
-      ? `https://wa.me/${phone}?text=${text}`
-      : `https://wa.me/?text=${text}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // 2. Desktop: Copy receipt PNG to clipboard FIRST while document still has focus
+    let copied = false;
+    if (navigator.clipboard?.write && window.ClipboardItem && blob) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        copied = true;
+      } catch (err) {
+        console.warn('Clipboard write error:', err);
+      }
+    }
+
+    if (copied) {
+      toast.info('📱 Opening WhatsApp... Receipt image copied to clipboard!', 4000);
+    } else if (blob) {
+      downloadReceipt(blob);
+      toast.info('Receipt image downloaded. Drag/attach it into WhatsApp.', 5000);
+    }
+
+    // 3. Launch native WhatsApp App on Windows, macOS, Linux, or Phone
+    const link = document.createElement('a');
+    link.href = appUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 4. Show UI/UX Pro Max modal dialog with receipt image preview & Ctrl+V guide
+    _showShareImageModal({
+      saleId,
+      dataUrl,
+      blob,
+      appUrl,
+      webUrl,
+      copied
+    });
   });
 }
+
+
