@@ -1,4 +1,4 @@
-﻿/**
+/**
  * modules/dashboard.js - Dashboard Home
  * Live summary cards + 7-day SVG area chart + monthly report.
  * Exported: render(container) - called by app.js on #/dashboard route.
@@ -32,7 +32,7 @@ async function _fetchAndRenderStats(container) {
 
   // -- Read 30 daily_summary docs (7 for weekly chart + 30 for trend chart) --
   const dayMap = {};
-  let todayRev = 0, todayCt = 0, weekRev = 0, weekCt = 0;
+  let todayRev = 0, todayCt = 0, todayProfit = 0, weekRev = 0, weekCt = 0;
   const todayKey = now.toISOString().slice(0, 10);
 
   const dayPromises = [];
@@ -40,7 +40,7 @@ async function _fetchAndRenderStats(container) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    dayMap[key] = { revenue: 0, count: 0 };
+    dayMap[key] = { revenue: 0, count: 0, profit: 0 };
     dayPromises.push(
       getDoc(doc(db, 'shops', SHOP_ID, 'daily_summary', key))
         .then(snap => {
@@ -48,6 +48,7 @@ async function _fetchAndRenderStats(container) {
             const data = snap.data();
             dayMap[key].revenue = data.revenue || 0;
             dayMap[key].count   = data.count || 0;
+            dayMap[key].profit  = data.gross_profit || 0;
           }
         })
     );
@@ -60,19 +61,21 @@ async function _fetchAndRenderStats(container) {
     weekRev += dayMap[key].revenue;
     weekCt  += dayMap[key].count;
     if (key === todayKey) {
-      todayRev = dayMap[key].revenue;
-      todayCt  = dayMap[key].count;
+      todayRev    = dayMap[key].revenue;
+      todayCt     = dayMap[key].count;
+      todayProfit = dayMap[key].profit;
     }
   }
 
   // -- Read 1 monthly_summary doc --
   const monthKey = todayKey.slice(0, 7);
-  let monthRev = 0, monthCt = 0;
+  let monthRev = 0, monthCt = 0, monthProfit = 0;
   try {
     const monthSnap = await getDoc(doc(db, 'shops', SHOP_ID, 'monthly_summary', monthKey));
     if (monthSnap.exists()) {
-      monthRev = monthSnap.data().revenue || 0;
-      monthCt  = monthSnap.data().count || 0;
+      monthRev    = monthSnap.data().revenue || 0;
+      monthCt     = monthSnap.data().count || 0;
+      monthProfit = monthSnap.data().gross_profit || 0;
     }
   } catch (e) { console.warn('[Dashboard] monthly_summary read failed', e); }
 
@@ -83,6 +86,28 @@ async function _fetchAndRenderStats(container) {
   _setSlot(container, 'dash-week-ct',    weekCt + ' sale' + (weekCt !== 1 ? 's' : ''));
   _setSlot(container, 'dash-month-rev',  fmt(monthRev));
   _setSlot(container, 'dash-month-ct',   monthCt + ' sale' + (monthCt !== 1 ? 's' : ''));
+
+  const todayProfitEl = container.querySelector('#dash-today-profit');
+  if (todayProfitEl) {
+    if (todayRev > 0 && todayProfit !== undefined) {
+      const marginPct = Math.round(((todayProfit / todayRev) * 100) * 10) / 10;
+      todayProfitEl.textContent = `Profit: ${fmt(todayProfit)} (${marginPct}% margin)`;
+      todayProfitEl.style.display = 'block';
+    } else {
+      todayProfitEl.style.display = 'none';
+    }
+  }
+
+  const monthProfitEl = container.querySelector('#dash-month-profit');
+  if (monthProfitEl) {
+    if (monthRev > 0 && monthProfit !== undefined) {
+      const marginPct = Math.round(((monthProfit / monthRev) * 100) * 10) / 10;
+      monthProfitEl.textContent = `Profit: ${fmt(monthProfit)} (${marginPct}% margin)`;
+      monthProfitEl.style.display = 'block';
+    } else {
+      monthProfitEl.style.display = 'none';
+    }
+  }
 
   // -- Render dual SVG area charts --
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -131,12 +156,14 @@ function _buildMonthOptions(select) {
 }
 
 async function _showMonthlyReport(container, year, month) {
-  const revEl  = container.querySelector('#mr-revenue');
-  const ctEl   = container.querySelector('#mr-count');
-  const top5El = container.querySelector('#mr-top5');
+  const revEl    = container.querySelector('#mr-revenue');
+  const ctEl     = container.querySelector('#mr-count');
+  const profitEl = container.querySelector('#mr-profit');
+  const top5El   = container.querySelector('#mr-top5');
   if (!revEl || !ctEl || !top5El) return;
   revEl.textContent = '...';
   ctEl.textContent  = '...';
+  if (profitEl) profitEl.textContent = '...';
   top5El.innerHTML  = '<li style="color:var(--text-muted);font-size:0.8rem;">Loading...</li>';
   const monthStart = new Date(year, month, 1);
   const monthEnd   = new Date(year, month + 1, 0, 23, 59, 59, 999);
@@ -146,12 +173,13 @@ async function _showMonthlyReport(container, year, month) {
     where('timestamp', '<=', Timestamp.fromDate(monthEnd))
   );
   const snap = await getDocs(q);
-  let totalRev = 0, totalCt = 0;
+  let totalRev = 0, totalCt = 0, totalProfit = 0;
   const productMap = {};
   snap.forEach(docSnap => {
     const d = docSnap.data();
-    totalRev += d.total || 0;
-    totalCt  += 1;
+    totalRev    += d.total || 0;
+    totalCt     += 1;
+    totalProfit += d.gross_profit || 0;
     (d.items || []).forEach(item => {
       if (!productMap[item.item_id]) {
         productMap[item.item_id] = { name: item.name || item.item_id, revenue: 0 };
@@ -162,6 +190,10 @@ async function _showMonthlyReport(container, year, month) {
   const fmt = v => CURRENCY + v.toLocaleString(LOCALE, { minimumFractionDigits: 2 });
   revEl.textContent = fmt(totalRev);
   ctEl.textContent  = String(totalCt);
+  if (profitEl) {
+    const marginPct = totalRev > 0 ? Math.round(((totalProfit / totalRev) * 100) * 10) / 10 : 0;
+    profitEl.textContent = `${fmt(totalProfit)} (${marginPct}%)`;
+  }
   const top5 = Object.values(productMap)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
@@ -217,6 +249,7 @@ export function render(container) {
           <div class="stat-card-label">Today</div>
           <div id="dash-today-rev" class="stat-card-value">--</div>
           <div id="dash-today-ct" class="stat-card-sub">--</div>
+          <div id="dash-today-profit" class="stat-card-sub" style="font-weight:600;color:var(--success);margin-top:2px;display:none;"></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-icon stat-card-icon-green">
@@ -233,6 +266,7 @@ export function render(container) {
           <div class="stat-card-label">This Month</div>
           <div id="dash-month-rev" class="stat-card-value">--</div>
           <div id="dash-month-ct" class="stat-card-sub">--</div>
+          <div id="dash-month-profit" class="stat-card-sub" style="font-weight:600;color:var(--success);margin-top:2px;display:none;"></div>
         </div>
       </div>
 
@@ -266,6 +300,10 @@ export function render(container) {
           <div class="monthly-stat-box">
             <p class="monthly-stat-label">Sales</p>
             <p id="mr-count" class="monthly-stat-value">--</p>
+          </div>
+          <div class="monthly-stat-box">
+            <p class="monthly-stat-label">Gross Profit</p>
+            <p id="mr-profit" class="monthly-stat-value">--</p>
           </div>
         </div>
         <div class="section-header" style="margin-bottom:10px;">

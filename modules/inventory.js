@@ -1,4 +1,4 @@
-﻿/**
+/**
  * modules/inventory.js — Inventory Management
  * Live-updating stock list with low-stock badges, client-side search/sort,
  * and full CRUD via Firestore bottom-sheet modals.
@@ -9,6 +9,7 @@ import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY } from '../shop.config.js';
+import { computeWAC, calculateUnitMargin, isBarcodeDuplicate } from '../lib/costing.js';
 
 // ── Module State ──────────────────────────────────────────────
 let _items        = [];
@@ -160,7 +161,7 @@ function _renderList(container) {
   }
 
   const q = _search.toLowerCase();
-  let list = _items.filter(it => it.name.toLowerCase().includes(q));
+  let list = _items.filter(it => it.name.toLowerCase().includes(q) || (it.barcode && String(it.barcode).toLowerCase().includes(q)));
   if (_typeFilter)   list = list.filter(it => (it.type   ?? '') === _typeFilter);
   if (_brandFilter) list = list.filter(it => (it.brand ?? '') === _brandFilter);
 
@@ -186,6 +187,12 @@ function _renderList(container) {
   tableBody.innerHTML = list.map(item => {
     const low = isLow(item);
     const lowBadge = low ? '<span class="badge badge-red" style="margin-left:6px;">Low</span>' : '';
+    const barcodeBadge = item.barcode ? `<div style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;margin-top:2px;">🏷️ ${escapeHtml(item.barcode)}</div>` : '';
+    let costDisplay = '';
+    if (item.purchase_price != null && Number(item.purchase_price) >= 0) {
+      const { marginPct } = calculateUnitMargin(item.price, item.purchase_price);
+      costDisplay = `<div style="font-size:0.72rem;color:var(--text-muted);">Cost: ${fmtPrice(item.purchase_price)} <span style="color:var(--success);font-weight:600;">(${marginPct}%)</span></div>`;
+    }
     let stockDisplay, variantBadge = '';
     if (item.has_colors && item.variants) {
       if (item.has_sizes) {
@@ -206,11 +213,11 @@ function _renderList(container) {
       stockDisplay = escapeHtml(String(item.stock ?? 0));
     }
     return `<tr data-item-id="${escapeHtml(item.id)}" style="cursor:pointer;">
-      <td class="cell-name">${escapeHtml(item.name)}${lowBadge}</td>
+      <td class="cell-name">${escapeHtml(item.name)}${lowBadge}${barcodeBadge}</td>
       <td>${escapeHtml(item.type   ?? '')}</td>
       <td>${escapeHtml(item.brand ?? '')}</td>
       <td style="font-variant-numeric:tabular-nums;">${stockDisplay}${variantBadge}</td>
-      <td style="font-variant-numeric:tabular-nums;">${fmtPrice(item.price)}</td>
+      <td style="font-variant-numeric:tabular-nums;">${fmtPrice(item.price)}${costDisplay}</td>
       <td>${escapeHtml(item.unit ?? '')}</td>
       <td class="cell-actions"><button class="btn btn-ghost btn-sm">Edit</button></td>
     </tr>`;
@@ -218,6 +225,12 @@ function _renderList(container) {
 
   mobileList.innerHTML = list.map(item => {
     const low = isLow(item);
+    const barcodeBadge = item.barcode ? `<div style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;margin-top:2px;">🏷️ ${escapeHtml(item.barcode)}</div>` : '';
+    let costDisplay = '';
+    if (item.purchase_price != null && Number(item.purchase_price) >= 0) {
+      const { marginPct } = calculateUnitMargin(item.price, item.purchase_price);
+      costDisplay = ` · Cost: ${fmtPrice(item.purchase_price)} (${marginPct}%)`;
+    }
     let stockDisplay, variantBadge = '';
     if (item.has_colors && item.variants) {
       if (item.has_sizes) {
@@ -240,9 +253,10 @@ function _renderList(container) {
     return `<div class="inv-card" data-item-id="${escapeHtml(item.id)}">
       <div>
         <div class="inv-card-name">${escapeHtml(item.name)}</div>
+        ${barcodeBadge}
         ${(!item.has_colors && item.color) ? `<div style="margin-top:2px;"><span class="badge" style="font-size:0.7rem;background:var(--bg-surface);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;padding:1px 5px;">${escapeHtml(item.color)}</span></div>` : ''}
         ${(item.type || item.brand) ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${[item.type, item.brand].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
-        <div class="inv-card-meta">${fmtPrice(item.price)} / ${escapeHtml(item.unit ?? 'pc')}</div>
+        <div class="inv-card-meta">${fmtPrice(item.price)} / ${escapeHtml(item.unit ?? 'pc')}${costDisplay}</div>
       </div>
       <div class="inv-card-right">
         <div class="inv-card-stock">${stockDisplay}</div>
@@ -572,6 +586,38 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   brandWrap.appendChild(brandDatalist);
   form.appendChild(brandWrap);
 
+  // 2.5 Barcode (directly below Brand / Name)
+  const barcodeWrap = document.createElement('div');
+  barcodeWrap.style.cssText = 'margin-bottom:14px;';
+  const barcodeLbl = document.createElement('label');
+  barcodeLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  barcodeLbl.textContent = '🏷️ Barcode (Optional)';
+  const barcodeInput = document.createElement('input');
+  barcodeInput.id = 'inv-barcode';
+  barcodeInput.type = 'text';
+  barcodeInput.placeholder = 'e.g. 8901234567890';
+  barcodeInput.style.cssText = _inputStyle();
+  if (item && item.barcode) barcodeInput.value = item.barcode;
+  const barcodeErr = document.createElement('div');
+  barcodeErr.id = 'inv-barcode-err';
+  barcodeErr.style.cssText = 'color:var(--danger);font-size:0.75rem;margin-top:4px;display:none;';
+  barcodeErr.textContent = 'This barcode is already assigned to another item.';
+  barcodeInput.addEventListener('focus', () => { barcodeInput.style.borderColor = 'var(--theme-color)'; });
+  barcodeInput.addEventListener('blur', () => {
+    const val = barcodeInput.value.trim();
+    if (val && isBarcodeDuplicate(_items, val, item?.id)) {
+      barcodeInput.style.borderColor = 'var(--danger)';
+      barcodeErr.style.display = 'block';
+    } else {
+      barcodeInput.style.borderColor = 'var(--border)';
+      barcodeErr.style.display = 'none';
+    }
+  });
+  barcodeWrap.appendChild(barcodeLbl);
+  barcodeWrap.appendChild(barcodeInput);
+  barcodeWrap.appendChild(barcodeErr);
+  form.appendChild(barcodeWrap);
+
   // 3. Unit type toggle
   const unitTypeLbl = document.createElement('label');
   unitTypeLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
@@ -680,6 +726,52 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   qtyInput.addEventListener('blur',  () => { qtyInput.style.borderColor = 'var(--border)'; });
   qtyWrap.appendChild(qtyLbl);
   qtyWrap.appendChild(qtyInput);
+
+  // Restock Assistant (Edit mode)
+  let restockBox = null;
+  let restockBtn = null;
+  let addQtyEl = null;
+  let batchCostEl = null;
+  let previewEl = null;
+  let applyBtn = null;
+
+  if (item) {
+    restockBtn = document.createElement('button');
+    restockBtn.type = 'button';
+    restockBtn.className = 'btn btn-secondary btn-sm';
+    restockBtn.style.cssText = 'margin-top:8px;font-size:0.8rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;';
+    restockBtn.innerHTML = '<span>📦</span> <span>+ Restock Assistant</span>';
+
+    restockBox = document.createElement('div');
+    restockBox.style.cssText = 'display:none;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;';
+    restockBox.innerHTML = `
+      <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">📦 Restock & Moving Weighted Average Cost (WAC)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:4px;">Added Qty (+)</label>
+          <input id="restock-add-qty" type="number" min="1" placeholder="e.g. 5" style="${_inputStyle('height:36px;font-size:0.85rem;')}" />
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:4px;">Batch Cost Price (₹)</label>
+          <input id="restock-batch-cost" type="number" min="0" step="0.01" placeholder="e.g. 110" style="${_inputStyle('height:36px;font-size:0.85rem;')}" />
+        </div>
+      </div>
+      <div id="restock-preview-text" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;line-height:1.4;">
+        Enter incoming restock quantity and batch unit cost to compute blended cost.
+      </div>
+      <button type="button" id="btn-apply-restock" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;height:34px;font-size:0.8rem;" disabled>
+        Apply Restock
+      </button>
+    `;
+
+    addQtyEl = restockBox.querySelector('#restock-add-qty');
+    batchCostEl = restockBox.querySelector('#restock-batch-cost');
+    previewEl = restockBox.querySelector('#restock-preview-text');
+    applyBtn = restockBox.querySelector('#btn-apply-restock');
+
+    qtyWrap.appendChild(restockBtn);
+    qtyWrap.appendChild(restockBox);
+  }
   form.appendChild(qtyWrap);
 
   // 9. Phase-13 Sizes section
@@ -700,12 +792,14 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   sizesSection.appendChild(addSizeBtn);
   form.appendChild(sizesSection);
 
-  // 10. Price
-  const priceWrap = document.createElement('div');
-  priceWrap.style.cssText = 'margin-bottom:14px;';
+  // 10. Selling Price & Purchase Cost (Side by Side)
+  const priceGridWrap = document.createElement('div');
+  priceGridWrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px;';
+
+  const priceCol = document.createElement('div');
   const priceLbl = document.createElement('label');
   priceLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
-  priceLbl.textContent = 'Price';
+  priceLbl.textContent = 'Selling Price';
   const priceInput = document.createElement('input');
   priceInput.id = 'inv-price';
   priceInput.type = 'number';
@@ -714,9 +808,98 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
   priceInput.style.cssText = _inputStyle();
   priceInput.addEventListener('focus', () => { priceInput.style.borderColor = 'var(--theme-color)'; });
   priceInput.addEventListener('blur',  () => { priceInput.style.borderColor = 'var(--border)'; });
-  priceWrap.appendChild(priceLbl);
-  priceWrap.appendChild(priceInput);
-  form.appendChild(priceWrap);
+  priceCol.appendChild(priceLbl);
+  priceCol.appendChild(priceInput);
+
+  const costCol = document.createElement('div');
+  const costLbl = document.createElement('label');
+  costLbl.style.cssText = 'display:block;font-size:0.82rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;';
+  costLbl.textContent = 'Purchase Cost (₹)';
+  const costInput = document.createElement('input');
+  costInput.id = 'inv-purchase-price';
+  costInput.type = 'number';
+  costInput.min = '0';
+  costInput.step = '0.01';
+  costInput.placeholder = '0.00';
+  costInput.style.cssText = _inputStyle();
+  costInput.addEventListener('focus', () => { costInput.style.borderColor = 'var(--theme-color)'; });
+  costInput.addEventListener('blur',  () => { costInput.style.borderColor = 'var(--border)'; });
+  costCol.appendChild(costLbl);
+  costCol.appendChild(costInput);
+
+  priceGridWrap.appendChild(priceCol);
+  priceGridWrap.appendChild(costCol);
+  form.appendChild(priceGridWrap);
+
+  const marginBadge = document.createElement('div');
+  marginBadge.id = 'inv-margin-badge';
+  marginBadge.style.cssText = 'font-size:0.78rem;font-weight:600;padding:4px 8px;border-radius:6px;margin-bottom:14px;display:none;';
+  form.appendChild(marginBadge);
+
+  const updateMarginPreview = () => {
+    const sp = parseFloat(priceInput.value);
+    const pp = parseFloat(costInput.value);
+    if (sp > 0 && !isNaN(pp) && pp >= 0) {
+      const { profit, marginPct } = calculateUnitMargin(sp, pp);
+      const isPositive = profit >= 0;
+      marginBadge.style.display = 'inline-block';
+      marginBadge.style.color = isPositive ? 'var(--success)' : 'var(--danger)';
+      marginBadge.style.background = isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+      marginBadge.textContent = `Margin: ${marginPct}% (Profit: ${CURRENCY}${profit.toFixed(2)}/pc)`;
+    } else {
+      marginBadge.style.display = 'none';
+    }
+  };
+  priceInput.addEventListener('input', updateMarginPreview);
+  costInput.addEventListener('input', updateMarginPreview);
+
+  if (item && restockBox) {
+    const updateRestockCalc = () => {
+      const addQ = parseInt(addQtyEl.value, 10);
+      const addC = parseFloat(batchCostEl.value);
+      const curQ = parseInt(qtyInput.value, 10) || 0;
+      const curC = parseFloat(costInput.value) || 0;
+
+      if (addQ > 0 && !isNaN(addC) && addC >= 0) {
+        const newCost = computeWAC(curQ, curC, addQ, addC);
+        const newStock = curQ + addQ;
+        previewEl.innerHTML = `Current: <strong>${curQ}</strong> @ ${CURRENCY}${curC.toFixed(2)} + Adding: <strong>${addQ}</strong> @ ${CURRENCY}${addC.toFixed(2)} &rarr; Result: <strong>${newStock}</strong> @ <strong>${CURRENCY}${newCost.toFixed(2)}</strong>`;
+        applyBtn.disabled = false;
+      } else {
+        previewEl.textContent = 'Enter incoming restock quantity and batch unit cost to compute blended cost.';
+        applyBtn.disabled = true;
+      }
+    };
+
+    addQtyEl.addEventListener('input', updateRestockCalc);
+    batchCostEl.addEventListener('input', updateRestockCalc);
+
+    applyBtn.addEventListener('click', () => {
+      const addQ = parseInt(addQtyEl.value, 10);
+      const addC = parseFloat(batchCostEl.value);
+      const curQ = parseInt(qtyInput.value, 10) || 0;
+      const curC = parseFloat(costInput.value) || 0;
+      if (addQ > 0 && !isNaN(addC) && addC >= 0) {
+        const newCost = computeWAC(curQ, curC, addQ, addC);
+        const newStock = curQ + addQ;
+        qtyInput.value = newStock;
+        costInput.value = newCost;
+        updateMarginPreview();
+        restockBox.style.display = 'none';
+        restockBtn.innerHTML = '<span>📦</span> <span>+ Restock Assistant</span>';
+        addQtyEl.value = '';
+        batchCostEl.value = '';
+        applyBtn.disabled = true;
+      }
+    });
+
+    restockBtn.addEventListener('click', () => {
+      const isOpen = restockBox.style.display !== 'none';
+      restockBox.style.display = isOpen ? 'none' : 'block';
+      restockBtn.innerHTML = isOpen ? '<span>📦</span> <span>+ Restock Assistant</span>' : '✕ Hide Restock Assistant';
+      if (!isOpen) updateRestockCalc();
+    });
+  }
 
   // 11. Threshold
   const threshWrap = document.createElement('div');
@@ -893,6 +1076,10 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
       qtyInput.value = item.stock ?? 0;
     }
     priceInput.value  = item.price ?? '';
+    if (item.purchase_price != null) {
+      costInput.value = item.purchase_price;
+    }
+    updateMarginPreview();
     threshInput.value = item.threshold ?? 5;
   } else {
     setUnitType('pieces');
@@ -908,6 +1095,16 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
     if (!item && !name)                    { errEl.textContent = 'Name is required.';             errEl.style.display = 'block'; return; }
     if (!(price > 0))                      { errEl.textContent = 'Price must be greater than 0.'; errEl.style.display = 'block'; return; }
     if (isNaN(threshold) || threshold < 0) { errEl.textContent = 'Threshold must be 0 or more.'; errEl.style.display = 'block'; return; }
+
+    const barcode = form.querySelector('#inv-barcode')?.value.trim() || null;
+    const rawCost = parseFloat(form.querySelector('#inv-purchase-price')?.value);
+    const purchase_price = (!isNaN(rawCost) && rawCost >= 0) ? rawCost : null;
+
+    if (barcode && isBarcodeDuplicate(_items, barcode, item?.id)) {
+      errEl.textContent = `Duplicate barcode: "${barcode}" is already assigned to another item.`;
+      errEl.style.display = 'block';
+      return;
+    }
 
     const hasColors       = hasColorsCb.checked;
     const hasSizesVariant = hasSizesVariantCb.checked;
@@ -986,7 +1183,10 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
         unitType: _unitType, unit, price, stock, threshold,
         hasSizes, sizes, type, brand, color,
         has_colors: hasColors, has_sizes: hasSizesVariant,
-        variants
+        variants,
+        barcode,
+        purchase_price,
+        costing_method: 'wac'
       });
       _close();
     } catch (err) {
@@ -1010,9 +1210,12 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
 function _showAddModal(container) {
   _showPieceModal(
     container, 'Add Item', null,
-    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color, has_colors, has_sizes, variants }) => {
+    async ({ name, unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color, has_colors, has_sizes, variants, barcode, purchase_price, costing_method }) => {
       const docData = { name, unitType, unit, price, stock, threshold, hasSizes, type, brand, color,
         has_colors: has_colors ?? false, has_sizes: has_sizes ?? false };
+      if (barcode) docData.barcode = barcode;
+      if (purchase_price != null) docData.purchase_price = purchase_price;
+      if (costing_method) docData.costing_method = costing_method;
       if (hasSizes && sizes) docData.sizes = sizes;
       if (has_colors && variants) docData.variants = variants;
       await addDoc(collection(db, 'shops', SHOP_ID, 'inventory'), docData);
@@ -1025,9 +1228,13 @@ function _showAddModal(container) {
 function _showEditModal(container, item) {
   _showPieceModal(
     container, `Edit: ${item.name}`, item,
-    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color, has_colors, has_sizes, variants }) => {
+    async ({ unitType, unit, price, stock, threshold, hasSizes, sizes, type, brand, color, has_colors, has_sizes, variants, barcode, purchase_price, costing_method }) => {
       const updates = { unitType, unit, price, stock, threshold, hasSizes, type, brand, color,
-        has_colors: has_colors ?? false, has_sizes: has_sizes ?? false };
+        has_colors: has_colors ?? false, has_sizes: has_sizes ?? false,
+        barcode: barcode || null,
+        purchase_price: purchase_price != null ? purchase_price : null,
+        costing_method: costing_method || 'wac'
+      };
       if (hasSizes && sizes) updates.sizes = sizes;
       updates.variants = (has_colors && variants) ? variants : null;
       await updateDoc(doc(db, 'shops', SHOP_ID, 'inventory', item.id), updates);
