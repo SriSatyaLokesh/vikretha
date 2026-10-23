@@ -1,4 +1,4 @@
-﻿/**
+/**
  * modules/inventory.js — Inventory Management
  * Live-updating stock list with low-stock badges, client-side search/sort,
  * and full CRUD via Firestore bottom-sheet modals.
@@ -9,6 +9,7 @@ import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY } from '../shop.config.js';
+import { createModalShell } from '../lib/modal.js';
 
 // ── Module State ──────────────────────────────────────────────
 let _items        = [];
@@ -255,23 +256,9 @@ function _renderList(container) {
 
 // ── Generic Bottom-Sheet Modal ────────────────────────────────
 function _showModal(container, titleText, fields, onSave, onDelete) {
-  document.body.style.overflow = 'hidden';
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:85vh;overflow-y:auto;box-sizing:border-box;';
-  const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;';
-  const title = document.createElement('h2');
-  title.style.cssText = 'font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;';
-  title.textContent = titleText;
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
-  header.appendChild(title);
-  header.appendChild(closeBtn);
+  const { sheet, close: _close } = createModalShell({ title: titleText, size: 'md' });
   const form = document.createElement('form');
+  form.className = 'modal-body';
   form.addEventListener('submit', e => e.preventDefault());
   fields.forEach(f => {
     const wrapper = document.createElement('div');
@@ -321,7 +308,7 @@ function _showModal(container, titleText, fields, onSave, onDelete) {
     saveBtn.textContent = 'Saving…';
     try {
       await onSave(data, errEl);
-      _close();
+      _close(true);
     } catch (err) {
       errEl.textContent = err.message;
       errEl.style.display = 'block';
@@ -341,19 +328,13 @@ function _showModal(container, titleText, fields, onSave, onDelete) {
     delBtn.addEventListener('click', () => { delBtn.style.display = 'none'; confirmRow.style.display = 'block'; });
     confirmRow.querySelector('#cancel-del').addEventListener('click', () => { confirmRow.style.display = 'none'; delBtn.style.display = ''; });
     confirmRow.querySelector('#confirm-del').addEventListener('click', async () => {
-      try { await onDelete(); _close(); }
+      try { await onDelete(); _close(true); }
       catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; confirmRow.style.display = 'none'; delBtn.style.display = ''; }
     });
     form.appendChild(delBtn);
     form.appendChild(confirmRow);
   }
-  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-  closeBtn.addEventListener('click', _close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-  sheet.appendChild(header);
   sheet.appendChild(form);
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
 }
 
 // ── Shared input style ────────────────────────────────────────
@@ -496,25 +477,9 @@ function _appendSizeSubRow(list, { size = '', qty = 0 } = {}) {
 
 // ── Custom piece/sizes modal ──────────────────────────────────
 function _showPieceModal(container, titleText, item, onSave, onDelete) {
-  document.body.style.overflow = 'hidden';
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:90vh;overflow-y:auto;box-sizing:border-box;';
-
-  const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;';
-  const titleEl = document.createElement('h2');
-  titleEl.style.cssText = 'font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;';
-  titleEl.textContent = titleText;
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
-  header.appendChild(titleEl);
-  header.appendChild(closeBtn);
-
+  const { sheet, close: _close } = createModalShell({ title: titleText, size: 'lg' });
   const form = document.createElement('form');
+  form.className = 'modal-body';
   form.addEventListener('submit', e => e.preventDefault());
 
   // 1. Name
@@ -801,7 +766,7 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
     delBtn.addEventListener('click', () => { delBtn.style.display = 'none'; confirmRow.style.display = 'block'; });
     confirmRow.querySelector('#cancel-del').addEventListener('click', () => { confirmRow.style.display = 'none'; delBtn.style.display = ''; });
     confirmRow.querySelector('#confirm-del').addEventListener('click', async () => {
-      try { await onDelete(); _close(); }
+      try { await onDelete(); _close(true); }
       catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; confirmRow.style.display = 'none'; delBtn.style.display = ''; }
     });
     form.appendChild(delBtn);
@@ -988,7 +953,7 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
         has_colors: hasColors, has_sizes: hasSizesVariant,
         variants
       });
-      _close();
+      _close(true);
     } catch (err) {
       errEl.textContent = err.message;
       errEl.style.display = 'block';
@@ -997,13 +962,7 @@ function _showPieceModal(container, titleText, item, onSave, onDelete) {
     }
   });
 
-  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-  closeBtn.addEventListener('click', _close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-  sheet.appendChild(header);
   sheet.appendChild(form);
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
 }
 
 // ── Add Modal ─────────────────────────────────────────────────

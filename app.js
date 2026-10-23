@@ -5,6 +5,7 @@
 import { auth } from './lib/firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { SHOP_NAME, LOGO_URL, SHOP_ID } from './shop.config.js';
+import { hasOpenModals, closeTopModal } from './lib/modal.js';
 
 // ----- App Shell -----
 // ── SVG icons for nav ───────────────────────────────────────────────────────
@@ -269,6 +270,7 @@ onAuthStateChanged(auth, (user) => {
     // Authenticated — mount shell, then route
     mountAppShell();
     _initHeaderControls();
+    _initDesktopKeyboardShortcuts();
     _updateSidebarBrand();
     // Load theme from Firestore (overrides static COLOR_THEME default)
     import('./lib/firebase-init.js').then(({ loadThemeFromFirestore }) => loadThemeFromFirestore()).catch(() => {});
@@ -405,6 +407,106 @@ window.addEventListener('hashchange', () => {
   }
   handleRoute();
 });
+
+// ----- Desktop POS Keyboard Shortcuts -----
+let _shortcutsInitialized = false;
+
+function _initDesktopKeyboardShortcuts() {
+  if (_shortcutsInitialized) return;
+  _shortcutsInitialized = true;
+
+  window.addEventListener('keydown', (e) => {
+    const isInputFocused = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) ||
+      Boolean(document.activeElement?.isContentEditable);
+
+    // 1. ESCAPE: handled by lib/modal.js if modal is open; otherwise clear/blur search
+    if (e.key === 'Escape') {
+      if (!hasOpenModals()) {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+          if (active.type === 'search' || active.id?.includes('search')) {
+            if (active.value) {
+              active.value = '';
+              active.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+          active.blur();
+        }
+      }
+      return;
+    }
+
+    // 2. PRIMARY ACTION: Ctrl+Enter or Cmd+Enter
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      // If modal is open, trigger its primary action (Save / Add) and never submit background sale
+      const activeModal = document.querySelector('.modal-overlay.modal-open, .modal-overlay--open');
+      if (activeModal) {
+        const primaryBtn = activeModal.querySelector('.modal-sheet button.btn-primary:not([disabled]), .bs-sheet button.btn-primary:not([disabled])');
+        if (primaryBtn) {
+          e.preventDefault();
+          primaryBtn.click();
+        }
+        return;
+      }
+
+      // If on billing screen and no modal open, trigger submit/pay
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn && !submitBtn.disabled && submitBtn.offsetParent !== null) {
+        e.preventDefault();
+        submitBtn.click();
+        return;
+      }
+      return;
+    }
+
+    // 3. ADD ITEM: Alt+N or Alt+A
+    if (e.altKey && (e.key.toLowerCase() === 'n' || e.key.toLowerCase() === 'a')) {
+      const addInvBtn = document.getElementById('inv-add-fab');
+      if (addInvBtn && addInvBtn.offsetParent !== null) {
+        e.preventDefault();
+        addInvBtn.click();
+        return;
+      }
+      const adhocBtn = document.querySelector('.adhoc-item-btn, #adhoc-item-btn');
+      if (adhocBtn && adhocBtn.offsetParent !== null) {
+        e.preventDefault();
+        adhocBtn.click();
+        return;
+      }
+    }
+
+    // 4. FOCUS SEARCH: / or F2 (Only when NOT already typing inside an input)
+    if ((e.key === '/' || e.key === 'F2') && !isInputFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const searchInput = document.querySelector('#product-search, #inv-search, #rpt-search');
+      if (searchInput && searchInput.offsetParent !== null) {
+        e.preventDefault();
+        searchInput.focus();
+        if (typeof searchInput.select === 'function') searchInput.select();
+      }
+      return;
+    }
+
+    // 5. QUICK SELECT PRODUCT: Alt+1 to Alt+5 on billing screen
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.key >= '1' && e.key <= '5') {
+      if (!hasOpenModals() && window.location.hash.includes('billing')) {
+        const targetIdx = parseInt(e.key, 10) - 1;
+        const targetCard = document.querySelector(`.product-card[data-index="${targetIdx}"]`);
+        if (targetCard && targetCard.getAttribute('aria-disabled') !== 'true') {
+          e.preventDefault();
+          targetCard.click();
+          return;
+        }
+      }
+    }
+
+    // 6. SHORTCUTS HELP: ? (Shift + /) when not in an input
+    if (e.key === '?' && !isInputFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      import('./lib/toast.js').then(({ toast }) => {
+        toast.info('⌨️ Hotkeys: [/] Search · [Enter] Auto-add · [↓/↑] Select · [Alt+1..5] Pick · [Ctrl+Enter] Pay · [Esc] Close', 4500);
+      }).catch(() => {});
+    }
+  });
+}
 
 // ----- Navigation Helper -----
 export function navigateTo(route) {
