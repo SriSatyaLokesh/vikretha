@@ -1,4 +1,4 @@
-﻿/**
+/**
  * sw.js -- Vikretha Service Worker
  * Strategy:
  *   - HTML / JS / CSS  -> network-first  (always fresh on reload; cache fallback for offline)
@@ -9,7 +9,7 @@
  * Code changes are automatically picked up via network-first -- no manual bump needed.
  */
 
-const CACHE_VERSION = 'vikretha-v4';
+const CACHE_VERSION = 'vikretha-v6';
 
 const APP_SHELL = [
   './',
@@ -18,6 +18,7 @@ const APP_SHELL = [
   './shop.config.js',
   './styles/main.css',
   './lib/firebase-init.js',
+  './lib/modal.js',
   './lib/svg-chart.js',
   './lib/toast.js',
   './manifest.json',

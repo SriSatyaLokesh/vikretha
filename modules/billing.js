@@ -12,6 +12,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { SHOP_ID, CURRENCY, LOCALE } from '../shop.config.js';
 import { toast } from '../lib/toast.js';
+import { createModalShell } from '../lib/modal.js';
 import { calculateSaleFinancials, findItemByBarcode } from '../lib/costing.js';
 
 // ── Module State ──────────────────────────────────────────────
@@ -23,6 +24,8 @@ let _customers = [];        // [{ name, phone }] — loaded once per billing ses
 let _billingTypeFilter   = '';
 let _billingbrandFilter = '';
 let _paymentMode = 'cash';  // 'cash' | 'upi' | 'card' | 'split'
+let _currentFilteredProducts = []; // products currently matching search & filters
+let _activeProductIndex = 0;       // keyboard navigation index in the filtered list
 
 // ── XSS Safety ────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -226,94 +229,150 @@ export function render(container) {
 
   // ── Attach event listeners ────────────────────────────────
   const searchInput = container.querySelector('#product-search');
-  searchInput.addEventListener('input', e => _renderGrid(e.target.value));
-  searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const val = searchInput.value.trim();
-      if (!val) return;
-      e.preventDefault();
+  if (searchInput) {
+    searchInput.addEventListener('input', e => {
+      _activeProductIndex = 0;
+      _renderGrid(e.target.value);
+    });
 
-      const match = findItemByBarcode(_inventory, val);
-      if (match && match.item) {
-        const item = match.item;
-        if (match.variantType === 'color_variant' && match.variant) {
-          const v = match.variant;
-          const cartKey = item.id + '__' + v.color + (v.size ? '__' + v.size : '');
-          if (_cart.has(cartKey)) {
-            const cItem = _cart.get(cartKey);
-            if (!_tryIncrementCartItem(cItem, v.qty)) return;
-          } else {
-            if (v.qty <= 0) { toast('Item is out of stock', 'error'); return; }
-            _cart.set(cartKey, {
-              id: item.id, cartKey, name: item.name,
-              price: Number(v.price || item.price),
-              purchase_price: Number(v.purchase_price || item.purchase_price || 0),
-              unit: item.unit || 'pcs', qty: 1,
-              sizeKey: v.color + (v.size ? '/' + v.size : ''),
-              sizeLabel: v.color + (v.size ? ' · ' + v.size : '')
-            });
-          }
-          toast(`Added: ${item.name} (${v.color}${v.size ? ' · ' + v.size : ''})`);
-        } else if (match.variantType === 'size_variant' && match.variant) {
-          const s = match.variant;
-          const cartKey = item.id + '::' + match.sizeKey;
-          const sizeLabel = s.color ? s.label + ' · ' + s.color : s.label;
-          if (_cart.has(cartKey)) {
-            const cItem = _cart.get(cartKey);
-            if (!_tryIncrementCartItem(cItem, s.stock)) return;
-          } else {
-            if (s.stock <= 0) { toast('Item is out of stock', 'error'); return; }
-            _cart.set(cartKey, {
-              id: item.id, cartKey, name: item.name,
-              price: Number(s.price || item.price),
-              purchase_price: Number(s.purchase_price || item.purchase_price || 0),
-              unit: 'pcs', qty: 1,
-              sizeKey: match.sizeKey, sizeLabel
-            });
-          }
-          toast(`Added: ${item.name} (${sizeLabel})`);
-        } else {
-          if (item.has_colors && item.variants && item.variants.length > 0) {
-            _showVariantPicker(container, item);
+    searchInput.addEventListener('keydown', e => {
+      // 1. Enter: Check barcode scan first, then auto-add single match or add currently highlighted product (only plain Enter, not Ctrl+Enter / Cmd+Enter)
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const val = searchInput.value.trim();
+        if (val) {
+          const match = findItemByBarcode(_inventory, val);
+          if (match && match.item) {
+            e.preventDefault();
+            const item = match.item;
+            if (match.variantType === 'color_variant' && match.variant) {
+              const v = match.variant;
+              const cartKey = item.id + '__' + v.color + (v.size ? '__' + v.size : '');
+              if (_cart.has(cartKey)) {
+                const cItem = _cart.get(cartKey);
+                if (!_tryIncrementCartItem(cItem, v.qty)) return;
+              } else {
+                if (v.qty <= 0) { toast('Item is out of stock', 'error'); return; }
+                _cart.set(cartKey, {
+                  id: item.id, cartKey, name: item.name,
+                  price: Number(v.price || item.price),
+                  purchase_price: Number(v.purchase_price || item.purchase_price || 0),
+                  unit: item.unit || 'pcs', qty: 1,
+                  sizeKey: v.color + (v.size ? '/' + v.size : ''),
+                  sizeLabel: v.color + (v.size ? ' · ' + v.size : '')
+                });
+              }
+              toast(`Added: ${item.name} (${v.color}${v.size ? ' · ' + v.size : ''})`);
+            } else if (match.variantType === 'size_variant' && match.variant) {
+              const s = match.variant;
+              const cartKey = item.id + '::' + match.sizeKey;
+              const sizeLabel = s.color ? s.label + ' · ' + s.color : s.label;
+              if (_cart.has(cartKey)) {
+                const cItem = _cart.get(cartKey);
+                if (!_tryIncrementCartItem(cItem, s.stock)) return;
+              } else {
+                if (s.stock <= 0) { toast('Item is out of stock', 'error'); return; }
+                _cart.set(cartKey, {
+                  id: item.id, cartKey, name: item.name,
+                  price: Number(s.price || item.price),
+                  purchase_price: Number(s.purchase_price || item.purchase_price || 0),
+                  unit: 'pcs', qty: 1,
+                  sizeKey: match.sizeKey, sizeLabel
+                });
+              }
+              toast(`Added: ${item.name} (${sizeLabel})`);
+            } else {
+              if (item.has_colors && item.variants && item.variants.length > 0) {
+                _showVariantPicker(container, item);
+                return;
+              }
+              if (item.hasSizes && item.sizes && Object.keys(item.sizes).length > 0) {
+                _showSizePicker(container, item);
+                return;
+              }
+              const maxStock = Number(item.stock ?? 0);
+              if (maxStock <= 0) {
+                toast('Item is out of stock', 'error');
+                return;
+              }
+              if (_cart.has(item.id)) {
+                const cItem = _cart.get(item.id);
+                if (!_tryIncrementCartItem(cItem, maxStock)) return;
+              } else {
+                _cart.set(item.id, {
+                  id: item.id, cartKey: item.id, name: item.name,
+                  price: Number(item.price),
+                  purchase_price: Number(item.purchase_price || 0),
+                  unit: item.unit || 'pc', qty: 1,
+                  sizeKey: null, sizeLabel: null
+                });
+              }
+              toast(`Added: ${item.name}`);
+            }
+            searchInput.value = '';
+            _activeProductIndex = 0;
+            _renderGrid('');
+            _refresh(container);
             return;
           }
-          if (item.hasSizes && item.sizes && Object.keys(item.sizes).length > 0) {
-            _showSizePicker(container, item);
-            return;
-          }
-          const maxStock = Number(item.stock ?? 0);
-          if (maxStock <= 0) {
-            toast('Item is out of stock', 'error');
-            return;
-          }
-          if (_cart.has(item.id)) {
-            const cItem = _cart.get(item.id);
-            if (!_tryIncrementCartItem(cItem, maxStock)) return;
-          } else {
-            _cart.set(item.id, {
-              id: item.id, cartKey: item.id, name: item.name,
-              price: Number(item.price),
-              purchase_price: Number(item.purchase_price || 0),
-              unit: item.unit || 'pc', qty: 1,
-              sizeKey: null, sizeLabel: null
-            });
-          }
-          toast(`Added: ${item.name}`);
         }
-        searchInput.value = '';
-        _refresh(container);
+
+        if (_currentFilteredProducts.length === 1) {
+          e.preventDefault();
+          const target = _currentFilteredProducts[0];
+          _selectProduct(container, target);
+          searchInput.value = '';
+          _activeProductIndex = 0;
+          _renderGrid('');
+          return;
+        }
+        if (_currentFilteredProducts.length > 1) {
+          e.preventDefault();
+          const target = _currentFilteredProducts[_activeProductIndex] || _currentFilteredProducts[0];
+          if (target) {
+            _selectProduct(container, target);
+            searchInput.value = '';
+            _activeProductIndex = 0;
+            _renderGrid('');
+          }
+          return;
+        }
       }
-    }
-  });
+
+      // 2. 4-way arrow navigation: Left, Right, Up, Down across the product grid
+      if (!e.ctrlKey && !e.metaKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        if (_handleGridArrowNavigation(e.key, grid)) {
+          e.preventDefault();
+          return;
+        }
+      }
+
+      // 3. Alt + 1..5: Quick pick matching index
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key >= '1' && e.key <= '5') {
+        const num = parseInt(e.key, 10);
+        const targetIdx = num - 1;
+        if (_currentFilteredProducts[targetIdx]) {
+          e.preventDefault();
+          e.stopPropagation();
+          _selectProduct(container, _currentFilteredProducts[targetIdx]);
+          searchInput.value = '';
+          _activeProductIndex = 0;
+          _renderGrid('');
+          return;
+        }
+      }
+    });
+  }
 
   container.querySelector('#billing-type-filter')
     .addEventListener('change', e => {
       _billingTypeFilter = e.target.value;
+      _activeProductIndex = 0;
       _renderGrid(container.querySelector('#product-search')?.value ?? '');
     });
   container.querySelector('#billing-brand-filter')
     .addEventListener('change', e => {
       _billingbrandFilter = e.target.value;
+      _activeProductIndex = 0;
       _renderGrid(container.querySelector('#product-search')?.value ?? '');
     });
 
@@ -355,33 +414,18 @@ export function render(container) {
     if (card && card.getAttribute('aria-disabled') !== 'true') {
       const id  = card.dataset.id;
       const inv = _inventory.find(p => p.id === id);
-      if (!inv) return;
-      if (inv.has_colors && inv.variants && inv.variants.length > 0) {
-        _showVariantPicker(container, inv);
-        return;
-      }
-      if (inv.hasSizes && inv.sizes && Object.keys(inv.sizes).length > 0) {
-        _showSizePicker(container, inv);
-        return;
-      }
-      const maxStock = Number(inv.stock ?? 0);
-      if (maxStock <= 0) {
-        toast('Item is out of stock', 'error');
-        return;
-      }
-      if (!_cart.has(id)) {
-        _cart.set(id, { id: inv.id, cartKey: inv.id, name: inv.name,
-          price: Number(inv.price),
-          purchase_price: Number(inv.purchase_price || 0),
-          unit: inv.unit || 'pc', qty: 1,
-          sizeKey: null, sizeLabel: null });
-      }
-      _refresh(container);
+      if (inv) _selectProduct(container, inv);
     }
   };
   grid.addEventListener('click', handleGridClick);
   grid.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (!e.ctrlKey && !e.metaKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      if (_handleGridArrowNavigation(e.key, grid)) {
+        e.preventDefault();
+        return;
+      }
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       handleGridClick(e);
     }
@@ -519,6 +563,183 @@ export function render(container) {
 
 }
 
+// ── Fast Product Selection & Keyboard Navigation Helper ─────
+function _selectProduct(container, inv) {
+  if (!inv) return;
+  if (inv.has_colors && inv.variants && inv.variants.length > 0) {
+    _showVariantPicker(container, inv);
+    return;
+  }
+  if (inv.hasSizes && inv.sizes && Object.keys(inv.sizes).length > 0) {
+    _showSizePicker(container, inv);
+    return;
+  }
+  const maxStock = Number(inv.stock ?? 0);
+  if (maxStock <= 0) {
+    toast('Item is out of stock', 'error');
+    return;
+  }
+  if (!_cart.has(inv.id)) {
+    _cart.set(inv.id, {
+      id: inv.id,
+      cartKey: inv.id,
+      name: inv.name,
+      price: Number(inv.price),
+      purchase_price: Number(inv.purchase_price || 0),
+      unit: inv.unit || 'pc',
+      qty: 1,
+      sizeKey: null,
+      sizeLabel: null
+    });
+  } else {
+    const item = _cart.get(inv.id);
+    if (!_tryIncrementCartItem(item, maxStock)) return;
+  }
+  _refresh(container);
+}
+
+function _updateActiveProductHighlight(grid) {
+  if (!grid) grid = document.getElementById('product-grid');
+  if (!grid) return;
+  const cards = grid.querySelectorAll('.product-card');
+  cards.forEach((c, i) => {
+    const isAct = i === _activeProductIndex;
+    c.classList.toggle('product-card--active', isAct);
+    if (isAct) {
+      c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  });
+}
+
+function _getGridColumnsCount(grid) {
+  if (!grid) grid = document.getElementById('product-grid');
+  if (!grid) return 1;
+  const cards = grid.querySelectorAll('.product-card');
+  if (cards.length <= 1) return 1;
+  const firstTop = cards[0].offsetTop;
+  let cols = 0;
+  for (const c of cards) {
+    if (Math.abs(c.offsetTop - firstTop) < 6) cols++;
+    else break;
+  }
+  return cols || 1;
+}
+
+function _handleGridArrowNavigation(key, grid = document.getElementById('product-grid')) {
+  const total = _currentFilteredProducts.length;
+  if (total <= 0) return false;
+
+  const cols = _getGridColumnsCount(grid);
+
+  if (key === 'ArrowRight') {
+    _activeProductIndex = (_activeProductIndex + 1) % total;
+    _updateActiveProductHighlight(grid);
+    return true;
+  }
+  if (key === 'ArrowLeft') {
+    _activeProductIndex = (_activeProductIndex - 1 + total) % total;
+    _updateActiveProductHighlight(grid);
+    return true;
+  }
+  if (key === 'ArrowDown') {
+    if (_activeProductIndex + cols < total) {
+      _activeProductIndex += cols;
+    } else {
+      _activeProductIndex = _activeProductIndex % cols;
+    }
+    _updateActiveProductHighlight(grid);
+    return true;
+  }
+  if (key === 'ArrowUp') {
+    if (_activeProductIndex - cols >= 0) {
+      _activeProductIndex -= cols;
+    } else {
+      const col = _activeProductIndex % cols;
+      let target = col + Math.floor((total - 1) / cols) * cols;
+      if (target >= total) target -= cols;
+      _activeProductIndex = Math.max(0, target);
+    }
+    _updateActiveProductHighlight(grid);
+    return true;
+  }
+  return false;
+}
+
+// ── Variant Picker Keyboard Navigation (4-Way Arrows, Enter, Alt+1..5) ──
+function _attachVariantKeyboardNav(sheet, selectableRows) {
+  if (!sheet || !selectableRows || selectableRows.length === 0) return;
+
+  let activeIndex = 0;
+
+  function setActive(newIdx) {
+    if (selectableRows.length === 0) return;
+    activeIndex = (newIdx + selectableRows.length) % selectableRows.length;
+    selectableRows.forEach((r, i) => {
+      const isAct = i === activeIndex;
+      r.classList.toggle('variant-option-row--active', isAct);
+      if (isAct) {
+        r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        try { r.focus(); } catch (_) {}
+      }
+    });
+  }
+
+  // Initial highlight on first in-stock variant
+  requestAnimationFrame(() => {
+    setActive(0);
+  });
+
+  // Mouse hover synchronization
+  selectableRows.forEach((row, i) => {
+    row.addEventListener('mouseenter', () => {
+      setActive(i);
+    });
+  });
+
+  // Keyboard navigation on sheet (Arrows, Enter, Alt+1..5)
+  sheet.addEventListener('keydown', (e) => {
+    if (selectableRows.length === 0) return;
+
+    // ArrowDown or ArrowRight: next option
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopPropagation();
+      setActive(activeIndex + 1);
+      return;
+    }
+
+    // ArrowUp or ArrowLeft: previous option
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopPropagation();
+      setActive(activeIndex - 1);
+      return;
+    }
+
+    // Enter or Space: choose active variant
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (selectableRows[activeIndex]) {
+        selectableRows[activeIndex].click();
+      }
+      return;
+    }
+
+    // Alt + 1..5: direct quick pick
+    if (e.altKey && e.key >= '1' && e.key <= '5') {
+      const num = parseInt(e.key, 10);
+      const target = selectableRows[num - 1];
+      if (target) {
+        e.preventDefault();
+        e.stopPropagation();
+        target.click();
+        return;
+      }
+    }
+  });
+}
+
 // ── Refresh grid + cart together ─────────────────────────────
 function _refresh(container) {
   const q = container.querySelector('#product-search')?.value ?? '';
@@ -558,6 +779,11 @@ function _renderGrid(query = '') {
   if (_billingTypeFilter)   filteredItems = filteredItems.filter(p => (p.type   ?? '') === _billingTypeFilter);
   if (_billingbrandFilter) filteredItems = filteredItems.filter(p => (p.brand ?? '') === _billingbrandFilter);
 
+  _currentFilteredProducts = filteredItems;
+  if (_activeProductIndex >= filteredItems.length) {
+    _activeProductIndex = 0;
+  }
+
   if (_inventory.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;padding-top:48px;">
@@ -578,7 +804,7 @@ function _renderGrid(query = '') {
     return;
   }
 
-  grid.innerHTML = filteredItems.map(item => {
+  grid.innerHTML = filteredItems.map((item, idx) => {
     const inCartCheck = item.has_colors
       ? [..._cart.keys()].some(k => k.startsWith(item.id + '__'))
       : item.hasSizes
@@ -603,14 +829,20 @@ function _renderGrid(query = '') {
       : lowStock
         ? `<span class="badge badge-orange">${stock} left</span>`
         : '';
+    const isActive = idx === _activeProductIndex;
+    const keyBadge = idx < 5
+      ? `<span class="product-card-keybadge" title="Press Alt+${idx + 1} to select">Alt+${idx + 1}</span>`
+      : '';
     // NOTE: use <div role="button"> not <button> — nested buttons are invalid HTML
     //       and browsers eject inner buttons outside the parent card.
     return `
-      <div class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' disabled' : ''}"
+      <div class="product-card${inCart ? ' in-cart' : ''}${noStock ? ' disabled' : ''}${isActive ? ' product-card--active' : ''}"
         data-id="${escapeHtml(item.id)}"
+        data-index="${idx}"
         role="button" tabindex="${noStock ? '-1' : '0'}"
         aria-label="${escapeHtml(item.name)}, ${CURRENCY}${Number(item.price)}"
         aria-disabled="${noStock}">
+        ${keyBadge}
         <div class="product-card-name">${escapeHtml(item.name)}</div>
         ${item.barcode ? `<div style="font-size:0.7rem;color:var(--text-muted);font-family:monospace;margin-top:1px;">🏷️ ${escapeHtml(item.barcode)}</div>` : ''}
         ${stockBadge}
@@ -752,23 +984,13 @@ function _updateSplitBalance(total) {
 
 // ── Color/size variant picker (Phase-27) ─────────────────────
 function _showVariantPicker(container, inv) {
-  document.body.style.overflow = 'hidden';
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:80vh;overflow-y:auto;box-sizing:border-box;';
-  const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
-  const titleEl = document.createElement('h2');
-  titleEl.style.cssText = 'font-size:1.05rem;font-weight:700;color:var(--text-primary);margin:0;';
-  titleEl.textContent = (inv.has_sizes ? 'Select Color & Size' : 'Select Color') + ' — ' + inv.name;
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
-  header.appendChild(titleEl);
-  header.appendChild(closeBtn);
+  const title = (inv.has_sizes ? 'Select Color & Size' : 'Select Color') + ' — ' + inv.name;
+  const { sheet, close: _close } = createModalShell({ title, size: 'md' });
+  const body = document.createElement('div');
+  body.className = 'modal-body';
   const optionsList = document.createElement('div');
+
+  const selectableRows = [];
 
   if (inv.has_sizes) {
     // Group by color, then show sizes under each
@@ -785,16 +1007,28 @@ function _showVariantPicker(container, inv) {
       sizeVariants.forEach(v => {
         const outOfStock = v.qty <= 0;
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+        row.className = 'variant-option-row' + (outOfStock ? ' disabled' : '');
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', outOfStock ? '-1' : '0');
+        row.setAttribute('aria-disabled', String(outOfStock));
+
         const sizeLabel = document.createElement('div');
-        sizeLabel.style.cssText = 'font-weight:700;font-size:0.9rem;color:var(--text-primary);';
+        sizeLabel.style.cssText = 'font-weight:700;font-size:0.9rem;color:var(--text-primary);display:flex;align-items:center;';
         sizeLabel.textContent = v.size;
+
         const stockEl = document.createElement('div');
-        stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);';
+        stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);display:flex;align-items:center;gap:6px;';
         stockEl.textContent = v.qty + ' in stock';
-        row.appendChild(sizeLabel);
-        row.appendChild(stockEl);
+
         if (!outOfStock) {
+          const rowIdx = selectableRows.length;
+          selectableRows.push(row);
+          if (rowIdx < 5) {
+            const badge = document.createElement('span');
+            badge.className = 'variant-keybadge';
+            badge.textContent = `Alt+${rowIdx + 1}`;
+            stockEl.appendChild(badge);
+          }
           row.addEventListener('click', () => {
             const cartKey = inv.id + '__' + v.color + '__' + v.size;
             if (_cart.has(cartKey)) {
@@ -807,10 +1041,12 @@ function _showVariantPicker(container, inv) {
                 unit: inv.unit || 'pcs', qty: 1,
                 sizeKey: v.color + '/' + v.size, sizeLabel: v.color + ' · ' + v.size });
             }
-            _close();
+            _close(true);
             _refresh(container);
           });
         }
+        row.appendChild(sizeLabel);
+        row.appendChild(stockEl);
         optionsList.appendChild(row);
       });
     });
@@ -819,16 +1055,28 @@ function _showVariantPicker(container, inv) {
     inv.variants.forEach(v => {
       const outOfStock = v.qty <= 0;
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+      row.className = 'variant-option-row' + (outOfStock ? ' disabled' : '');
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', outOfStock ? '-1' : '0');
+      row.setAttribute('aria-disabled', String(outOfStock));
+
       const colorLbl = document.createElement('div');
-      colorLbl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);';
+      colorLbl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);display:flex;align-items:center;';
       colorLbl.textContent = v.color;
+
       const stockEl = document.createElement('div');
-      stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;';
+      stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;display:flex;align-items:center;gap:6px;';
       stockEl.textContent = v.qty + ' in stock';
-      row.appendChild(colorLbl);
-      row.appendChild(stockEl);
+
       if (!outOfStock) {
+        const rowIdx = selectableRows.length;
+        selectableRows.push(row);
+        if (rowIdx < 5) {
+          const badge = document.createElement('span');
+          badge.className = 'variant-keybadge';
+          badge.textContent = `Alt+${rowIdx + 1}`;
+          stockEl.appendChild(badge);
+        }
         row.addEventListener('click', () => {
           const cartKey = inv.id + '__' + v.color;
           if (_cart.has(cartKey)) {
@@ -841,51 +1089,47 @@ function _showVariantPicker(container, inv) {
               unit: inv.unit || 'pcs', qty: 1,
               sizeKey: v.color, sizeLabel: v.color });
           }
-          _close();
+          _close(true);
           _refresh(container);
         });
       }
+      row.appendChild(colorLbl);
+      row.appendChild(stockEl);
       optionsList.appendChild(row);
     });
   }
 
+  _attachVariantKeyboardNav(sheet, selectableRows);
+
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = 'Cancel';
   cancelBtn.className = 'btn btn-secondary btn-full';
-  cancelBtn.style.marginTop = '8px';
-  cancelBtn.addEventListener('click', _close);
-  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-  closeBtn.addEventListener('click', _close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-  sheet.appendChild(header);
-  sheet.appendChild(optionsList);
-  sheet.appendChild(cancelBtn);
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
+  cancelBtn.style.marginTop = '12px';
+  cancelBtn.addEventListener('click', () => _close(true));
+
+  body.appendChild(optionsList);
+  body.appendChild(cancelBtn);
+  sheet.appendChild(body);
 }
+
 // ── Size picker sheet for sized inventory items ────────────────────
 function _showSizePicker(container, inv) {
-  document.body.style.overflow = 'hidden';
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:flex-end;';
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;max-height:80vh;overflow-y:auto;box-sizing:border-box;';
-  const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
-  const titleEl = document.createElement('h2');
-  titleEl.style.cssText = 'font-size:1.05rem;font-weight:700;color:var(--text-primary);margin:0;';
-  titleEl.textContent = 'Select Size — ' + inv.name;
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
-  header.appendChild(titleEl);
-  header.appendChild(closeBtn);
+  const { sheet, close: _close } = createModalShell({ title: 'Select Size — ' + inv.name, size: 'md' });
+  const body = document.createElement('div');
+  body.className = 'modal-body';
   const optionsList = document.createElement('div');
+  optionsList.className = 'variant-options-list';
+
+  const selectableRows = [];
+
   Object.entries(inv.sizes).forEach(([sizeKey, sizeData]) => {
     const outOfStock = sizeData.stock <= 0;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);cursor:' + (outOfStock ? 'default' : 'pointer') + ';opacity:' + (outOfStock ? '0.4' : '1') + ';background:var(--bg-surface);';
+    row.className = 'variant-option-row' + (outOfStock ? ' disabled' : '');
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', outOfStock ? '-1' : '0');
+    row.setAttribute('aria-disabled', String(outOfStock));
+
     const info = document.createElement('div');
     const sizeLabelEl = document.createElement('div');
     sizeLabelEl.style.cssText = 'font-weight:700;font-size:0.95rem;color:var(--text-primary);';
@@ -898,12 +1142,20 @@ function _showSizePicker(container, inv) {
     meta.textContent = parts.join(' · ');
     info.appendChild(sizeLabelEl);
     if (parts.length) info.appendChild(meta);
+
     const stockEl = document.createElement('div');
-    stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;';
+    stockEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;display:flex;align-items:center;gap:6px;';
     stockEl.textContent = sizeData.stock + ' in stock';
-    row.appendChild(info);
-    row.appendChild(stockEl);
+
     if (!outOfStock) {
+      const rowIdx = selectableRows.length;
+      selectableRows.push(row);
+      if (rowIdx < 5) {
+        const badge = document.createElement('span');
+        badge.className = 'variant-keybadge';
+        badge.textContent = `Alt+${rowIdx + 1}`;
+        stockEl.appendChild(badge);
+      }
       row.addEventListener('click', () => {
         const cartKey = inv.id + '::' + sizeKey;
         const sizeLabel = sizeData.color ? sizeData.label + ' · ' + sizeData.color : sizeData.label;
@@ -917,54 +1169,34 @@ function _showSizePicker(container, inv) {
             unit: 'pcs', qty: 1,
             sizeKey, sizeLabel });
         }
-        _close();
+        _close(true);
         _refresh(container);
       });
     }
+    row.appendChild(info);
+    row.appendChild(stockEl);
     optionsList.appendChild(row);
   });
+
+  _attachVariantKeyboardNav(sheet, selectableRows);
+
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = 'Cancel';
   cancelBtn.className = 'btn btn-secondary btn-full';
-  cancelBtn.style.marginTop = '8px';
-  cancelBtn.addEventListener('click', _close);
-  function _close() { document.body.style.overflow = ''; if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-  closeBtn.addEventListener('click', _close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-  sheet.appendChild(header);
-  sheet.appendChild(optionsList);
-  sheet.appendChild(cancelBtn);
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
+  cancelBtn.style.marginTop = '12px';
+  cancelBtn.addEventListener('click', () => _close(true));
+
+  body.appendChild(optionsList);
+  body.appendChild(cancelBtn);
+  sheet.appendChild(body);
 }
 
 
 // ── Ad-hoc item entry bottom-sheet ───────────────────────────
 function _showAdhocItemForm(container) {
-  document.body.style.overflow = 'hidden';
-
-  const overlay = document.createElement('div');
-  overlay.className = 'bs-overlay';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-labelledby', 'adhoc-sheet-title');
-
-  const sheet = document.createElement('div');
-  sheet.className = 'bs-sheet';
-
-  // header
-  const header = document.createElement('div');
-  header.className = 'bs-header';
-  const title = document.createElement('h2');
-  title.id = 'adhoc-sheet-title';
-  title.className = 'bs-title';
-  title.textContent = 'Add Other Item';
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'bs-close-btn';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  header.appendChild(title);
-  header.appendChild(closeBtn);
+  const { sheet, close: _close } = createModalShell({ title: 'Add Other Item', size: 'md' });
+  const body = document.createElement('div');
+  body.className = 'modal-body';
 
   // hint
   const hint = document.createElement('p');
@@ -1016,35 +1248,24 @@ function _showAdhocItemForm(container) {
   const actions = document.createElement('div');
   actions.className = 'bs-actions';
   const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
   cancelBtn.textContent = 'Cancel';
   cancelBtn.className = 'btn btn-secondary';
   cancelBtn.style.flex = '1';
   const addBtn = document.createElement('button');
+  addBtn.type = 'button';
   addBtn.textContent = 'Add to Cart';
   addBtn.className = 'btn btn-primary';
   addBtn.style.flex = '2';
   actions.appendChild(cancelBtn);
   actions.appendChild(addBtn);
 
-  sheet.appendChild(header);
-  sheet.appendChild(hint);
-  sheet.appendChild(nameGroup);
-  sheet.appendChild(priceGroup);
-  sheet.appendChild(errEl);
-  sheet.appendChild(actions);
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
-
-  // slide-in animation
-  requestAnimationFrame(() => sheet.classList.add('bs-sheet--open'));
-
-  function _close() {
-    sheet.classList.remove('bs-sheet--open');
-    sheet.addEventListener('transitionend', () => {
-      document.body.style.overflow = '';
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    }, { once: true });
-  }
+  body.appendChild(hint);
+  body.appendChild(nameGroup);
+  body.appendChild(priceGroup);
+  body.appendChild(errEl);
+  body.appendChild(actions);
+  sheet.appendChild(body);
 
   addBtn.addEventListener('click', () => {
     const name  = nameInput.value.trim();
@@ -1062,13 +1283,10 @@ function _showAdhocItemForm(container) {
       unit: 'pc', qty: 1,
       adhoc: true, sizeKey: null, sizeLabel: null
     });
-    _close();
+    _close(true);
     _refresh(container);
   });
   cancelBtn.addEventListener('click', _close);
-  closeBtn.addEventListener('click', _close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') _close(); });
 
   setTimeout(() => nameInput.focus(), 80);
 }
@@ -1080,27 +1298,25 @@ function _promptSaveAdhocItems(container, items, onDone) {
   function _next(idx) {
     if (idx >= items.length) { onDone(); return; }
     const item = items[idx];
+    let nextTriggered = false;
+    const triggerNext = () => {
+      if (nextTriggered) return;
+      nextTriggered = true;
+      _next(idx + 1);
+    };
 
-    document.body.style.overflow = 'hidden';
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:60;display:flex;align-items:flex-end;';
-    const sheet = document.createElement('div');
-    sheet.style.cssText = 'background:var(--bg-primary);border-radius:16px 16px 0 0;padding:24px 16px;width:100%;box-sizing:border-box;';
+    const { sheet, close: _close } = createModalShell({
+      title: 'Save to Inventory?',
+      size: 'sm',
+      onClose: triggerNext,
+      confirmOnDiscard: false
+    });
 
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;';
-    const titleEl = document.createElement('h2');
-    titleEl.style.cssText = 'font-size:1rem;font-weight:700;color:var(--text-primary);margin:0;';
-    titleEl.textContent = 'Save to Inventory?';
-    const skipXBtn = document.createElement('button');
-    skipXBtn.textContent = '×';
-    skipXBtn.setAttribute('aria-label', 'Skip');
-    skipXBtn.style.cssText = 'background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1;padding:0;';
-    header.appendChild(titleEl);
-    header.appendChild(skipXBtn);
+    const body = document.createElement('div');
+    body.className = 'modal-body';
 
     const subtitle = document.createElement('p');
-    subtitle.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin:0 0 20px;';
+    subtitle.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin:0 0 16px;';
     subtitle.textContent = `Add "${item.name}" to inventory for future use?`;
 
     const priceRow = document.createElement('div');
@@ -1126,17 +1342,14 @@ function _promptSaveAdhocItems(container, items, onDone) {
     stockInput.style.marginBottom = '16px';
 
     const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
     saveBtn.textContent = 'Yes, Add to Inventory';
     saveBtn.className = 'btn btn-primary btn-full';
     const skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
     skipBtn.textContent = 'Skip';
     skipBtn.className = 'btn btn-secondary btn-full';
     skipBtn.style.marginTop = '8px';
-
-    function _close() {
-      document.body.style.overflow = '';
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    }
 
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
@@ -1155,23 +1368,18 @@ function _promptSaveAdhocItems(container, items, onDone) {
       } catch (e) {
         console.warn('[Billing] save adhoc to inventory failed', e);
       }
-      _close();
-      _next(idx + 1);
+      _close(true);
     });
 
-    skipXBtn.addEventListener('click', () => { _close(); _next(idx + 1); });
-    skipBtn.addEventListener('click',  () => { _close(); _next(idx + 1); });
-    overlay.addEventListener('click', e => { if (e.target === overlay) { _close(); _next(idx + 1); } });
+    skipBtn.addEventListener('click', () => { _close(true); });
 
-    sheet.appendChild(header);
-    sheet.appendChild(subtitle);
-    sheet.appendChild(priceRow);
-    sheet.appendChild(stockLabel);
-    sheet.appendChild(stockInput);
-    sheet.appendChild(saveBtn);
-    sheet.appendChild(skipBtn);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
+    body.appendChild(subtitle);
+    body.appendChild(priceRow);
+    body.appendChild(stockLabel);
+    body.appendChild(stockInput);
+    body.appendChild(saveBtn);
+    body.appendChild(skipBtn);
+    sheet.appendChild(body);
   }
 
   _next(0);
