@@ -211,11 +211,16 @@ function _applyAllFilters() {
   if (q) {
     docs = docs.filter(docSnap => {
       const data = docSnap.data();
+      const hasItemMatch = (data.items || []).some(item =>
+        (item.barcode && String(item.barcode).toLowerCase().includes(q)) ||
+        (item.name && String(item.name).toLowerCase().includes(q))
+      );
       return (
         data.saleId?.toLowerCase().includes(q) ||
         (data.sale_id || '').toLowerCase().includes(q) ||
         data.customer_name?.toLowerCase().includes(q) ||
-        data.customer_phone?.includes(q)
+        data.customer_phone?.includes(q) ||
+        hasItemMatch
       );
     });
   }
@@ -414,7 +419,7 @@ async function _exportFiltered(btn) {
   if (btn) btn.disabled = true;
   try {
     const XLSX = await _loadSheetJSLocal();
-    const header = ['Sale ID', 'Date', 'Customer', 'Phone', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'Payment Mode', 'Cash', 'UPI', 'Card'];
+    const header = ['Sale ID', 'Date', 'Customer', 'Phone', 'Items', 'Qty', 'Subtotal', 'Discount', 'Total', 'COGS', 'Gross Profit', 'Margin %', 'Payment Mode', 'Cash', 'UPI', 'Card'];
     const rows = [header];
     _filtered.forEach(docSnap => {
       const s        = docSnap.data();
@@ -433,6 +438,9 @@ async function _exportFiltered(btn) {
         s.subtotal || 0,
         s.discount || 0,
         s.total    || 0,
+        s.cogs != null ? s.cogs : '',
+        s.gross_profit != null ? s.gross_profit : '',
+        s.profit_margin_pct != null ? `${s.profit_margin_pct}%` : '',
         s.payment_mode || 'cash',
         b.cash,
         b.upi,
@@ -763,13 +771,30 @@ function _renderDetailPanel(data, docId) {
     ? new Date(data.timestamp.toDate()).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
     : '—';
 
+  const hasCostInfo = (data.items || []).some(item => item.purchase_price != null || item.line_profit != null) || data.cogs != null;
+
   const itemRows = (data.items || []).map(item => {
-    const lineTotal = (item.qty || 0) * (item.price || 0);
+    const qty = Number(item.qty || item.quantity || 0);
+    const price = Number(item.price || 0);
+    const lineTotal = item.line_total != null ? Number(item.line_total) : (qty * price);
+    const unitCost = item.purchase_price != null ? Number(item.purchase_price) : null;
+    const lineCost = item.line_cost != null ? Number(item.line_cost) : (unitCost != null ? unitCost * qty : null);
+    const lineProfit = item.line_profit != null ? Number(item.line_profit) : (lineCost != null ? lineTotal - lineCost : null);
+
+    const costCell = hasCostInfo
+      ? `<td class="rpt-cell-right rpt-dim">${unitCost != null ? escapeHtml(_fmt(unitCost)) : '—'}</td>`
+      : '';
+    const profitCell = hasCostInfo
+      ? `<td class="rpt-cell-right" style="color:${(lineProfit || 0) >= 0 ? 'var(--success)' : 'var(--danger)'};">${lineProfit != null ? escapeHtml(_fmt(lineProfit)) : '—'}</td>`
+      : '';
+
     return `<tr>
       <td>${escapeHtml(item.name || '')}</td>
       <td class="rpt-cell-center">${escapeHtml(item.size_label || '—')}</td>
-      <td class="rpt-cell-center">${escapeHtml(String(item.qty || 0))}</td>
-      <td class="rpt-cell-right">${escapeHtml(_fmt(item.price))}</td>
+      <td class="rpt-cell-center">${escapeHtml(String(qty))}</td>
+      <td class="rpt-cell-right">${escapeHtml(_fmt(price))}</td>
+      ${costCell}
+      ${profitCell}
       <td class="rpt-cell-right rpt-cell-bold">${escapeHtml(_fmt(lineTotal))}</td>
     </tr>`;
   }).join('');
@@ -799,7 +824,18 @@ function _renderDetailPanel(data, docId) {
   })() : '';
 
   const discountRow = (data.discount && data.discount > 0)
-    ? `<tr class="rpt-discount-row"><td colspan="4" class="rpt-cell-right rpt-dim">Discount</td><td class="rpt-cell-right">${escapeHtml(_fmt(data.discount))}</td></tr>`
+    ? `<tr class="rpt-discount-row"><td colspan="${hasCostInfo ? 6 : 4}" class="rpt-cell-right rpt-dim">Discount</td><td class="rpt-cell-right">${escapeHtml(_fmt(data.discount))}</td></tr>`
+    : '';
+
+  const cogsSummaryRows = (hasCostInfo && data.cogs != null)
+    ? `<tr style="border-top:1px dashed var(--border);">
+        <td colspan="${hasCostInfo ? 6 : 4}" class="rpt-cell-right rpt-dim" style="font-size:0.8rem;">Total COGS</td>
+        <td class="rpt-cell-right rpt-dim" style="font-size:0.8rem;">${escapeHtml(_fmt(data.cogs))}</td>
+      </tr>
+      <tr>
+        <td colspan="${hasCostInfo ? 6 : 4}" class="rpt-cell-right" style="font-size:0.85rem;font-weight:600;color:var(--success);">Gross Profit</td>
+        <td class="rpt-cell-right" style="font-size:0.85rem;font-weight:700;color:var(--success);">${escapeHtml(_fmt(data.gross_profit))} ${data.profit_margin_pct != null ? `(${data.profit_margin_pct}%)` : ''}</td>
+      </tr>`
     : '';
 
   panel.innerHTML = `
@@ -822,20 +858,22 @@ function _renderDetailPanel(data, docId) {
             <th class="rpt-cell-center">Size</th>
             <th class="rpt-cell-center">Qty</th>
             <th class="rpt-cell-right">Rate</th>
+            ${hasCostInfo ? '<th class="rpt-cell-right">Cost</th><th class="rpt-cell-right">Profit</th>' : ''}
             <th class="rpt-cell-right">Total</th>
           </tr>
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="rpt-subtotal-row">
-            <td colspan="4" class="rpt-cell-right rpt-dim">Subtotal</td>
+            <td colspan="${hasCostInfo ? 6 : 4}" class="rpt-cell-right rpt-dim">Subtotal</td>
             <td class="rpt-cell-right">${escapeHtml(_fmt(data.subtotal))}</td>
           </tr>
           ${discountRow}
           <tr class="rpt-total-row">
-            <td colspan="4" class="rpt-cell-right">Total</td>
+            <td colspan="${hasCostInfo ? 6 : 4}" class="rpt-cell-right">Total</td>
             <td class="rpt-cell-right">${escapeHtml(_fmt(data.total))}</td>
           </tr>
+          ${cogsSummaryRows}
         </tfoot>
       </table>
     </div>
